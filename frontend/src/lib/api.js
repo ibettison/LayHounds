@@ -14,4 +14,5 @@ export const api = {
   currentBank: () => axios.get(`${API}/bank/current`).then((r) => r.data),
   dailyStats: () => axios.get(`${API}/daily-stats`).then((r) => r.data),
   previewCap: (params) => axios.post(`${API}/preview-cap`, params).then((r) => r.data),
+  runRaces: (id, count) => axios.post(`${API}/sessions/${id}/run-races?count=${count}`).then((r) => r.data),
 };

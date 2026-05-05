@@ -66,14 +66,20 @@ export default function App() {
     if (!current) return;
     setLoading(true);
     try {
-      const updated = await api.nextRace(current.id);
+      const updated = batchSize === 1
+        ? await api.nextRace(current.id)
+        : await api.runRaces(current.id, batchSize);
       setCurrent(updated);
       await refreshList();
-      const last = updated.races[updated.races.length - 1];
-      if (last.pnl_change >= 0) {
-        toast.success(`Race #${last.race_num}: +£${last.pnl_change.toFixed(2)}`);
+      const racesAdded = updated.races_played - (current.races_played || 0);
+      const pnlDelta = updated.total_pnl - (current.total_pnl || 0);
+      if (batchSize > 1) {
+        const tone = pnlDelta >= 0 ? toast.success : toast.error;
+        tone(`Ran ${racesAdded} races: ${pnlDelta >= 0 ? "+" : ""}£${pnlDelta.toFixed(2)}`);
       } else {
-        toast.error(`Race #${last.race_num}: £${last.pnl_change.toFixed(2)}`);
+        const last = updated.races[updated.races.length - 1];
+        if (last.pnl_change >= 0) toast.success(`Race #${last.race_num}: +£${last.pnl_change.toFixed(2)}`);
+        else toast.error(`Race #${last.race_num}: £${last.pnl_change.toFixed(2)}`);
       }
       if (updated.status !== "active") {
         toast.warning(`Session ${updated.status.replace("_", " ").toUpperCase()}`);
@@ -200,6 +206,23 @@ export default function App() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-[#0A0A0A] border border-[#2A2A2A]" data-testid="batch-size-selector">
+                    {[1, 5, 10, 25, 50].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        data-testid={`batch-${n}`}
+                        onClick={() => setBatchSize(n)}
+                        className={`px-2.5 py-1 text-xs font-mono font-bold transition-colors ${
+                          batchSize === n
+                            ? "bg-pink-500/20 text-pink-400"
+                            : "text-zinc-500 hover:text-white"
+                        }`}
+                      >
+                        ×{n}
+                      </button>
+                    ))}
+                  </div>
                   <Button
                     data-testid="next-race-btn"
                     onClick={runNextRace}
@@ -207,7 +230,7 @@ export default function App() {
                     className="bg-pink-600 hover:bg-pink-500 text-white font-bold uppercase tracking-wider rounded-none border-b-2 border-pink-800 active:translate-y-[1px] active:border-b-0 disabled:opacity-40"
                   >
                     <Play className="w-4 h-4 mr-2" />
-                    {loading ? "Running…" : "Run Next Race"}
+                    {loading ? "Running…" : `Run ${batchSize === 1 ? "Next Race" : batchSize + " Races"}`}
                   </Button>
                   <Button
                     data-testid="stop-session-btn"

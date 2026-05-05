@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { TrendingUp, TrendingDown, Loader2, Shield } from "lucide-react";
 
-export const CapPreview = ({ stake, maxLiabilityCap, numFavourites, commissionRate }) => {
+export const CapPreview = ({ stake, maxLiabilityCap, numFavourites, commissionRate, oddsMin, oddsMax }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -15,6 +15,8 @@ export const CapPreview = ({ stake, maxLiabilityCap, numFavourites, commissionRa
         max_liability_cap: parseFloat(maxLiabilityCap) || 0,
         num_favourites: parseInt(numFavourites) || 2,
         commission_rate: parseFloat(commissionRate) || 0,
+        odds_min: parseFloat(oddsMin) || 1.01,
+        odds_max: parseFloat(oddsMax) || 1000,
         iterations: 1500,
       })
         .then((d) => { if (!cancelled) setData(d); })
@@ -22,7 +24,7 @@ export const CapPreview = ({ stake, maxLiabilityCap, numFavourites, commissionRa
         .finally(() => { if (!cancelled) setLoading(false); });
     }, 300);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [stake, maxLiabilityCap, numFavourites, commissionRate]);
+  }, [stake, maxLiabilityCap, numFavourites, commissionRate, oddsMin, oddsMax]);
 
   if (!data && !loading) return null;
 

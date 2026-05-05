@@ -40,6 +40,8 @@ export const NewSessionDialog = ({ onCreated }) => {
     risk_accepted: false,
     stake: 0.05,
     commission_rate: 0.05,
+    odds_min: 1.01,
+    odds_max: 10.0,
   });
 
   useEffect(() => {
@@ -234,6 +236,20 @@ export const NewSessionDialog = ({ onCreated }) => {
               Any recovery bet whose liability would exceed this auto-busts the chain. Set 0 to disable.
             </div>
           </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label className="label-xs">Lay Odds Range (skip favs outside this band)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input data-testid="input-odds-min" type="number" step="0.01" min="1.01"
+                value={form.odds_min} onChange={(e) => update("odds_min", e.target.value)}
+                placeholder="min e.g. 2.00" className={inputCls} />
+              <Input data-testid="input-odds-max" type="number" step="0.01" min="1.01"
+                value={form.odds_max} onChange={(e) => update("odds_max", e.target.value)}
+                placeholder="max e.g. 4.00" className={inputCls} />
+            </div>
+            <div className="text-[10px] text-zinc-500 font-mono">
+              Lay only when favourite odds fall in [{form.odds_min}, {form.odds_max}]. Tighter band = fewer bets but typically better EV.
+            </div>
+          </div>
         </div>
 
         <CapPreview
@@ -241,6 +257,8 @@ export const NewSessionDialog = ({ onCreated }) => {
           maxLiabilityCap={form.max_liability_cap}
           numFavourites={form.num_favourites}
           commissionRate={form.commission_rate}
+          oddsMin={form.odds_min}
+          oddsMax={form.odds_max}
         />
 
         {form.mode === "live" && (

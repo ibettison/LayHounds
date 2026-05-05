@@ -55,6 +55,8 @@ class SessionConfig(BaseModel):
     max_liability_cap: float = Field(default=5.0, ge=0)  # live-mode safety
     risk_accepted: bool = False  # required for live mode
     commission_rate: float = Field(default=0.05, ge=0.0, le=0.2)  # Betfair typical 5%
+    odds_min: float = Field(default=1.01, ge=1.01, le=1000.0)  # only lay favs with odds >=
+    odds_max: float = Field(default=1000.0, ge=1.01, le=1000.0)  # and <=
 
 
 class Greyhound(BaseModel):
@@ -303,6 +305,9 @@ async def next_race(session_id: str):
             runner = get_runner_by_rank(runners, rank)
         except ValueError:
             continue
+        # Odds range filter: skip favs outside the configured band
+        if runner.odds < session.config.odds_min or runner.odds > session.config.odds_max:
+            continue
         stake = round(chain.pending_stake, 4)
         liability = round(stake * (runner.odds - 1), 4)
 
@@ -444,6 +449,8 @@ class CapPreviewInput(BaseModel):
     num_favourites: int = Field(default=2, ge=1, le=4)
     commission_rate: float = Field(default=0.05, ge=0, le=0.2)
     iterations: int = Field(default=2000, ge=100, le=10000)
+    odds_min: float = Field(default=1.01, ge=1.01)
+    odds_max: float = Field(default=1000.0, ge=1.01)
 
 
 @api_router.post("/preview-cap")
@@ -465,6 +472,8 @@ async def preview_cap(inp: CapPreviewInput):
             runners, _v = generate_race(1)
             runner = get_runner_by_rank(runners, 1)  # treat as rank-1 surrogate
             odds = runner.odds
+            if odds < inp.odds_min or odds > inp.odds_max:
+                return {"won_at_level": level, "chain_pnl": chain_pnl, "races": races}
             liability = pending * (odds - 1)
             if inp.max_liability_cap > 0 and liability > inp.max_liability_cap:
                 return {"bust_level": level, "chain_pnl": -accum_loss, "races": races}
@@ -540,6 +549,27 @@ async def betfair_races(minutes_ahead: int = 30, max_results: int = 10):
     except BetfairError as e:
         raise HTTPException(502, f"Betfair error: {e}")
     return {"count": len(markets), "markets": markets}
+
+
+@api_router.post("/sessions/{session_id}/run-races", response_model=Session)
+async def run_races(session_id: str, count: int = 10):
+    """Run multiple races back-to-back in one call. Stops early on stop conditions."""
+    if count < 1 or count > 100:
+        raise HTTPException(400, "count must be 1..100")
+    last_session = None
+    for _ in range(count):
+        # Re-load each iteration to honour fresh stop conditions
+        doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(404, "Session not found")
+        s = Session(**doc)
+        if s.status != "active":
+            return s
+        last_session = await next_race(session_id)
+    if last_session is None:
+        doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+        return Session(**doc)
+    return last_session
 
 
 @api_router.post("/sessions/{session_id}/stop", response_model=Session)
