@@ -152,6 +152,7 @@ export default function App() {
                 <ConfRow l="Mode" v={(current.config.mode || "simulator").replace("_", "-")} />
                 <ConfRow l="Stake" v={`£${current.config.stake.toFixed(2)}`} />
                 <ConfRow l="Commission" v={`${((current.config.commission_rate ?? 0.05) * 100).toFixed(1)}%`} />
+                <ConfRow l="Liab Cap" v={(current.config.max_liability_cap ?? 0) > 0 ? `£${current.config.max_liability_cap.toFixed(2)}` : "off"} />
                 <ConfRow l="# Favs" v={current.config.num_favourites} />
                 <ConfRow l="Stop Win" v={`£${current.config.stop_win.toFixed(2)}`} />
                 <ConfRow l="Stop Loss" v={`£${current.config.stop_loss.toFixed(2)}`} />

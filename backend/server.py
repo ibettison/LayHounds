@@ -306,7 +306,9 @@ async def next_race(session_id: str):
         stake = round(chain.pending_stake, 4)
         liability = round(stake * (runner.odds - 1), 4)
 
-        if mode == "live" and liability > session.config.max_liability_cap:
+        # Liability cap applies to all modes — auto-busts recovery chains
+        # whose next bet would exceed the safety cap.
+        if session.config.max_liability_cap > 0 and liability > session.config.max_liability_cap:
             chain.busted = True
             continue
 

@@ -223,6 +223,16 @@ export const NewSessionDialog = ({ onCreated }) => {
               Default 5% = standard Betfair UK. 0% for pre-commission simulation.
             </div>
           </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label className="label-xs">Max Liability Cap £ (bust protection)</Label>
+            <Input data-testid="input-max-liability-cap" type="number" step="0.01" min="0"
+              value={form.max_liability_cap}
+              onChange={(e) => update("max_liability_cap", e.target.value)}
+              className={inputCls} />
+            <div className="text-[10px] text-zinc-500 font-mono">
+              Any recovery bet whose liability would exceed this auto-busts the chain. Set 0 to disable.
+            </div>
+          </div>
         </div>
 
         {form.mode === "live" && (
@@ -230,16 +240,6 @@ export const NewSessionDialog = ({ onCreated }) => {
             <div className="flex items-center gap-2 text-red-400">
               <AlertTriangle className="w-4 h-4" />
               <div className="font-display uppercase text-sm font-bold">Live Mode Warning</div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="label-xs">Max Liability Cap £ (safety)</Label>
-              <Input data-testid="input-max-liability-cap" type="number" step="0.01"
-                value={form.max_liability_cap}
-                onChange={(e) => update("max_liability_cap", e.target.value)}
-                className={inputCls} />
-              <div className="text-[10px] text-zinc-500 font-mono">
-                Chains auto-bust if a recovery bet would exceed this liability.
-              </div>
             </div>
             <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/30">
               <Checkbox
