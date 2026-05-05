@@ -38,6 +38,7 @@ export const NewSessionDialog = ({ onCreated }) => {
     max_liability_cap: 5,
     risk_accepted: false,
     stake: 0.05,
+    commission_rate: 0.05,
   });
 
   useEffect(() => {
@@ -45,6 +46,14 @@ export const NewSessionDialog = ({ onCreated }) => {
     api.betfairStatus()
       .then((s) => setBetfairOk(s.configured && s.logged_in))
       .catch(() => setBetfairOk(false));
+    // Pre-fill starting bank from prior session's ending bank
+    api.currentBank()
+      .then((d) => {
+        if (d && typeof d.bank === "number") {
+          setForm((p) => ({ ...p, starting_bank: Number(d.bank.toFixed(2)) }));
+        }
+      })
+      .catch(() => {});
   }, [open]);
 
   const update = (k, v) => setForm((p) => ({ ...p, [k]: v }));
@@ -191,6 +200,28 @@ export const NewSessionDialog = ({ onCreated }) => {
             <Input data-testid="input-max-races" type="number" min="1" max="200"
               value={form.max_races} onChange={(e) => update("max_races", e.target.value)}
               className={inputCls} />
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label className="label-xs">Betfair Commission %</Label>
+            <div className="grid grid-cols-5 gap-1.5">
+              {[0, 0.02, 0.05, 0.065, 0.10].map((c) => {
+                const active = Math.abs((form.commission_rate ?? 0.05) - c) < 0.001;
+                return (
+                  <button key={c} type="button"
+                    data-testid={`commission-${(c*100).toFixed(1)}`}
+                    onClick={() => update("commission_rate", c)}
+                    className={`p-2 border font-mono text-sm transition-colors ${
+                      active ? "border-pink-500 bg-pink-500/10 text-pink-400 font-bold"
+                             : "border-[#2A2A2A] hover:bg-[#1C1C1C] text-zinc-400"
+                    }`}>
+                    {(c * 100).toFixed(c === 0.065 ? 1 : 0)}%
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-[10px] text-zinc-500 font-mono">
+              Default 5% = standard Betfair UK. 0% for pre-commission simulation.
+            </div>
           </div>
         </div>
 

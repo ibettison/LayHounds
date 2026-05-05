@@ -54,6 +54,7 @@ class SessionConfig(BaseModel):
     mode: Literal["simulator", "paper_live", "live"] = "simulator"
     max_liability_cap: float = Field(default=5.0, ge=0)  # live-mode safety
     risk_accepted: bool = False  # required for live mode
+    commission_rate: float = Field(default=0.05, ge=0.0, le=0.2)  # Betfair typical 5%
 
 
 class Greyhound(BaseModel):
@@ -364,8 +365,11 @@ async def next_race(session_id: str):
                 chain.pending_stake = round(bet.liability + bet.stake + session.config.stake, 4)
         else:
             bet.result = "win"
-            bet.pnl = bet.stake
-            pnl_change += bet.stake
+            gross_win = bet.stake
+            commission = round(gross_win * session.config.commission_rate, 4)
+            net_win = round(gross_win - commission, 4)
+            bet.pnl = net_win
+            pnl_change += net_win
             chain.level = 0
             chain.accumulated_loss = 0.0
             chain.pending_stake = session.config.stake
@@ -398,6 +402,38 @@ async def next_race(session_id: str):
 @api_router.get("/betfair/status")
 async def betfair_status():
     return await betfair.status()
+
+
+@api_router.get("/bank/current")
+async def current_bank():
+    """Return the ending bank of the most recent session, or None if no sessions exist."""
+    doc = await db.sessions.find_one({}, {"_id": 0}, sort=[("created_at", -1)])
+    if not doc:
+        return {"bank": None}
+    return {"bank": doc.get("bank", 0.0), "from_session_id": doc.get("id"), "status": doc.get("status")}
+
+
+@api_router.get("/daily-stats")
+async def daily_stats():
+    """Aggregate P&L per session (each session = one trading day)."""
+    docs = await db.sessions.find({}, {"_id": 0}).sort("created_at", 1).to_list(500)
+    rows = []
+    cumulative = 0.0
+    for d in docs:
+        pnl = d.get("total_pnl", 0.0)
+        cumulative += pnl
+        rows.append({
+            "id": d["id"],
+            "created_at": d.get("created_at"),
+            "pnl": round(pnl, 2),
+            "cumulative_pnl": round(cumulative, 2),
+            "bank_start": d.get("config", {}).get("starting_bank", 0.0),
+            "bank_end": d.get("bank", 0.0),
+            "races": d.get("races_played", 0),
+            "status": d.get("status", "active"),
+            "mode": d.get("config", {}).get("mode", "simulator"),
+        })
+    return {"days": rows, "total_pnl": round(cumulative, 2), "sessions": len(rows)}
 
 
 @api_router.get("/betfair/races")

@@ -11,4 +11,6 @@ export const api = {
   stopSession: (id) => axios.post(`${API}/sessions/${id}/stop`).then((r) => r.data),
   deleteSession: (id) => axios.delete(`${API}/sessions/${id}`).then((r) => r.data),
   betfairStatus: () => axios.get(`${API}/betfair/status`).then((r) => r.data),
+  currentBank: () => axios.get(`${API}/bank/current`).then((r) => r.data),
+  dailyStats: () => axios.get(`${API}/daily-stats`).then((r) => r.data),
 };

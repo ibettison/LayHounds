@@ -11,6 +11,7 @@ import { RecoveryStatus } from "@/components/RecoveryStatus";
 import { RaceHistory } from "@/components/RaceHistory";
 import { SessionList } from "@/components/SessionList";
 import { BetfairStatusBadge } from "@/components/BetfairStatusBadge";
+import { DailyChart } from "@/components/DailyChart";
 
 export default function App() {
   const [sessions, setSessions] = useState([]);
@@ -150,6 +151,7 @@ export default function App() {
               <div className="space-y-2 text-sm">
                 <ConfRow l="Mode" v={(current.config.mode || "simulator").replace("_", "-")} />
                 <ConfRow l="Stake" v={`£${current.config.stake.toFixed(2)}`} />
+                <ConfRow l="Commission" v={`${((current.config.commission_rate ?? 0.05) * 100).toFixed(1)}%`} />
                 <ConfRow l="# Favs" v={current.config.num_favourites} />
                 <ConfRow l="Stop Win" v={`£${current.config.stop_win.toFixed(2)}`} />
                 <ConfRow l="Stop Loss" v={`£${current.config.stop_loss.toFixed(2)}`} />
@@ -265,6 +267,9 @@ export default function App() {
                   <RaceHistory races={current.races} />
                 </div>
               </div>
+
+              {/* Daily trading journal / cross-session P&L */}
+              <DailyChart refreshKey={current.races_played + "_" + current.status} />
             </>
           )}
         </section>
