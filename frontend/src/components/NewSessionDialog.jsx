@@ -15,6 +15,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Plus, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
+import { CapPreview } from "./CapPreview";
 
 const MODES = [
   { id: "simulator", label: "Simulator", desc: "Fake UK greyhound races. No Betfair connection needed." },
@@ -234,6 +235,13 @@ export const NewSessionDialog = ({ onCreated }) => {
             </div>
           </div>
         </div>
+
+        <CapPreview
+          stake={form.stake}
+          maxLiabilityCap={form.max_liability_cap}
+          numFavourites={form.num_favourites}
+          commissionRate={form.commission_rate}
+        />
 
         {form.mode === "live" && (
           <div className="space-y-3 pt-2 border-t border-red-500/30">

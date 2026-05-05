@@ -438,6 +438,101 @@ async def daily_stats():
     return {"days": rows, "total_pnl": round(cumulative, 2), "sessions": len(rows)}
 
 
+class CapPreviewInput(BaseModel):
+    stake: float = Field(ge=0.01)
+    max_liability_cap: float = Field(ge=0)
+    num_favourites: int = Field(default=2, ge=1, le=4)
+    commission_rate: float = Field(default=0.05, ge=0, le=0.2)
+    iterations: int = Field(default=2000, ge=100, le=10000)
+
+
+@api_router.post("/preview-cap")
+async def preview_cap(inp: CapPreviewInput):
+    """Monte-Carlo preview of cap impact for given stake/cap.
+    Runs `iterations` independent race chains per favourite rank.
+    Returns bust-level distribution, expected profit/race, worst chain loss.
+    """
+
+    def simulate_one_rank():
+        """Simulate one chain-life on a given rank until it resets (win) or busts."""
+        level = 0
+        pending = inp.stake
+        accum_loss = 0.0
+        chain_pnl = 0.0
+        races = 0
+        # Loop races until chain resets to L0 via a win, or busts.
+        for _ in range(10):
+            runners, _v = generate_race(1)
+            runner = get_runner_by_rank(runners, 1)  # treat as rank-1 surrogate
+            odds = runner.odds
+            liability = pending * (odds - 1)
+            if inp.max_liability_cap > 0 and liability > inp.max_liability_cap:
+                return {"bust_level": level, "chain_pnl": -accum_loss, "races": races}
+            races += 1
+            winner = pick_winner(runners)
+            if winner == runner.trap:
+                # lay loses
+                chain_pnl -= liability
+                accum_loss += liability + pending
+                if level >= MAX_RECOVERY_LEVEL:
+                    return {"bust_level": MAX_RECOVERY_LEVEL, "chain_pnl": chain_pnl, "races": races}
+                level += 1
+                pending = liability + pending + inp.stake
+            else:
+                gross = pending
+                commission = gross * inp.commission_rate
+                chain_pnl += gross - commission
+                return {"won_at_level": level, "chain_pnl": chain_pnl, "races": races}
+        return {"bust_level": level, "chain_pnl": chain_pnl, "races": races}
+
+    # Restore default random for simulation determinism
+    _seed = random.getstate()
+    random.seed(42)
+    try:
+        stats = {"bust_L0": 0, "bust_L1": 0, "bust_L2": 0, "bust_L3": 0,
+                 "won_L0": 0, "won_L1": 0, "won_L2": 0, "won_L3": 0}
+        total_pnl = 0.0
+        total_races = 0
+        worst_chain = 0.0
+        for _ in range(inp.iterations):
+            res = simulate_one_rank()
+            total_pnl += res["chain_pnl"]
+            total_races += res["races"]
+            worst_chain = min(worst_chain, res["chain_pnl"])
+            if "won_at_level" in res:
+                stats[f"won_L{res['won_at_level']}"] += 1
+            else:
+                stats[f"bust_L{res['bust_level']}"] += 1
+    finally:
+        random.setstate(_seed)
+
+    chains_total = inp.iterations
+    wins = stats["won_L0"] + stats["won_L1"] + stats["won_L2"] + stats["won_L3"]
+    busts = chains_total - wins
+    bust_at_L0 = stats["bust_L0"]  # capped before placing any bet
+    reach_L3 = stats["won_L3"] + stats["bust_L3"]
+
+    return {
+        "iterations": chains_total,
+        "per_rank": inp.num_favourites,
+        "win_rate": round(wins / chains_total * 100, 1),
+        "bust_rate": round(busts / chains_total * 100, 1),
+        "reach_l3_rate": round(reach_L3 / chains_total * 100, 1),
+        "bust_distribution": {
+            "L0_cap_blocked": bust_at_L0,
+            "L1": stats["bust_L1"],
+            "L2": stats["bust_L2"],
+            "L3": stats["bust_L3"],
+        },
+        "win_distribution": {
+            "L0": stats["won_L0"], "L1": stats["won_L1"],
+            "L2": stats["won_L2"], "L3": stats["won_L3"],
+        },
+        "expected_profit_per_race": round(total_pnl / max(total_races, 1) * inp.num_favourites, 4),
+        "worst_chain_loss": round(worst_chain, 2),
+    }
+
+
 @api_router.get("/betfair/races")
 async def betfair_races(minutes_ahead: int = 30, max_results: int = 10):
     try:
