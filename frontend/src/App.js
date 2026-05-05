@@ -118,6 +118,9 @@ export default function App() {
     return map[status] || map.active;
   };
 
+  const inOverrun =
+    current && current.status === "active" && current.races_played >= current.config.max_races;
+
   return (
     <div className="App min-h-screen bg-[#0A0A0A]">
       <Toaster theme="dark" position="top-right" richColors />
@@ -202,8 +205,17 @@ export default function App() {
                   >
                     {statusBadge(current.status).txt}
                   </div>
+                  {inOverrun && (
+                    <div
+                      data-testid="overrun-badge"
+                      className="px-3 py-1 border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-bold uppercase tracking-wider"
+                    >
+                      Recovery Overrun
+                    </div>
+                  )}
                   <div className="text-sm text-zinc-400 font-mono">
                     Race {current.races_played}/{current.config.max_races}
+                    {inOverrun && " (+overrun)"}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

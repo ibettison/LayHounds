@@ -296,16 +296,21 @@ async def next_race(session_id: str):
         selection_by_rank = live["selection_by_rank"]
 
     # Place lay bets for each favourite slot
+    overrun_mode = session.races_played >= session.config.max_races
     bets: List[LayBet] = []
     for rank in range(1, session.config.num_favourites + 1):
         chain = session.recovery_chains.get(str(rank), RecoveryChain())
         if chain.busted:
+            continue
+        # In overrun mode (past max_races), only bet on chains in active recovery
+        if overrun_mode and chain.level == 0:
             continue
         try:
             runner = get_runner_by_rank(runners, rank)
         except ValueError:
             continue
         # Odds range filter: skip favs outside the configured band
+        # (skip in overrun mode too — if odds outside band, chain still pending next race)
         if runner.odds < session.config.odds_min or runner.odds > session.config.odds_max:
             continue
         stake = round(chain.pending_stake, 4)
@@ -400,7 +405,15 @@ async def next_race(session_id: str):
     elif session.total_pnl <= -session.config.stop_loss:
         session.status = "stopped_loss"
     elif session.races_played >= session.config.max_races:
-        session.status = "stopped_max"
+        # End-of-day: only stop if no chains are still in active recovery.
+        # Otherwise, keep racing in "overrun" mode until each chain either
+        # wins (resets to L0) or busts.
+        has_recovery = any(
+            (c.level > 0 and not c.busted)
+            for c in session.recovery_chains.values()
+        )
+        if not has_recovery:
+            session.status = "stopped_max"
 
     await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
     return session
