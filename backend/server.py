@@ -238,7 +238,7 @@ async def create_session(config: SessionConfig):
         raise HTTPException(400, "Betfair credentials not configured on server")
     if config.mode == "live" and not config.risk_accepted:
         raise HTTPException(400, "Live mode requires explicit risk acceptance")
-    chains = {str(i): RecoveryChain() for i in range(1, config.num_favourites + 1)}
+    chains = {str(i): RecoveryChain(pending_stake=config.stake) for i in range(1, config.num_favourites + 1)}
     session = Session(config=config, bank=config.starting_bank, recovery_chains=chains)
     await db.sessions.insert_one(session_to_doc(session))
     return session
@@ -356,19 +356,19 @@ async def next_race(session_id: str):
             if chain.level >= MAX_RECOVERY_LEVEL:
                 chain.busted = True
                 chain.level = MAX_RECOVERY_LEVEL
-                chain.pending_stake = INITIAL_STAKE
+                chain.pending_stake = session.config.stake
                 chain.accumulated_loss = new_accum
             else:
                 chain.level += 1
                 chain.accumulated_loss = new_accum
-                chain.pending_stake = round(bet.liability + bet.stake + TARGET_PROFIT, 4)
+                chain.pending_stake = round(bet.liability + bet.stake + session.config.stake, 4)
         else:
             bet.result = "win"
             bet.pnl = bet.stake
             pnl_change += bet.stake
             chain.level = 0
             chain.accumulated_loss = 0.0
-            chain.pending_stake = INITIAL_STAKE
+            chain.pending_stake = session.config.stake
 
     session.bank = round(session.bank + pnl_change, 4)
     session.total_pnl = round(session.total_pnl + pnl_change, 4)

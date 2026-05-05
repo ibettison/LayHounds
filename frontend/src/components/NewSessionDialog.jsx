@@ -22,6 +22,8 @@ const MODES = [
   { id: "live", label: "Live", desc: "REAL LAY BETS placed on Betfair. Real money at risk." },
 ];
 
+const STAKES = [0.05, 0.50, 1.00, 1.50, 2.00];
+
 export const NewSessionDialog = ({ onCreated }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,6 +37,7 @@ export const NewSessionDialog = ({ onCreated }) => {
     mode: "simulator",
     max_liability_cap: 5,
     risk_accepted: false,
+    stake: 0.05,
   });
 
   useEffect(() => {
@@ -133,6 +136,32 @@ export const NewSessionDialog = ({ onCreated }) => {
         </div>
 
         <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="space-y-1.5 col-span-2">
+            <Label className="label-xs">Stake per Bet £</Label>
+            <div className="grid grid-cols-5 gap-1.5">
+              {STAKES.map((s) => {
+                const active = Math.abs(form.stake - s) < 0.001;
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    data-testid={`stake-${s.toFixed(2)}`}
+                    onClick={() => update("stake", s)}
+                    className={`p-2 border font-mono text-sm transition-colors ${
+                      active
+                        ? "border-pink-500 bg-pink-500/10 text-pink-400 font-bold"
+                        : "border-[#2A2A2A] hover:bg-[#1C1C1C] text-zinc-400"
+                    }`}
+                  >
+                    £{s.toFixed(2)}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-[10px] text-zinc-500 font-mono">
+              Target profit per won bet = stake. Recovery stake = prev_liability + prev_stake + stake.
+            </div>
+          </div>
           <div className="space-y-1.5">
             <Label className="label-xs">Starting Bank £</Label>
             <Input data-testid="input-starting-bank" type="number" step="0.01"
