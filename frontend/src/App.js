@@ -17,6 +17,7 @@ export default function App() {
   const [sessions, setSessions] = useState([]);
   const [current, setCurrent] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [batchSize, setBatchSize] = useState(1);
 
   const refreshList = useCallback(async () => {
     try {
