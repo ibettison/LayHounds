@@ -10,6 +10,7 @@ import { RaceCard } from "@/components/RaceCard";
 import { RecoveryStatus } from "@/components/RecoveryStatus";
 import { RaceHistory } from "@/components/RaceHistory";
 import { SessionList } from "@/components/SessionList";
+import { BetfairStatusBadge } from "@/components/BetfairStatusBadge";
 
 export default function App() {
   const [sessions, setSessions] = useState([]);
@@ -127,7 +128,10 @@ export default function App() {
               <div className="label-xs">Greyhound Recovery Simulator</div>
             </div>
           </div>
-          <NewSessionDialog onCreated={onCreated} />
+          <div className="flex items-center gap-3">
+            <BetfairStatusBadge />
+            <NewSessionDialog onCreated={onCreated} />
+          </div>
         </div>
       </header>
 
@@ -144,6 +148,7 @@ export default function App() {
             <div className="bg-[#141414] border border-[#2A2A2A] p-4">
               <div className="label-xs mb-3">Config</div>
               <div className="space-y-2 text-sm">
+                <ConfRow l="Mode" v={(current.config.mode || "simulator").replace("_", "-")} />
                 <ConfRow l="Stake" v={`£${current.config.stake.toFixed(2)}`} />
                 <ConfRow l="# Favs" v={current.config.num_favourites} />
                 <ConfRow l="Stop Win" v={`£${current.config.stop_win.toFixed(2)}`} />

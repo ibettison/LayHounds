@@ -7,13 +7,14 @@ import random
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Dict, Optional, Literal
+from typing import List, Dict, Optional, Literal, Any
 import uuid
 from datetime import datetime, timezone
 
-
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+from betfair_client import betfair, BetfairError, EVENT_TYPE_GREYHOUND  # noqa: E402,F401
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -50,6 +51,9 @@ class SessionConfig(BaseModel):
     stop_loss: float = Field(default=5.0, ge=0)
     max_races: int = Field(default=20, ge=1, le=200)
     starting_bank: float = Field(default=10.0, ge=0)
+    mode: Literal["simulator", "paper_live", "live"] = "simulator"
+    max_liability_cap: float = Field(default=5.0, ge=0)  # live-mode safety
+    risk_accepted: bool = False  # required for live mode
 
 
 class Greyhound(BaseModel):
@@ -81,6 +85,10 @@ class Race(BaseModel):
     pnl_change: float
     bank_after: float
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source: Literal["simulator", "paper_live", "live"] = "simulator"
+    market_id: Optional[str] = None
+    market_start_time: Optional[str] = None
+    betfair_bet_ids: List[str] = Field(default_factory=list)
 
 
 class RecoveryChain(BaseModel):
@@ -151,6 +159,64 @@ def get_runner_by_rank(runners: List[Greyhound], rank: int) -> Greyhound:
     raise ValueError(f"No runner at rank {rank}")
 
 
+async def fetch_live_race() -> Dict[str, Any]:
+    """Fetch next upcoming UK/IE greyhound market and convert to our race shape.
+
+    Returns dict with: runners (List[Greyhound]), venue, market_id, market_start_time.
+    """
+    markets = await betfair.list_greyhound_markets(minutes_ahead=60, max_results=5)
+    if not markets:
+        raise HTTPException(400, "No upcoming UK/IE greyhound markets in next 60 minutes")
+    # Find first market with fresh prices
+    for m in markets:
+        market_id = m["marketId"]
+        book = await betfair.get_market_book(market_id)
+        if not book:
+            continue
+        # Build runner rows: selectionId -> best lay price (odds we'd lay at)
+        runner_meta = {r["selectionId"]: r for r in m.get("runners", [])}
+        priced = []
+        for br in book.get("runners", []):
+            if br.get("status") != "ACTIVE":
+                continue
+            ex = br.get("ex", {})
+            lay_prices = ex.get("availableToLay", [])
+            if not lay_prices:
+                continue
+            odds = lay_prices[0]["price"]
+            sel_id = br["selectionId"]
+            meta = runner_meta.get(sel_id, {})
+            priced.append({
+                "selection_id": sel_id,
+                "name": meta.get("runnerName", f"Runner {sel_id}"),
+                "trap": int(meta.get("metadata", {}).get("CLOTH_NUMBER") or meta.get("metadata", {}).get("TRAP_NUMBER") or 0),
+                "odds": float(odds),
+            })
+        if len(priced) < 2:
+            continue
+        # Assign traps if missing (use order from market)
+        for i, p in enumerate(priced):
+            if not p["trap"]:
+                p["trap"] = i + 1
+        # Compute favourite rank by ascending odds
+        sorted_by_odds = sorted(priced, key=lambda r: r["odds"])
+        rank_by_sel = {r["selection_id"]: idx + 1 for idx, r in enumerate(sorted_by_odds)}
+        runners = [
+            Greyhound(trap=p["trap"], name=p["name"], odds=round(p["odds"], 2), favourite_rank=rank_by_sel[p["selection_id"]])
+            for p in priced
+        ]
+        # Also return selection_id mapping so live bets can target correct runner
+        sel_by_rank = {rank_by_sel[p["selection_id"]]: p["selection_id"] for p in priced}
+        return {
+            "runners": runners,
+            "venue": m.get("event", {}).get("venue") or m.get("event", {}).get("name", "Live"),
+            "market_id": market_id,
+            "market_start_time": m.get("marketStartTime"),
+            "selection_by_rank": sel_by_rank,
+        }
+    raise HTTPException(400, "No markets with live prices available")
+
+
 def session_to_doc(s: Session) -> dict:
     return s.model_dump()
 
@@ -168,6 +234,10 @@ async def root():
 
 @api_router.post("/sessions", response_model=Session)
 async def create_session(config: SessionConfig):
+    if config.mode in ("paper_live", "live") and not betfair.is_configured():
+        raise HTTPException(400, "Betfair credentials not configured on server")
+    if config.mode == "live" and not config.risk_accepted:
+        raise HTTPException(400, "Live mode requires explicit risk acceptance")
     chains = {str(i): RecoveryChain() for i in range(1, config.num_favourites + 1)}
     session = Session(config=config, bank=config.starting_bank, recovery_chains=chains)
     await db.sessions.insert_one(session_to_doc(session))
@@ -206,32 +276,71 @@ async def next_race(session_id: str):
     if session.status != "active":
         raise HTTPException(400, f"Session is {session.status}")
 
-    # Generate race
-    runners, venue = generate_race(session.races_played + 1)
+    mode = session.config.mode
+    market_id = None
+    market_start_time = None
+    selection_by_rank: Dict[int, int] = {}
+    betfair_bet_ids: List[str] = []
+
+    if mode == "simulator":
+        runners, venue = generate_race(session.races_played + 1)
+    else:
+        live = await fetch_live_race()
+        runners = live["runners"]
+        venue = live["venue"]
+        market_id = live["market_id"]
+        market_start_time = live["market_start_time"]
+        selection_by_rank = live["selection_by_rank"]
 
     # Place lay bets for each favourite slot
     bets: List[LayBet] = []
     for rank in range(1, session.config.num_favourites + 1):
         chain = session.recovery_chains.get(str(rank), RecoveryChain())
         if chain.busted:
-            continue  # skip busted chains
-        runner = get_runner_by_rank(runners, rank)
+            continue
+        try:
+            runner = get_runner_by_rank(runners, rank)
+        except ValueError:
+            continue
         stake = round(chain.pending_stake, 4)
         liability = round(stake * (runner.odds - 1), 4)
+
+        if mode == "live" and liability > session.config.max_liability_cap:
+            chain.busted = True
+            continue
+
         bets.append(LayBet(
-            favourite_rank=rank,
-            dog_trap=runner.trap,
-            dog_name=runner.name,
-            odds=runner.odds,
-            stake=stake,
-            liability=liability,
+            favourite_rank=rank, dog_trap=runner.trap, dog_name=runner.name,
+            odds=runner.odds, stake=stake, liability=liability,
             recovery_level=chain.level,
         ))
 
-    # Pick winner
+        if mode == "live":
+            try:
+                sel_id = selection_by_rank[rank]
+                result = await betfair.place_lay_bet(market_id, sel_id, runner.odds, stake)
+                for rep in result.get("instructionReports", []):
+                    if rep.get("betId"):
+                        betfair_bet_ids.append(rep["betId"])
+            except BetfairError as e:
+                raise HTTPException(502, f"Betfair bet placement failed: {e}")
+
+    # Live mode: bet placed on real Betfair, no simulated settlement
+    if mode == "live":
+        race = Race(
+            race_num=session.races_played + 1, venue=venue, runners=runners,
+            bets=bets, winning_trap=0, pnl_change=0.0, bank_after=session.bank,
+            source=mode, market_id=market_id, market_start_time=market_start_time,
+            betfair_bet_ids=betfair_bet_ids,
+        )
+        session.races_played += 1
+        session.races.append(race)
+        await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
+        return session
+
+    # Simulator + paper_live: simulate outcome
     winning_trap = pick_winner(runners)
 
-    # Settle bets and update chains
     pnl_change = 0.0
     total_staked = 0.0
     total_liability = 0.0
@@ -240,24 +349,20 @@ async def next_race(session_id: str):
         total_staked += bet.stake
         total_liability += bet.liability
         if bet.dog_trap == winning_trap:
-            # Lay LOSES — laid dog won
             bet.result = "loss"
             bet.pnl = -bet.liability
             pnl_change -= bet.liability
             new_accum = chain.accumulated_loss + bet.liability + bet.stake
             if chain.level >= MAX_RECOVERY_LEVEL:
-                # Already at level 3, this loss busts the chain
                 chain.busted = True
                 chain.level = MAX_RECOVERY_LEVEL
-                chain.pending_stake = INITIAL_STAKE  # not used
+                chain.pending_stake = INITIAL_STAKE
                 chain.accumulated_loss = new_accum
             else:
                 chain.level += 1
                 chain.accumulated_loss = new_accum
-                # Next stake recovers liability + stake + target profit
                 chain.pending_stake = round(bet.liability + bet.stake + TARGET_PROFIT, 4)
         else:
-            # Lay WINS — laid dog lost
             bet.result = "win"
             bet.pnl = bet.stake
             pnl_change += bet.stake
@@ -272,17 +377,13 @@ async def next_race(session_id: str):
     session.races_played += 1
 
     race = Race(
-        race_num=session.races_played,
-        venue=venue,
-        runners=runners,
-        bets=bets,
-        winning_trap=winning_trap,
-        pnl_change=round(pnl_change, 4),
-        bank_after=session.bank,
+        race_num=session.races_played, venue=venue, runners=runners, bets=bets,
+        winning_trap=winning_trap, pnl_change=round(pnl_change, 4),
+        bank_after=session.bank, source=mode, market_id=market_id,
+        market_start_time=market_start_time,
     )
     session.races.append(race)
 
-    # Check stop conditions
     if session.total_pnl >= session.config.stop_win:
         session.status = "stopped_win"
     elif session.total_pnl <= -session.config.stop_loss:
@@ -292,6 +393,20 @@ async def next_race(session_id: str):
 
     await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
     return session
+
+
+@api_router.get("/betfair/status")
+async def betfair_status():
+    return await betfair.status()
+
+
+@api_router.get("/betfair/races")
+async def betfair_races(minutes_ahead: int = 30, max_results: int = 10):
+    try:
+        markets = await betfair.list_greyhound_markets(minutes_ahead=minutes_ahead, max_results=max_results)
+    except BetfairError as e:
+        raise HTTPException(502, f"Betfair error: {e}")
+    return {"count": len(markets), "markets": markets}
 
 
 @api_router.post("/sessions/{session_id}/stop", response_model=Session)

@@ -29,18 +29,31 @@ Create a Betfair-style system to lay multiple UK greyhounds at fixed £0.05 stak
 - Dark "Tactical Minimalism" theme: Barlow Condensed / DM Sans / JetBrains Mono, Betfair pink accents, 1px borders, rounded-none.
 - All interactive elements tagged with data-testid.
 
+## Implemented (2026-02 — Betfair integration)
+- `/app/backend/betfair_client.py` — raw async httpx JSON-RPC client, interactive login, 12h session + auto-refresh, listMarketCatalogue + listMarketBook + placeOrders + cancelOrders.
+- SessionConfig extended with `mode` (simulator | paper_live | live), `max_liability_cap`, `risk_accepted`.
+- Race extended with `source`, `market_id`, `market_start_time`, `betfair_bet_ids`.
+- New endpoints: GET /api/betfair/status, GET /api/betfair/races.
+- `next-race` is now mode-aware:
+  - simulator: fake races (unchanged).
+  - paper_live: fetches real Betfair GB/IE greyhound market (next 60 min), real runners + real odds, outcome simulated via weighted 1/odds.
+  - live: fetches real market, actually places LAY orders on Betfair (returns betIds), then the user settles via the Betfair web UI. Max-liability cap auto-busts runaway recoveries.
+- Live-mode guardrails: creation requires `risk_accepted=true`, per-bet liability capped at `max_liability_cap`.
+- Credentials in backend/.env only — never exposed to frontend.
+
+## ⚠️ Known deployment constraint
+Betfair geo-blocks all non-UK/EU traffic (Cloudflare "Restricted" 403). The current Emergent preview pod runs in the US (IP 34.16.56.64) and cannot reach Betfair APIs. The Betfair status endpoint returns `GEO_BLOCKED`. The integration code is correct and will work unchanged once the backend is deployed on a UK/EU host (e.g. self-hosted UK VPS, or routed via a UK reverse proxy).
+
 ## Backlog
 ### P1
-- Per-race manual winner override (toggle to set winner instead of weighted-random) for deterministic stress-testing.
-- Export session as CSV.
-- Chart of bank progression (recharts is already in deps).
+- Live-mode auto-settlement: poll listMarketBook until CLOSED, match WINNER selection back to runners via persisted selection_id per Greyhound (currently missing).
+- UK/EU proxy/deployment guide in README.
+- Per-race manual winner override (toggle) for deterministic stress-testing.
+- Bank progression line chart (recharts).
 
 ### P2
-- Per-greyhound (not just per-rank) recovery mode option.
-- Variable initial stake.
-- Configurable recovery depth (currently fixed at 3).
-- Sound effects on race result.
-- Multi-day session aggregation view.
+- Monte-Carlo batch mode (run config × 1000 silently).
+- CSV export, variable initial stake, configurable recovery depth, per-dog (vs per-rank) recovery mode.
 
 ## Test Status
 - Backend: 9/9 pytest tests passing (`/app/backend/tests/test_simulator.py`) — covers CRUD, race-gen invariants, full L0→L3→bust chain, stop conditions, 404s.
