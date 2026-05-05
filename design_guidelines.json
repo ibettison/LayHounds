@@ -1,0 +1,108 @@
+{
+  "theme": "dark",
+  "archetype": "2 (Performance Pro)",
+  "rationale": "The application is a data-dense betting simulator. It requires a 'Control Room' feel, prioritizing high-visibility data clarity, rapid scannability, and high-stakes performance styling.",
+  "typography": {
+    "fonts": {
+      "heading": "Barlow Condensed",
+      "body": "DM Sans",
+      "mono": "JetBrains Mono"
+    },
+    "scale": {
+      "h1": "text-4xl sm:text-5xl tracking-tighter uppercase font-black",
+      "h2": "text-2xl sm:text-3xl tracking-tight uppercase font-bold",
+      "h3": "text-xl sm:text-2xl uppercase font-semibold",
+      "h4": "text-lg uppercase tracking-widest text-zinc-400 font-semibold",
+      "body": "text-sm sm:text-base leading-relaxed font-medium",
+      "mono_data": "font-mono text-sm tracking-tight",
+      "labels": "text-xs uppercase tracking-[0.2em] font-bold text-zinc-500"
+    },
+    "rules": [
+      "No generic sans like Inter for headings.",
+      "Use JetBrains Mono for all racing odds, liabilities, stakes, and P&L data.",
+      "Use Barlow Condensed for section headers and aggressive styling."
+    ]
+  },
+  "colors": {
+    "background": "#0A0A0A",
+    "surface": {
+      "default": "#141414",
+      "elevated": "#1C1C1C",
+      "border": "#2A2A2A"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A1A1AA",
+      "tertiary": "#52525B"
+    },
+    "accents": {
+      "primary": "#EC4899",
+      "primary_hover": "#F472B6",
+      "secondary": "#3B82F6",
+      "win": "#10B981",
+      "loss": "#EF4444",
+      "liability": "#F59E0B"
+    },
+    "betfair_specific": {
+      "lay_bg": "bg-pink-500/10",
+      "lay_border": "border-pink-500/30",
+      "lay_text": "text-pink-400",
+      "back_bg": "bg-blue-500/10",
+      "back_border": "border-blue-500/30",
+      "back_text": "text-blue-400"
+    }
+  },
+  "layout": {
+    "spacing_scale": "tight",
+    "grid_mode": "Control Room Grid",
+    "border_radius": "rounded-none",
+    "surface_styles": {
+      "cards": "bg-[#141414] border border-[#2A2A2A] shadow-none",
+      "headers": "bg-[#0A0A0A] border-b border-[#2A2A2A]",
+      "tables": "border-collapse border border-[#2A2A2A] text-left"
+    },
+    "rules": [
+      "Use dense, compact spacing (`p-4`, `p-6`) for data cards.",
+      "1px solid strokes everywhere. No soft dropshadows. Use inner glows or solid borders for depth.",
+      "Grid children must stretch to match row height (`h-full`)."
+    ]
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-pink-600 hover:bg-pink-500 text-white font-bold uppercase tracking-wider rounded-none transition-colors border-b-2 border-pink-800 active:translate-y-[2px] active:border-b-0",
+      "secondary": "bg-[#1C1C1C] hover:bg-[#2A2A2A] text-white border border-[#2A2A2A] rounded-none transition-colors"
+    },
+    "tables": {
+      "header": "bg-[#1C1C1C] text-xs font-bold uppercase tracking-wider text-zinc-400 border-b border-[#2A2A2A] p-3",
+      "row": "border-b border-[#2A2A2A] hover:bg-[#1C1C1C]/50 transition-colors",
+      "cell": "p-3 font-mono text-sm"
+    },
+    "inputs": {
+      "default": "bg-[#0A0A0A] border border-[#2A2A2A] text-white p-2 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 rounded-none font-mono"
+    }
+  },
+  "animations": {
+    "transitions": "transition-all duration-200 ease-in-out",
+    "micro_interactions": "Hover states must lighten background and change text colors. Buttons have a tactile click (active:translate-y).",
+    "data_updates": "Use flash effects (green/red background pulse) when P&L updates."
+  },
+  "media": {
+    "image_urls": [
+      {
+        "url": "https://images.unsplash.com/photo-1711635745205-1fb145e0e458?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwxfHxncmV5aG91bmQlMjByYWNpbmclMjBzaWxob3VldHRlfGVufDB8fHx8MTc3Nzk3OTUxMXww&ixlib=rb-4.1.0&q=85",
+        "category": "background_ambient",
+        "description": "Abstract greyhound/dog aesthetic for login or empty states, use with heavy dark overlay (bg-black/80)."
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Follow the 'Control Room' grid system for layout. The dashboard should have a settings panel on the left/top and live race card/P&L in the center/right.",
+    "Data density is critical. Use Shadcn Table but customize it to have tight padding and no rounded corners.",
+    "Highlight Betfair 'Lay' actions clearly using the provided pink accents (#EC4899).",
+    "All monetary values and odds MUST use the `JetBrains Mono` font for perfect alignment.",
+    "Implement the strategy accurately: target the specific favourite that lost. Display the recovery level (1, 2, 3) visually, perhaps with segmented progress bars or badges.",
+    "Use Phosphor Icons (sharp/regular) for UI elements.",
+    "Ensure all interactive elements have `data-testid` attributes.",
+    "Maintain the dark 'Tactical Minimalism' vibe. Avoid large blocks of color; use color sparingly for data visualization (wins/losses)."
+  ]
+}
