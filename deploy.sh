@@ -38,15 +38,29 @@ step()  { echo -e "\n${BOLD}==> $*${NC}"; }
 
 [ "${EUID:-$(id -u)}" -eq 0 ] || die "Run as root (or via sudo)."
 [ -f /etc/os-release ] && . /etc/os-release
-[ "${ID:-}" = "ubuntu" ]        || warn "Tested on Ubuntu 22.04 only (detected: ${ID:-unknown})."
+[ "${ID:-}" = "ubuntu" ]        || warn "Tested on Ubuntu 22.04 / 24.04 (detected: ${ID:-unknown})."
 
-: "${DOMAIN:?Set DOMAIN=your-domain.com}"
-: "${EMAIL:?Set EMAIL=you@example.com (for Lets Encrypt)}"
+: "${DOMAIN:?Set DOMAIN=your-domain.com OR your server IP}"
 
 APP_DIR="${APP_DIR:-/opt/laylab}"
 APP_USER="${APP_USER:-laylab}"
 REPO="${REPO:-}"
 SKIP_TLS="${SKIP_TLS:-0}"
+
+# If DOMAIN looks like an IPv4 address, force HTTP-only (Let's Encrypt won't
+# issue certs for raw IPs).
+if [[ "$DOMAIN" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  if [ "$SKIP_TLS" != "1" ]; then
+    warn "DOMAIN looks like an IP address — forcing SKIP_TLS=1 (HTTPS needs a real DNS name)."
+    SKIP_TLS=1
+  fi
+fi
+
+# EMAIL only required when we're actually going to run certbot.
+if [ "$SKIP_TLS" != "1" ]; then
+  : "${EMAIL:?Set EMAIL=you@example.com (for Lets Encrypt) or pass SKIP_TLS=1}"
+fi
+EMAIL="${EMAIL:-noreply@example.com}"
 
 # ---------- Prompt for missing Betfair creds ----------------------------------
 prompt_if_empty() {
@@ -172,11 +186,15 @@ EOF
 # ==============================================================================
 step "4/8  Backend .env"
 # ==============================================================================
+PROTO_BUILD="https"
+[ "$SKIP_TLS" = "1" ] && PROTO_BUILD="http"
+PUBLIC_URL="${PROTO_BUILD}://${DOMAIN}"
+
 BE_ENV="$APP_DIR/backend/.env"
 cat > "$BE_ENV" <<EOF
 MONGO_URL=mongodb://127.0.0.1:27017
 DB_NAME=laylab
-CORS_ORIGINS=https://${DOMAIN}
+CORS_ORIGINS=${PUBLIC_URL}
 BETFAIR_APP_KEY=${BETFAIR_APP_KEY}
 BETFAIR_USERNAME=${BETFAIR_USERNAME}
 BETFAIR_PASSWORD=${BETFAIR_PASSWORD}
@@ -187,9 +205,7 @@ chmod 600 "$BE_ENV"
 # ==============================================================================
 step "5/8  Frontend build"
 # ==============================================================================
-FE_URL="https://${DOMAIN}"
-[ "$SKIP_TLS" = "1" ] && FE_URL="http://${DOMAIN}"
-echo "REACT_APP_BACKEND_URL=${FE_URL}" > "$APP_DIR/frontend/.env"
+echo "REACT_APP_BACKEND_URL=${PUBLIC_URL}" > "$APP_DIR/frontend/.env"
 chown "$APP_USER:$APP_USER" "$APP_DIR/frontend/.env"
 
 sudo -u "$APP_USER" bash <<EOF
