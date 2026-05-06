@@ -269,6 +269,13 @@ async def delete_session(session_id: str):
     return {"deleted": True}
 
 
+@api_router.delete("/sessions")
+async def reset_all_sessions():
+    """Wipe every saved session — full reset. Bank carryover restarts from scratch."""
+    res = await db.sessions.delete_many({})
+    return {"deleted": res.deleted_count}
+
+
 @api_router.post("/sessions/{session_id}/next-race", response_model=Session)
 async def next_race(session_id: str):
     doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})

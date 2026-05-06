@@ -1,8 +1,19 @@
 import React, { useEffect, useState, useCallback } from "react";
 import "@/App.css";
 import { Toaster, toast } from "sonner";
-import { Play, Square, Activity, TrendingUp, TrendingDown, Wallet, Flag } from "lucide-react";
+import { Play, Square, Activity, TrendingUp, TrendingDown, Wallet, Flag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { api } from "@/lib/api";
 import { NewSessionDialog } from "@/components/NewSessionDialog";
 import { StatPanel } from "@/components/StatPanel";
@@ -60,6 +71,17 @@ export default function App() {
       if (current?.id === id) setCurrent(list[0] || null);
     } catch (e) {
       toast.error(`Delete failed: ${e.message}`);
+    }
+  };
+
+  const onResetAll = async () => {
+    try {
+      const res = await api.resetAll();
+      setCurrent(null);
+      await refreshList();
+      toast.success(`Reset complete — ${res.deleted} session${res.deleted === 1 ? "" : "s"} cleared`);
+    } catch (e) {
+      toast.error(`Reset failed: ${e.message}`);
     }
   };
 
@@ -141,6 +163,46 @@ export default function App() {
           </div>
           <div className="flex items-center gap-3">
             <BetfairStatusBadge />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  data-testid="reset-all-btn"
+                  variant="ghost"
+                  disabled={sessions.length === 0}
+                  className="rounded-none border border-[#2A2A2A] text-zinc-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/40 font-bold uppercase tracking-wider text-xs disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Reset
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent
+                data-testid="reset-confirm-dialog"
+                className="bg-[#141414] border-[#2A2A2A] rounded-none text-white"
+              >
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="font-display uppercase text-2xl tracking-tight text-red-400">
+                    Reset All Data?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-zinc-400 font-mono text-xs leading-relaxed">
+                    This permanently deletes <span className="text-red-400 font-bold">all {sessions.length} saved session{sessions.length === 1 ? "" : "s"}</span>, including races, recovery chains, P&amp;L history and bank carryover. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel
+                    data-testid="reset-cancel-btn"
+                    className="rounded-none bg-transparent border-[#2A2A2A] text-zinc-400 hover:bg-[#1C1C1C] hover:text-white"
+                  >
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    data-testid="reset-confirm-btn"
+                    onClick={onResetAll}
+                    className="rounded-none bg-red-600 hover:bg-red-500 text-white font-bold uppercase tracking-wider"
+                  >
+                    Yes, wipe everything
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <NewSessionDialog onCreated={onCreated} />
           </div>
         </div>
