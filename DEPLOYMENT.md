@@ -40,6 +40,22 @@ Betfair API integration works end-to-end (Paper-Live and Live modes).
 
 ## 3. Server bootstrap (one-time)
 
+> 💡 **Want it all done in one command?** Skip steps 3–8 and use `deploy.sh`:
+>
+> ```bash
+> # On a fresh Ubuntu 22.04 VPS, as root:
+> curl -fsSL https://raw.githubusercontent.com/<you>/<repo>/main/deploy.sh \
+>   | DOMAIN=lay.example.com EMAIL=me@example.com \
+>     REPO=https://github.com/<you>/<repo>.git bash
+> ```
+>
+> The script installs every dependency, creates a `laylab` user, builds the
+> frontend, starts the API under PM2, configures Nginx and provisions
+> Let's Encrypt — typically ~3 minutes end-to-end. Continue reading the manual
+> steps below if you'd rather walk through it yourself.
+
+---
+
 SSH into your fresh Ubuntu 22.04 box as a sudo user (e.g. `ubuntu`) and run:
 
 ```bash
