@@ -1,9 +1,10 @@
 import React from "react";
 import { ShieldAlert, ShieldCheck, ShieldX } from "lucide-react";
 
-const LevelDots = ({ level, busted }) => (
+const LevelDots = ({ level, busted, max = 3 }) => (
   <div className="flex gap-1" data-testid={`level-dots-${level}-${busted}`}>
-    {[1, 2, 3].map((i) => {
+    {Array.from({ length: max }, (_, idx) => {
+      const i = idx + 1;
       const active = i <= level;
       const cls = busted
         ? "bg-red-500"
@@ -15,7 +16,7 @@ const LevelDots = ({ level, busted }) => (
   </div>
 );
 
-export const RecoveryStatus = ({ chains }) => {
+export const RecoveryStatus = ({ chains, maxRecoveryLevel = 3 }) => {
   const ranks = Object.keys(chains).sort((a, b) => parseInt(a) - parseInt(b));
 
   return (

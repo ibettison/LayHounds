@@ -32,6 +32,13 @@ export const CapPreview = ({ stake, maxLiabilityCap, numFavourites, commissionRa
   const ev = data?.expected_profit_per_race ?? 0;
   const evPositive = ev > 0;
   const ev100 = ev * 100;
+  const maxLvl = parseInt(maxRecoveryLevel) || 3;
+  // Colour ramp: amber -> red -> deep red across levels
+  const levelColor = (i, total) => {
+    const palette = ["#F59E0B", "#F97316", "#EF4444", "#B91C1C", "#7F1D1D"];
+    return palette[Math.min(i - 1, palette.length - 1)];
+  };
+  const levels = Array.from({ length: maxLvl }, (_, i) => `L${i + 1}`);
 
   return (
     <div
@@ -58,8 +65,8 @@ export const CapPreview = ({ stake, maxLiabilityCap, numFavourites, commissionRa
               <div className="text-red-400 font-bold text-base">{data.bust_rate}%</div>
             </div>
             <div className="p-2 bg-[#141414]">
-              <div className="label-xs">Reach L3</div>
-              <div className="text-amber-400 font-bold text-base">{data.reach_l3_rate}%</div>
+              <div className="label-xs">Reach L{maxLvl}</div>
+              <div className="text-amber-400 font-bold text-base">{data.reach_top_rate ?? data.reach_l3_rate}%</div>
             </div>
           </div>
 
@@ -88,10 +95,10 @@ export const CapPreview = ({ stake, maxLiabilityCap, numFavourites, commissionRa
           <div className="space-y-1">
             <div className="label-xs">Bust Level Distribution</div>
             <div className="flex h-4 bg-[#141414]">
-              {["L1", "L2", "L3"].map((lvl) => {
-                const v = data.bust_distribution[lvl];
+              {levels.map((lvl, idx) => {
+                const v = data.bust_distribution[lvl] ?? 0;
                 const pct = (v / data.iterations) * 100;
-                const color = { L1: "#F59E0B", L2: "#EF4444", L3: "#7F1D1D" }[lvl];
+                const color = levelColor(idx + 1, maxLvl);
                 return pct > 0 ? (
                   <div
                     key={lvl}
@@ -101,10 +108,10 @@ export const CapPreview = ({ stake, maxLiabilityCap, numFavourites, commissionRa
                 ) : null;
               })}
             </div>
-            <div className="flex gap-3 text-[10px] text-zinc-500 font-mono">
-              <span>L1: {data.bust_distribution.L1}</span>
-              <span>L2: {data.bust_distribution.L2}</span>
-              <span>L3: {data.bust_distribution.L3}</span>
+            <div className="flex flex-wrap gap-3 text-[10px] text-zinc-500 font-mono">
+              {levels.map((lvl) => (
+                <span key={lvl}>{lvl}: {data.bust_distribution[lvl] ?? 0}</span>
+              ))}
               {data.bust_distribution.L0_cap_blocked > 0 && (
                 <span className="text-amber-400">
                   Cap-blocked: {data.bust_distribution.L0_cap_blocked}

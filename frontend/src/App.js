@@ -182,7 +182,7 @@ export default function App() {
                 Welcome to Lay-Lab
               </div>
               <div className="text-zinc-400 max-w-md mx-auto mb-6">
-                A controlled environment to test the 3-level lay recovery strategy on simulated UK
+                A controlled environment to test configurable lay recovery strategies on simulated UK
                 greyhound racing. Start a session to begin.
               </div>
               <NewSessionDialog onCreated={onCreated} />

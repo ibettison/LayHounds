@@ -27,7 +27,6 @@ api_router = APIRouter(prefix="/api")
 # ---------- Constants ----------
 INITIAL_STAKE = 0.05
 TARGET_PROFIT = 0.05
-MAX_RECOVERY_LEVEL = 3
 
 UK_GREYHOUND_NAMES = [
     "Ballymac Vic", "Droopys Sydney", "Romeo Magico", "Swift Iconic",
@@ -545,7 +544,8 @@ async def preview_cap(inp: CapPreviewInput):
         "max_recovery_level": max_lvl,
         "win_rate": round(wins / chains_total * 100, 1),
         "bust_rate": round(busts / chains_total * 100, 1),
-        "reach_l3_rate": round(reach_top / chains_total * 100, 1),
+        "reach_top_rate": round(reach_top / chains_total * 100, 1),
+        "reach_l3_rate": round(reach_top / chains_total * 100, 1),  # legacy alias
         "bust_distribution": {
             "L0_cap_blocked": bust_at_L0,
             **{f"L{i}": stats.get(f"bust_L{i}", 0) for i in range(1, max_lvl + 1)},
