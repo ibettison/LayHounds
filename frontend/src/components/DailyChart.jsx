@@ -130,7 +130,10 @@ export const DailyChart = ({ refreshKey }) => {
                   shape={(props) => {
                     const { x, y, width, height, payload } = props;
                     const fill = payload.pnl >= 0 ? "#10B981" : "#EF4444";
-                    return <rect x={x} y={y} width={width} height={height} fill={fill} />;
+                    // Recharts can emit negative height for negative values; normalise
+                    const h = Math.abs(height);
+                    const yy = height < 0 ? y + height : y;
+                    return <rect x={x} y={yy} width={width} height={h} fill={fill} />;
                   }} />
               </BarChart>
             </ResponsiveContainer>
