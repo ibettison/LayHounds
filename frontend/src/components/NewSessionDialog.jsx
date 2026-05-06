@@ -42,6 +42,7 @@ export const NewSessionDialog = ({ onCreated }) => {
     commission_rate: 0.05,
     odds_min: 1.01,
     odds_max: 10.0,
+    max_recovery_level: 3,
   });
 
   useEffect(() => {
@@ -237,6 +238,26 @@ export const NewSessionDialog = ({ onCreated }) => {
             </div>
           </div>
           <div className="space-y-1.5 col-span-2">
+            <Label className="label-xs">Recovery Levels (depth of staircase)</Label>
+            <div className="grid grid-cols-5 gap-1.5">
+              {[1, 2, 3, 4, 5].map((n) => {
+                const active = parseInt(form.max_recovery_level) === n;
+                return (
+                  <button key={n} type="button"
+                    data-testid={`recovery-level-${n}`}
+                    onClick={() => update("max_recovery_level", n)}
+                    className={`p-2 border font-mono text-sm transition-colors ${
+                      active ? "border-pink-500 bg-pink-500/10 text-pink-400 font-bold"
+                             : "border-[#2A2A2A] hover:bg-[#1C1C1C] text-zinc-400"
+                    }`}>L{n}</button>
+                );
+              })}
+            </div>
+            <div className="text-[10px] text-zinc-500 font-mono">
+              Chain busts after L{form.max_recovery_level} loss. Higher = more recovery attempts but bigger drawdowns.
+            </div>
+          </div>
+          <div className="space-y-1.5 col-span-2">
             <Label className="label-xs">Lay Odds Range (skip favs outside this band)</Label>
             <div className="grid grid-cols-2 gap-2">
               <Input data-testid="input-odds-min" type="number" step="0.01" min="1.01"
@@ -259,6 +280,7 @@ export const NewSessionDialog = ({ onCreated }) => {
           commissionRate={form.commission_rate}
           oddsMin={form.odds_min}
           oddsMax={form.odds_max}
+          maxRecoveryLevel={form.max_recovery_level}
         />
 
         {form.mode === "live" && (

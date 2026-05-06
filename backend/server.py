@@ -57,6 +57,7 @@ class SessionConfig(BaseModel):
     commission_rate: float = Field(default=0.05, ge=0.0, le=0.2)  # Betfair typical 5%
     odds_min: float = Field(default=1.01, ge=1.01, le=1000.0)  # only lay favs with odds >=
     odds_max: float = Field(default=1000.0, ge=1.01, le=1000.0)  # and <=
+    max_recovery_level: int = Field(default=3, ge=1, le=5)  # configurable depth of recovery staircase
 
 
 class Greyhound(BaseModel):
@@ -366,9 +367,9 @@ async def next_race(session_id: str):
             bet.pnl = -bet.liability
             pnl_change -= bet.liability
             new_accum = chain.accumulated_loss + bet.liability + bet.stake
-            if chain.level >= MAX_RECOVERY_LEVEL:
+            if chain.level >= session.config.max_recovery_level:
                 chain.busted = True
-                chain.level = MAX_RECOVERY_LEVEL
+                chain.level = session.config.max_recovery_level
                 chain.pending_stake = session.config.stake
                 chain.accumulated_loss = new_accum
             else:
@@ -464,6 +465,7 @@ class CapPreviewInput(BaseModel):
     iterations: int = Field(default=2000, ge=100, le=10000)
     odds_min: float = Field(default=1.01, ge=1.01)
     odds_max: float = Field(default=1000.0, ge=1.01)
+    max_recovery_level: int = Field(default=3, ge=1, le=5)
 
 
 @api_router.post("/preview-cap")
@@ -496,8 +498,8 @@ async def preview_cap(inp: CapPreviewInput):
                 # lay loses
                 chain_pnl -= liability
                 accum_loss += liability + pending
-                if level >= MAX_RECOVERY_LEVEL:
-                    return {"bust_level": MAX_RECOVERY_LEVEL, "chain_pnl": chain_pnl, "races": races}
+                if level >= inp.max_recovery_level:
+                    return {"bust_level": inp.max_recovery_level, "chain_pnl": chain_pnl, "races": races}
                 level += 1
                 pending = liability + pending + inp.stake
             else:
@@ -511,8 +513,9 @@ async def preview_cap(inp: CapPreviewInput):
     _seed = random.getstate()
     random.seed(42)
     try:
-        stats = {"bust_L0": 0, "bust_L1": 0, "bust_L2": 0, "bust_L3": 0,
-                 "won_L0": 0, "won_L1": 0, "won_L2": 0, "won_L3": 0}
+        max_lvl = inp.max_recovery_level
+        stats = {f"bust_L{i}": 0 for i in range(max_lvl + 1)}
+        stats.update({f"won_L{i}": 0 for i in range(max_lvl + 1)})
         total_pnl = 0.0
         total_races = 0
         worst_chain = 0.0
@@ -522,33 +525,33 @@ async def preview_cap(inp: CapPreviewInput):
             total_races += res["races"]
             worst_chain = min(worst_chain, res["chain_pnl"])
             if "won_at_level" in res:
-                stats[f"won_L{res['won_at_level']}"] += 1
+                key = f"won_L{min(res['won_at_level'], max_lvl)}"
+                stats[key] = stats.get(key, 0) + 1
             else:
-                stats[f"bust_L{res['bust_level']}"] += 1
+                key = f"bust_L{min(res['bust_level'], max_lvl)}"
+                stats[key] = stats.get(key, 0) + 1
     finally:
         random.setstate(_seed)
 
     chains_total = inp.iterations
-    wins = stats["won_L0"] + stats["won_L1"] + stats["won_L2"] + stats["won_L3"]
+    wins = sum(v for k, v in stats.items() if k.startswith("won_"))
     busts = chains_total - wins
-    bust_at_L0 = stats["bust_L0"]  # capped before placing any bet
-    reach_L3 = stats["won_L3"] + stats["bust_L3"]
+    bust_at_L0 = stats.get("bust_L0", 0)
+    reach_top = stats.get(f"won_L{max_lvl}", 0) + stats.get(f"bust_L{max_lvl}", 0)
 
     return {
         "iterations": chains_total,
         "per_rank": inp.num_favourites,
+        "max_recovery_level": max_lvl,
         "win_rate": round(wins / chains_total * 100, 1),
         "bust_rate": round(busts / chains_total * 100, 1),
-        "reach_l3_rate": round(reach_L3 / chains_total * 100, 1),
+        "reach_l3_rate": round(reach_top / chains_total * 100, 1),
         "bust_distribution": {
             "L0_cap_blocked": bust_at_L0,
-            "L1": stats["bust_L1"],
-            "L2": stats["bust_L2"],
-            "L3": stats["bust_L3"],
+            **{f"L{i}": stats.get(f"bust_L{i}", 0) for i in range(1, max_lvl + 1)},
         },
         "win_distribution": {
-            "L0": stats["won_L0"], "L1": stats["won_L1"],
-            "L2": stats["won_L2"], "L3": stats["won_L3"],
+            f"L{i}": stats.get(f"won_L{i}", 0) for i in range(0, max_lvl + 1)
         },
         "expected_profit_per_race": round(total_pnl / max(total_races, 1) * inp.num_favourites, 4),
         "worst_chain_loss": round(worst_chain, 2),

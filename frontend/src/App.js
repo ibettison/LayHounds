@@ -300,7 +300,7 @@ export default function App() {
                   <RaceCard race={lastRace} layedRanks={layedRanks} />
                 </div>
                 <div className="col-span-12 xl:col-span-4 space-y-4">
-                  <RecoveryStatus chains={current.recovery_chains} />
+                  <RecoveryStatus chains={current.recovery_chains} maxRecoveryLevel={current.config.max_recovery_level || 3} />
                   <RaceHistory races={current.races} />
                 </div>
               </div>

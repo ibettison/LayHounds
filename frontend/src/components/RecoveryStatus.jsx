@@ -51,7 +51,7 @@ export const RecoveryStatus = ({ chains }) => {
                   </span>
                 </td>
                 <td className="p-3">
-                  <LevelDots level={c.level} busted={c.busted} />
+                  <LevelDots level={c.level} busted={c.busted} max={maxRecoveryLevel} />
                 </td>
                 <td className="p-3 text-right font-mono">
                   {c.busted ? "—" : `£${c.pending_stake.toFixed(2)}`}
