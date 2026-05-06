@@ -46,6 +46,15 @@ curl -fsSL https://raw.githubusercontent.com/<you>/<repo>/main/deploy.sh \
 
 That's it — ~3 minutes later you'll have an HTTPS site with Betfair connected.
 
+**Updating** (after pushing new commits from Emergent → GitHub):
+
+```bash
+cd /opt/laylab && sudo ./update.sh
+```
+
+Zero-downtime: pulls latest, rebuilds only what changed, atomically swaps the
+bundle, and gracefully reloads the API.
+
 👉 **See [DEPLOYMENT.md](./DEPLOYMENT.md)** for the manual step-by-step,
 provider comparison, and troubleshooting.
 

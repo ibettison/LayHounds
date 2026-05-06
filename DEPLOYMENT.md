@@ -239,24 +239,38 @@ If all four pass — you're live.
 
 ## 10. Updating the app later
 
-When you push new commits from Emergent to GitHub:
+When you push new commits from Emergent to GitHub, just run the bundled
+**`update.sh`** on the VPS:
 
 ```bash
-cd ~/laylab
-git pull
-
-# Backend (only if requirements.txt or server.py changed)
-cd backend && source venv/bin/activate && pip install -r requirements.txt
-pm2 restart laylab-api
-
-# Frontend (any UI change)
-cd ../frontend && yarn install && yarn build
-
-sudo systemctl reload nginx
+cd /opt/laylab && sudo ./update.sh
 ```
 
-Consider wiring this into a GitHub Actions workflow or a simple `deploy.sh` if
-you iterate often.
+The script:
+
+- pulls the latest commit
+- detects which paths changed (`backend/`, `frontend/`, `requirements.txt`)
+- only reinstalls Python deps if `requirements.txt` moved
+- only rebuilds the React bundle if anything under `frontend/` changed — and
+  builds into `build.new/` first, then **atomically swaps** so Nginx never
+  serves a half-built bundle
+- rolls the API with `pm2 reload` (graceful, zero-downtime — in-flight requests
+  finish on the old workers before the new ones take over)
+- reloads Nginx and verifies `/api/` returns 200 + prints the Betfair status
+
+Force a full rebuild even when nothing changed:
+
+```bash
+sudo FORCE=1 ./update.sh
+```
+
+Switch branch on the way:
+
+```bash
+sudo BRANCH=staging ./update.sh
+```
+
+Wire it to a cron / GitHub webhook later if you want auto-deploys.
 
 ---
 
