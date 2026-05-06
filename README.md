@@ -36,7 +36,7 @@ Betfair geo-blocks all non-UK/EU traffic. The preview pod runs in the US, so
 Paper-Live and Live modes are disabled here and the header shows
 **GEO-BLOCKED**. To use the real Betfair API, deploy to any UK/EU VPS.
 
-**Quick-start** (Ubuntu 22.04, root):
+**Quick-start** (Ubuntu 22.04 or 24.04, root):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/<you>/<repo>/main/deploy.sh \

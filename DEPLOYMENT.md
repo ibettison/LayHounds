@@ -14,7 +14,7 @@ Betfair API integration works end-to-end (Paper-Live and Live modes).
 | Item | Recommended | Notes |
 |---|---|---|
 | UK/EU VPS | Hetzner CX11 (Falkenstein, EU) — ~£4/mo | Any UK/EU provider works: OVH, Scaleway, Linode London, DigitalOcean London, AWS eu-west-2, Azure UK South, Contabo UK, IONOS UK. |
-| OS | Ubuntu 22.04 LTS | Instructions below assume this. |
+| OS | Ubuntu 24.04 LTS (recommended) or 22.04 LTS | The bundled `deploy.sh` auto-detects which one you're on and installs the matching Python (3.12 / 3.11) and MongoDB (8.0 / 7.0). |
 | Domain | any registrar (~£8/yr) | Optional but required for HTTPS. Free sub-domains via DuckDNS also work. |
 | Betfair credentials | App Key + username + password | Already in `backend/.env`. A delayed-data App Key is enough for paper-live. |
 | RAM / CPU | 2 GB / 1 vCPU | Enough for a single user. MongoDB is the heaviest component. |
@@ -43,20 +43,21 @@ Betfair API integration works end-to-end (Paper-Live and Live modes).
 > 💡 **Want it all done in one command?** Skip steps 3–8 and use `deploy.sh`:
 >
 > ```bash
-> # On a fresh Ubuntu 22.04 VPS, as root:
+> # On a fresh Ubuntu 22.04 or 24.04 VPS, as root:
 > curl -fsSL https://raw.githubusercontent.com/<you>/<repo>/main/deploy.sh \
 >   | DOMAIN=lay.example.com EMAIL=me@example.com \
 >     REPO=https://github.com/<you>/<repo>.git bash
 > ```
 >
-> The script installs every dependency, creates a `laylab` user, builds the
+> The script auto-detects 22.04 (`jammy`) vs 24.04 (`noble`), installs the
+> matching Python and MongoDB versions, creates a `laylab` user, builds the
 > frontend, starts the API under PM2, configures Nginx and provisions
 > Let's Encrypt — typically ~3 minutes end-to-end. Continue reading the manual
 > steps below if you'd rather walk through it yourself.
 
 ---
 
-SSH into your fresh Ubuntu 22.04 box as a sudo user (e.g. `ubuntu`) and run:
+SSH into your fresh Ubuntu box as a sudo user (e.g. `ubuntu`) and run:
 
 ```bash
 # --- System packages

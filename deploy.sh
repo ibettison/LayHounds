@@ -68,9 +68,37 @@ prompt_if_empty BETFAIR_PASSWORD "Betfair password" 1
 step "1/8  System packages"
 # ==============================================================================
 export DEBIAN_FRONTEND=noninteractive
+
+# Detect Ubuntu release → pick matching Python and MongoDB versions.
+. /etc/os-release
+CODENAME="${VERSION_CODENAME:-jammy}"
+
+case "$CODENAME" in
+  jammy)   # Ubuntu 22.04
+    PY_PKG="python3.11"
+    PY_BIN="python3.11"
+    MONGO_VER="7.0"
+    MONGO_CODENAME="jammy"
+    ;;
+  noble)   # Ubuntu 24.04
+    PY_PKG="python3.12"
+    PY_BIN="python3.12"
+    MONGO_VER="8.0"
+    MONGO_CODENAME="noble"
+    ;;
+  *)
+    warn "Untested Ubuntu codename '$CODENAME' — falling back to system python3 + MongoDB 8.0/noble repo."
+    PY_PKG="python3"
+    PY_BIN="python3"
+    MONGO_VER="8.0"
+    MONGO_CODENAME="noble"
+    ;;
+esac
+log "Detected Ubuntu '$CODENAME' → $PY_BIN + MongoDB $MONGO_VER ($MONGO_CODENAME repo)"
+
 apt-get update -y
-apt-get install -y python3.11 python3.11-venv python3-pip \
-                   nginx git curl gnupg ufw ca-certificates lsb-release
+apt-get install -y "$PY_PKG" "${PY_PKG}-venv" python3-pip \
+                   nginx git curl gnupg ufw ca-certificates lsb-release rsync
 
 # Node 20 + yarn + pm2
 if ! command -v node >/dev/null || [ "$(node -v | cut -c2-3)" != "20" ]; then
@@ -79,12 +107,12 @@ if ! command -v node >/dev/null || [ "$(node -v | cut -c2-3)" != "20" ]; then
 fi
 npm install -g yarn pm2 >/dev/null
 
-# MongoDB 7.0
+# MongoDB
 if ! command -v mongod >/dev/null; then
-  curl -fsSL https://pgp.mongodb.com/server-7.0.asc | \
+  curl -fsSL "https://pgp.mongodb.com/server-${MONGO_VER}.asc" | \
     gpg -o /usr/share/keyrings/mongodb.gpg --dearmor
-  echo "deb [signed-by=/usr/share/keyrings/mongodb.gpg] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
-    > /etc/apt/sources.list.d/mongodb-org-7.0.list
+  echo "deb [signed-by=/usr/share/keyrings/mongodb.gpg] https://repo.mongodb.org/apt/ubuntu ${MONGO_CODENAME}/mongodb-org/${MONGO_VER} multiverse" \
+    > "/etc/apt/sources.list.d/mongodb-org-${MONGO_VER}.list"
   apt-get update -y
   apt-get install -y mongodb-org
 fi
@@ -135,7 +163,7 @@ step "3/8  Backend venv + dependencies"
 sudo -u "$APP_USER" bash <<EOF
 set -e
 cd "$APP_DIR/backend"
-[ -d venv ] || python3.11 -m venv venv
+[ -d venv ] || ${PY_BIN} -m venv venv
 source venv/bin/activate
 pip install --upgrade pip wheel >/dev/null
 pip install -r requirements.txt
