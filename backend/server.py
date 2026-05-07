@@ -607,6 +607,81 @@ async def stop_session(session_id: str):
     return session
 
 
+# ====================================================================
+# Marketing site endpoints (Phase 1 stubs — wired in Phase 2)
+# ====================================================================
+
+class CheckoutResponse(BaseModel):
+    url: Optional[str] = None
+    message: Optional[str] = None
+    provider: str
+    test_mode: bool = True
+
+
+@api_router.post("/payments/stripe/checkout", response_model=CheckoutResponse)
+async def stripe_checkout():
+    """Create a Stripe Checkout Session for the £19.99/mo Live Unlock.
+
+    Phase 1: returns a friendly placeholder so the marketing buttons are clickable.
+    Phase 2: replace with stripe.checkout.Session.create(...) using STRIPE_SECRET_KEY.
+    """
+    stripe_key = os.environ.get("STRIPE_SECRET_KEY", "")
+    if not stripe_key or stripe_key.startswith("sk_test_PLACEHOLDER"):
+        return CheckoutResponse(
+            provider="stripe",
+            message="Stripe checkout launches Phase 2 — drop your Stripe keys in backend/.env and we'll wire it.",
+            test_mode=True,
+        )
+    # Phase 2 hook — real implementation will live here.
+    return CheckoutResponse(
+        provider="stripe",
+        url="https://checkout.stripe.com/pay/PLACEHOLDER",
+        test_mode=True,
+    )
+
+
+@api_router.post("/payments/paypal/checkout", response_model=CheckoutResponse)
+async def paypal_checkout():
+    """Create a PayPal subscription order for £19.99/mo Live Unlock.
+
+    Phase 1 stub. Phase 2 wires PayPal REST `/v1/billing/subscriptions`.
+    """
+    paypal_id = os.environ.get("PAYPAL_CLIENT_ID", "")
+    if not paypal_id or paypal_id.startswith("PLACEHOLDER"):
+        return CheckoutResponse(
+            provider="paypal",
+            message="PayPal checkout launches Phase 2 — drop your PayPal credentials in backend/.env and we'll wire it.",
+            test_mode=True,
+        )
+    return CheckoutResponse(
+        provider="paypal",
+        url="https://www.paypal.com/checkoutnow?token=PLACEHOLDER",
+        test_mode=True,
+    )
+
+
+class ContactInput(BaseModel):
+    email: str = Field(min_length=3, max_length=120)
+    message: str = Field(min_length=1, max_length=4000)
+
+
+@api_router.post("/contact")
+async def contact(inp: ContactInput):
+    """Persist contact-form submissions to MongoDB. Phase 2 will email + Slack alert."""
+    if "@" not in inp.email or "." not in inp.email:
+        raise HTTPException(400, "Invalid email")
+    doc = {
+        "id": str(uuid.uuid4()),
+        "email": inp.email.strip(),
+        "message": inp.message.strip(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "handled": False,
+    }
+    await db.contact_messages.insert_one(doc)
+    logger.info("contact form: %s", inp.email)
+    return {"ok": True}
+
+
 app.include_router(api_router)
 
 app.add_middleware(

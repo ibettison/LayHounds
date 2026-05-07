@@ -1,0 +1,617 @@
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  ChevronRight,
+  Sliders,
+  Layers,
+  Activity,
+  Zap,
+  Wifi,
+  LineChart,
+  ShieldCheck,
+  CheckCircle2,
+  XCircle,
+  Lock,
+  Mail,
+  MapPin,
+  ArrowUpRight,
+} from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../components/ui/accordion";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Label } from "../components/ui/label";
+import { toast } from "sonner";
+import { MarketingLayout } from "../marketing/MarketingLayout";
+import { api } from "../lib/api";
+
+const fadeUp = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-80px" },
+  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+};
+
+const Section = ({ id, className = "", children }) => (
+  <section id={id} className={`py-20 md:py-28 ${className}`}>
+    <div className="max-w-7xl mx-auto px-6 md:px-12">{children}</div>
+  </section>
+);
+
+const Overline = ({ children }) => (
+  <div className="text-xs font-mono uppercase tracking-[0.18em] text-pink-600 font-semibold mb-3">
+    {children}
+  </div>
+);
+
+const Hero = () => (
+  <Section id="hero" className="pt-12 md:pt-20">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <motion.div {...fadeUp} className="lg:col-span-7 space-y-7">
+        <div className="inline-flex items-center gap-2 bg-pink-50 border border-pink-100 rounded-full px-3 py-1 text-xs font-mono text-pink-700 font-semibold uppercase tracking-widest">
+          <span className="w-1.5 h-1.5 bg-pink-500 rounded-full animate-pulse" />
+          Real Betfair · UK greyhounds
+        </div>
+        <h1 className="font-display font-black text-5xl sm:text-6xl md:text-7xl tracking-tighter leading-[0.95] text-slate-900">
+          Lay smarter.<br />
+          <span className="text-pink-500">Recover faster.</span>
+        </h1>
+        <p className="text-base md:text-lg text-slate-600 max-w-xl leading-relaxed">
+          Test multi-level lay-recovery strategies on simulated UK greyhound races,
+          stress-test your edge with Monte-Carlo, then go live on Betfair when you're ready.
+          No spreadsheet hell. No real money lost in testing.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <Link to="/app" data-testid="hero-cta-try">
+            <Button
+              size="lg"
+              className="bg-pink-500 hover:bg-pink-600 text-white px-8 py-6 rounded-lg font-semibold text-base shadow-lg shadow-pink-500/30 hover:shadow-xl hover:shadow-pink-500/40 hover:-translate-y-0.5 transition-all w-full sm:w-auto"
+            >
+              Try Free Simulator
+              <ChevronRight className="w-5 h-5 ml-1" />
+            </Button>
+          </Link>
+          <a href="#pricing" data-testid="hero-cta-pricing">
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-slate-300 text-slate-700 hover:bg-slate-100 px-8 py-6 rounded-lg font-semibold text-base w-full sm:w-auto"
+            >
+              See pricing
+            </Button>
+          </a>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-4 text-xs text-slate-500 font-mono uppercase tracking-widest">
+          <div className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" /> No card to start</div>
+          <div className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> Self-hosted, your data</div>
+          <div className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Live Betfair API</div>
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 24 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        className="lg:col-span-5"
+      >
+        <div className="relative">
+          <div className="absolute -inset-4 bg-gradient-to-br from-pink-200 via-pink-50 to-transparent rounded-3xl blur-2xl opacity-60" />
+          <div className="relative rounded-2xl border border-slate-200 bg-slate-900 shadow-2xl overflow-hidden">
+            <div className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 border-b border-slate-700">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
+              <span className="ml-3 text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+                lay-hounds.co.uk/app
+              </span>
+            </div>
+            <div className="aspect-[4/3] bg-[#0A0A0A] grid place-items-center p-6">
+              <div className="grid grid-cols-3 gap-3 w-full">
+                {[
+                  { l: "Bank", v: "£1,247.20", c: "text-emerald-400" },
+                  { l: "P&L", v: "+£47.20", c: "text-emerald-400" },
+                  { l: "Races", v: "23/100", c: "text-white" },
+                  { l: "Stake", v: "£0.50", c: "text-white" },
+                  { l: "Recovery", v: "L2", c: "text-amber-400" },
+                  { l: "Win Rate", v: "84%", c: "text-emerald-400" },
+                ].map((s, i) => (
+                  <div key={i} className="bg-[#141414] border border-[#2A2A2A] p-3">
+                    <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-500">
+                      {s.l}
+                    </div>
+                    <div className={`font-mono font-bold text-sm sm:text-base mt-1 ${s.c}`}>
+                      {s.v}
+                    </div>
+                  </div>
+                ))}
+                <div className="col-span-3 bg-[#141414] border border-[#2A2A2A] p-3 mt-1">
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-500 mb-2">
+                    Daily P&L
+                  </div>
+                  <div className="flex items-end gap-1 h-12">
+                    {[20, 35, 50, 30, 45, 65, 80, 75, 90, 70].map((h, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 bg-gradient-to-t from-pink-500 to-pink-400 rounded-sm"
+                        style={{ height: `${h}%` }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  </Section>
+);
+
+const FEATURES = [
+  { icon: Sliders, title: "Configurable Stakes", desc: "Lay from £0.05 to £2.00 per bet, with target profit, commission and odds-range filters baked in." },
+  { icon: Layers, title: "Recovery L1–L5", desc: "Pick the depth of your staircase. Recover from prior losses on the exact same favourite-rank slot." },
+  { icon: Activity, title: "Monte-Carlo Preview", desc: "Run 1,500 chain simulations before you click Go. See bust rate, EV per race and worst chain loss instantly." },
+  { icon: Zap, title: "Batch Racing", desc: "Step one race at a time, or burn through 50 races in a single click for fast strategy validation." },
+  { icon: Wifi, title: "Real Betfair Live", desc: "Paper-Live uses real odds from real upcoming UK greyhound markets. Live mode places real lay bets." },
+  { icon: LineChart, title: "Daily P&L Journal", desc: "Bank carries between sessions. Daily cumulative chart and per-session bars across every trading day." },
+];
+
+const Features = () => (
+  <Section id="features" className="bg-slate-50/50 border-y border-slate-200">
+    <motion.div {...fadeUp} className="text-center max-w-2xl mx-auto mb-14">
+      <Overline>What's inside</Overline>
+      <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-slate-900">
+        Built by a lay-bettor.<br />For lay-bettors.
+      </h2>
+      <p className="text-slate-600 mt-4 leading-relaxed">
+        Every feature exists because a spreadsheet broke first. No fluff, no upsell tier-traps —
+        the simulator is fully free, forever.
+      </p>
+    </motion.div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {FEATURES.map((f, i) => (
+        <motion.div
+          key={f.title}
+          {...fadeUp}
+          transition={{ ...fadeUp.transition, delay: i * 0.05 }}
+          data-testid={`feature-${f.title.toLowerCase().replace(/[^a-z]/g, "-")}`}
+          className="group bg-white rounded-xl p-7 border border-slate-200 hover:-translate-y-1 hover:shadow-lg hover:border-pink-300 transition-all"
+        >
+          <div className="w-10 h-10 rounded-lg bg-pink-50 grid place-items-center mb-5 group-hover:bg-pink-500 group-hover:rotate-3 transition-all">
+            <f.icon className="w-5 h-5 text-pink-500 group-hover:text-white transition-colors" />
+          </div>
+          <h3 className="font-display font-bold text-xl tracking-tight text-slate-900 mb-2">
+            {f.title}
+          </h3>
+          <p className="text-sm text-slate-600 leading-relaxed">{f.desc}</p>
+        </motion.div>
+      ))}
+    </div>
+  </Section>
+);
+
+const STEPS = [
+  {
+    n: "01",
+    t: "Configure your strategy",
+    d: "Pick your stake, recovery depth (L1–L5), liability cap, commission and odds range. Monte-Carlo previews show your projected bust rate before you risk a penny.",
+  },
+  {
+    n: "02",
+    t: "Test in the simulator",
+    d: "Run individual races or batch 50 at a time on simulated UK greyhound fields. Bank carries between sessions so you can stress-test over hundreds of days.",
+  },
+  {
+    n: "03",
+    t: "Unlock and go live",
+    d: "Subscribe to Live Mode (£19.99/mo). Same UI, but Paper-Live uses real Betfair odds and Live mode places real lay bets on your Betfair account.",
+  },
+];
+
+const HowItWorks = () => (
+  <Section id="how">
+    <motion.div {...fadeUp} className="max-w-2xl mb-14">
+      <Overline>How it works</Overline>
+      <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-slate-900">
+        Three steps from idea to live bet.
+      </h2>
+    </motion.div>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {STEPS.map((s, i) => (
+        <motion.div
+          key={s.n}
+          {...fadeUp}
+          transition={{ ...fadeUp.transition, delay: i * 0.1 }}
+          data-testid={`how-step-${s.n}`}
+          className="relative bg-white border border-slate-200 rounded-xl p-7 hover:shadow-md transition-all"
+        >
+          <div className="font-mono font-bold text-pink-500 text-sm tracking-widest mb-4">
+            STEP / {s.n}
+          </div>
+          <h3 className="font-display font-bold text-2xl tracking-tight text-slate-900 mb-3">
+            {s.t}
+          </h3>
+          <p className="text-sm text-slate-600 leading-relaxed">{s.d}</p>
+        </motion.div>
+      ))}
+    </div>
+  </Section>
+);
+
+const Demo = () => (
+  <Section id="demo" className="bg-slate-50/50 border-y border-slate-200">
+    <motion.div {...fadeUp} className="text-center max-w-2xl mx-auto mb-12">
+      <Overline>Live tour</Overline>
+      <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-slate-900">
+        See it move.
+      </h2>
+      <p className="text-slate-600 mt-4 leading-relaxed">
+        Tap into the free simulator below — no signup, no card. Real Monte-Carlo, real chain math.
+      </p>
+    </motion.div>
+
+    <motion.div
+      {...fadeUp}
+      className="relative max-w-5xl mx-auto"
+    >
+      <div className="absolute -inset-2 bg-gradient-to-tr from-pink-200/60 via-pink-100/40 to-transparent rounded-3xl blur-2xl" />
+      <div className="relative rounded-2xl border border-slate-200 bg-slate-900 shadow-2xl overflow-hidden">
+        <div className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 border-b border-slate-700">
+          <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
+          <span className="ml-3 text-[11px] font-mono text-slate-400 uppercase tracking-widest">
+            lay-hounds.co.uk/app
+          </span>
+        </div>
+        <div className="aspect-video bg-[#0A0A0A] p-6 flex flex-col justify-center items-center text-center gap-5">
+          <Activity className="w-10 h-10 text-pink-500" />
+          <div className="font-display font-black text-3xl text-white tracking-tighter">
+            Free Simulator — no card needed
+          </div>
+          <Link to="/app" data-testid="demo-launch">
+            <Button className="bg-pink-500 hover:bg-pink-600 text-white px-7 py-5 rounded-lg font-semibold shadow-xl shadow-pink-500/30 hover:-translate-y-0.5 transition-all">
+              Launch the App
+              <ArrowUpRight className="w-4 h-4 ml-1" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </motion.div>
+  </Section>
+);
+
+const Pricing = () => {
+  const [loading, setLoading] = useState(null);
+
+  const startCheckout = async (provider) => {
+    setLoading(provider);
+    try {
+      const res = await api.startCheckout(provider);
+      if (res.url) {
+        window.location.href = res.url;
+      } else {
+        toast.message(res.message || "Checkout coming soon — sign up below to be notified.");
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Could not start checkout");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  return (
+    <Section id="pricing">
+      <motion.div {...fadeUp} className="text-center max-w-2xl mx-auto mb-14">
+        <Overline>Simple pricing</Overline>
+        <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-slate-900">
+          Free to test. Pay to go live.
+        </h2>
+        <p className="text-slate-600 mt-4 leading-relaxed">
+          The simulator is permanently free. Pay only when you're ready to wire it to real Betfair markets.
+        </p>
+      </motion.div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        {/* Free */}
+        <motion.div
+          {...fadeUp}
+          data-testid="pricing-tier-free"
+          className="bg-white border border-slate-200 rounded-2xl p-8 hover:shadow-md transition-all"
+        >
+          <div className="text-xs font-mono uppercase tracking-widest text-slate-500 mb-2">
+            Simulator
+          </div>
+          <div className="font-display font-black text-5xl tracking-tighter text-slate-900">
+            Free
+          </div>
+          <div className="text-sm text-slate-500 mt-1 mb-6">forever, no card</div>
+
+          <ul className="space-y-3 mb-8">
+            {[
+              "Unlimited fake UK greyhound races",
+              "Recovery levels L1 – L5",
+              "Monte-Carlo cap preview",
+              "Batch racing (1 / 5 / 10 / 25 / 50)",
+              "Daily P&L journal + bank carryover",
+              "Self-hosted on your own VPS",
+            ].map((f) => (
+              <li key={f} className="flex items-start gap-2.5 text-sm text-slate-700">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                {f}
+              </li>
+            ))}
+            <li className="flex items-start gap-2.5 text-sm text-slate-400 line-through">
+              <XCircle className="w-4 h-4 text-slate-300 mt-0.5 shrink-0" />
+              Real Betfair odds (Paper-Live)
+            </li>
+            <li className="flex items-start gap-2.5 text-sm text-slate-400 line-through">
+              <XCircle className="w-4 h-4 text-slate-300 mt-0.5 shrink-0" />
+              Real lay bets (Live mode)
+            </li>
+          </ul>
+          <Link to="/app" data-testid="pricing-free-cta">
+            <Button
+              variant="outline"
+              className="w-full border-slate-300 text-slate-700 hover:bg-slate-100 rounded-lg font-semibold py-6"
+            >
+              Open Simulator
+            </Button>
+          </Link>
+        </motion.div>
+
+        {/* Live Unlock */}
+        <motion.div
+          {...fadeUp}
+          transition={{ ...fadeUp.transition, delay: 0.1 }}
+          data-testid="pricing-tier-live"
+          className="relative bg-slate-900 text-white border-2 border-pink-500 rounded-2xl p-8 shadow-xl shadow-pink-500/20"
+        >
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-pink-500 text-white text-xs font-mono font-bold uppercase tracking-widest px-3 py-1 rounded-full">
+            Most Popular
+          </div>
+          <div className="text-xs font-mono uppercase tracking-widest text-pink-300 mb-2">
+            Live Unlock
+          </div>
+          <div className="font-display font-black text-5xl tracking-tighter">
+            £19.99<span className="text-2xl text-slate-400 font-normal">/mo</span>
+          </div>
+          <div className="text-sm text-slate-400 mt-1 mb-6">cancel anytime</div>
+
+          <ul className="space-y-3 mb-8">
+            {[
+              "Everything in Free",
+              "Paper-Live mode (real Betfair odds)",
+              "Live mode (real lay bets)",
+              "Liability-cap bust protection",
+              "Priority email support",
+              "Free updates while subscribed",
+            ].map((f) => (
+              <li key={f} className="flex items-start gap-2.5 text-sm text-slate-200">
+                <CheckCircle2 className="w-4 h-4 text-pink-400 mt-0.5 shrink-0" />
+                {f}
+              </li>
+            ))}
+          </ul>
+
+          <div className="space-y-2.5">
+            <Button
+              data-testid="pricing-stripe-btn"
+              onClick={() => startCheckout("stripe")}
+              disabled={loading === "stripe"}
+              className="w-full bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold py-6 shadow-lg shadow-pink-500/30 hover:-translate-y-0.5 transition-all disabled:opacity-60"
+            >
+              {loading === "stripe" ? "Redirecting…" : "Pay with Card"}
+            </Button>
+            <Button
+              data-testid="pricing-paypal-btn"
+              onClick={() => startCheckout("paypal")}
+              disabled={loading === "paypal"}
+              variant="outline"
+              className="w-full bg-white text-slate-900 hover:bg-slate-100 border-white rounded-lg font-semibold py-6 transition-all disabled:opacity-60"
+            >
+              {loading === "paypal" ? "Redirecting…" : "Pay with PayPal"}
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-center gap-3 mt-5 text-xs font-mono uppercase tracking-widest text-slate-500">
+            <Lock className="w-3 h-3" />
+            <span>Secured by Stripe & PayPal</span>
+          </div>
+        </motion.div>
+      </div>
+    </Section>
+  );
+};
+
+const FAQS = [
+  {
+    q: "Is lay-betting on Betfair legal in the UK?",
+    a: "Yes. Betfair is a UK Gambling Commission–licensed exchange and lay-betting is a standard market type. You must be 18+ and use your own funded Betfair account. Lay-Hounds is a strategy tool — it doesn't accept your money for bets, it places them on your behalf via the official Betfair API.",
+  },
+  {
+    q: "Do I need a Betfair account?",
+    a: "Only if you want to use Paper-Live or Live mode. The free Simulator works entirely on synthetic UK greyhound races and needs no external accounts. To go live you'll need a Betfair account, an App Key (free for delayed data, paid for live data) and your username/password — all entered into your own self-hosted .env file.",
+  },
+  {
+    q: "What does the £19.99/month Live Unlock actually buy me?",
+    a: "A licence key that unlocks Paper-Live and Live modes inside the simulator. The Free Simulator is unaffected and works permanently without payment. You self-host on your own UK/EU VPS (~£6/mo from Hetzner, OVH, Fasthosts etc.).",
+  },
+  {
+    q: "Can I cancel?",
+    a: "Yes, anytime — billing pauses at the end of your current period. You keep Live access until the period ends, then revert to Free Simulator. No 'win-back' calls or pop-ups.",
+  },
+  {
+    q: "Do you take a cut of my winnings?",
+    a: "No. Lay-Hounds is a flat subscription. Whatever you win or lose on Betfair is yours. Lay-Hounds never sees your bet results, only the metadata your simulator records locally.",
+  },
+  {
+    q: "Why self-hosted instead of cloud-hosted?",
+    a: "Two reasons. First: Betfair geo-blocks non-UK/EU IPs, so the backend has to run somewhere on UK/EU soil. Second: your Betfair credentials never leave your server. We provide a one-command deploy.sh that installs everything on a fresh Ubuntu 22.04/24.04 box in ~3 minutes.",
+  },
+  {
+    q: "Do I get my money back if it doesn't work?",
+    a: "Yes — 14-day money-back guarantee, no questions asked. Email us at the address below within 14 days of your first payment and we'll refund in full. After that, you can cancel future renewals anytime.",
+  },
+  {
+    q: "Is recovery-staircase betting profitable?",
+    a: "It's a tool, not a guarantee. Lay-Hounds shows you exactly how a strategy would have performed across thousands of simulated chains, including bust rates and worst-case drawdowns. Use the Monte-Carlo preview to find configurations with positive expected value before going live. Past performance does not guarantee future results.",
+  },
+];
+
+const FAQ = () => (
+  <Section id="faq">
+    <motion.div {...fadeUp} className="max-w-3xl mx-auto">
+      <div className="text-center mb-12">
+        <Overline>Questions</Overline>
+        <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-slate-900">
+          The honest FAQ.
+        </h2>
+      </div>
+
+      <Accordion type="single" collapsible className="space-y-1" data-testid="faq-accordion">
+        {FAQS.map((f, i) => (
+          <AccordionItem
+            key={i}
+            value={`q-${i}`}
+            className="border-b border-slate-200 px-2"
+            data-testid={`faq-item-${i}`}
+          >
+            <AccordionTrigger className="font-display font-bold text-lg text-left text-slate-900 hover:no-underline py-5">
+              {f.q}
+            </AccordionTrigger>
+            <AccordionContent className="text-slate-600 leading-relaxed text-base pb-6">
+              {f.a}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </motion.div>
+  </Section>
+);
+
+const Contact = () => {
+  const [form, setForm] = useState({ email: "", message: "" });
+  const [sending, setSending] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.email || !form.message) {
+      toast.error("Please fill in both fields");
+      return;
+    }
+    setSending(true);
+    try {
+      await api.contact(form);
+      toast.success("Message sent — we'll get back within 1 business day");
+      setForm({ email: "", message: "" });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Could not send message");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Section id="contact" className="bg-slate-50/50 border-t border-slate-200">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start max-w-5xl mx-auto">
+        <motion.div {...fadeUp}>
+          <Overline>Get in touch</Overline>
+          <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-slate-900 mb-5">
+            Real human, real reply.
+          </h2>
+          <p className="text-slate-600 leading-relaxed mb-8">
+            Lay-Hounds is built and supported by a small team in Durham. Drop us a line —
+            partnerships, feature requests, refunds, anything.
+          </p>
+
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center gap-3 text-slate-700">
+              <div className="w-9 h-9 rounded-lg bg-pink-50 grid place-items-center">
+                <Mail className="w-4 h-4 text-pink-500" />
+              </div>
+              <a href="mailto:hello@lay-hounds.co.uk" className="hover:text-slate-900">
+                hello@lay-hounds.co.uk
+              </a>
+            </div>
+            <div className="flex items-center gap-3 text-slate-700">
+              <div className="w-9 h-9 rounded-lg bg-pink-50 grid place-items-center">
+                <MapPin className="w-4 h-4 text-pink-500" />
+              </div>
+              <span>Durham, United Kingdom</span>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.form
+          {...fadeUp}
+          transition={{ ...fadeUp.transition, delay: 0.1 }}
+          onSubmit={submit}
+          data-testid="contact-form"
+          className="bg-white border border-slate-200 rounded-2xl p-7 shadow-sm space-y-4"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="contact-email" className="text-xs font-mono uppercase tracking-widest text-slate-500">
+              Your email
+            </Label>
+            <Input
+              id="contact-email"
+              type="email"
+              required
+              data-testid="contact-email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="you@example.com"
+              className="rounded-lg border-slate-300 focus:border-pink-400 focus:ring-pink-400"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="contact-msg" className="text-xs font-mono uppercase tracking-widest text-slate-500">
+              Message
+            </Label>
+            <Textarea
+              id="contact-msg"
+              required
+              rows={5}
+              data-testid="contact-message"
+              value={form.message}
+              onChange={(e) => setForm({ ...form, message: e.target.value })}
+              placeholder="Tell us what you need…"
+              className="rounded-lg border-slate-300 focus:border-pink-400 focus:ring-pink-400"
+            />
+          </div>
+          <Button
+            type="submit"
+            disabled={sending}
+            data-testid="contact-submit"
+            className="w-full bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold py-6 shadow-md shadow-pink-500/20 hover:-translate-y-0.5 transition-all disabled:opacity-60"
+          >
+            {sending ? "Sending…" : "Send message"}
+          </Button>
+        </motion.form>
+      </div>
+    </Section>
+  );
+};
+
+export default function Landing() {
+  return (
+    <MarketingLayout>
+      <Hero />
+      <Features />
+      <HowItWorks />
+      <Demo />
+      <Pricing />
+      <FAQ />
+      <Contact />
+    </MarketingLayout>
+  );
+}
