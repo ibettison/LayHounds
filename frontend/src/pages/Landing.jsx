@@ -29,6 +29,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
 import { toast } from "sonner";
 import { MarketingLayout } from "../marketing/MarketingLayout";
+import { InteractiveDemo } from "../marketing/InteractiveDemo";
 import { api } from "../lib/api";
 
 const fadeUp = {
@@ -254,37 +255,13 @@ const Demo = () => (
         See it move.
       </h2>
       <p className="text-slate-600 mt-4 leading-relaxed">
-        Tap into the free simulator below — no signup, no card. Real Monte-Carlo, real chain math.
+        10 races. Real recovery math. Watch a chain bust into L2 and crawl back to profit —
+        before you've even picked your stake.
       </p>
     </motion.div>
 
-    <motion.div
-      {...fadeUp}
-      className="relative max-w-5xl mx-auto"
-    >
-      <div className="absolute -inset-2 bg-gradient-to-tr from-pink-200/60 via-pink-100/40 to-transparent rounded-3xl blur-2xl" />
-      <div className="relative rounded-2xl border border-slate-200 bg-slate-900 shadow-2xl overflow-hidden">
-        <div className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 border-b border-slate-700">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
-          <span className="ml-3 text-[11px] font-mono text-slate-400 uppercase tracking-widest">
-            lay-hounds.co.uk/app
-          </span>
-        </div>
-        <div className="aspect-video bg-[#0A0A0A] p-6 flex flex-col justify-center items-center text-center gap-5">
-          <Activity className="w-10 h-10 text-pink-500" />
-          <div className="font-display font-black text-3xl text-white tracking-tighter">
-            Free Simulator — no card needed
-          </div>
-          <Link to="/app" data-testid="demo-launch">
-            <Button className="bg-pink-500 hover:bg-pink-600 text-white px-7 py-5 rounded-lg font-semibold shadow-xl shadow-pink-500/30 hover:-translate-y-0.5 transition-all">
-              Launch the App
-              <ArrowUpRight className="w-4 h-4 ml-1" />
-            </Button>
-          </Link>
-        </div>
-      </div>
+    <motion.div {...fadeUp}>
+      <InteractiveDemo />
     </motion.div>
   </Section>
 );

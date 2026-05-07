@@ -49,7 +49,8 @@ Build a Betfair-style system to lay multiple UK greyhounds with a configurable s
 - Slim `requirements.txt` — removed `emergentintegrations` and other Emergent template boilerplate so external deploys install cleanly from public PyPI.
 
 ### Marketing site (May 2026)
-- `pages/Landing.jsx` — one-page hero + features grid + how-it-works + demo + pricing + FAQ + contact form. Bright SaaS aesthetic, framer-motion fade-up scroll reveals.
+- `pages/Landing.jsx` — one-page hero + features grid + how-it-works + **interactive 10-race demo** + pricing + FAQ + contact form. Bright SaaS aesthetic, framer-motion fade-up scroll reveals.
+- `marketing/InteractiveDemo.jsx` — self-contained 10-race auto-playing animation with real recovery math, pause/reset controls, hand-scripted races for narrative drama (clean wins → recovery L1/L2 → big-pop wins). Auto-loops after completion.
 - Sticky glassmorphism `MarketingHeader`, dark `MarketingFooter` with responsible-gambling disclaimer (GamCare + BeGambleAware links).
 - Pricing card with **Stripe Card** + **PayPal** buttons (Phase 1 stubs).
 - `pages/{Terms,Privacy,Refund}.jsx` — full UK-GDPR-compliant legal copy.
