@@ -1,78 +1,98 @@
-# Lay-Lab — Greyhound Recovery Simulator
+# Lay-Hounds — Greyhound Recovery Simulator + Marketing Site
+
+> Renamed from Lay-Lab to **Lay-Hounds** on 6 May 2026, when the marketing site shipped.
 
 ## Original Problem Statement
-Create a Betfair-style system to lay multiple UK greyhounds. Stake (originally fixed £0.05) and recovery depth (originally fixed at 3 levels) are now both user-configurable. Implement loss recovery that targets the specific favourite-rank that lost (e.g. if fav#2 loses, recover only on next race's fav#2). Recovery stake covers prev_liability + prev_stake + target_profit. After the configured LN-level loss the chain busts. Allow user to configure stop-win, stop-loss, number of favourites laid, and max races per day. Single-race stepping + batched runs. Three execution modes (Simulator, Paper-Live, Live). Daily P&L graph across sessions.
+Build a Betfair-style system to lay multiple UK greyhounds with a configurable staircase recovery strategy (L1–L5), Monte-Carlo previews, batch racing, daily P&L journal, three execution modes (Simulator / Paper-Live / Live), and — added 6 May 2026 — a public marketing/promotion website at the root URL with Stripe + PayPal checkout for a £19.99/mo Live Unlock.
 
 ## Architecture
-- **Backend**: FastAPI + Motor (async MongoDB). All routes prefixed `/api`. Betfair JSON-RPC via httpx.
-- **Frontend**: React 19 + Tailwind + Shadcn UI + recharts + sonner + lucide-react.
-- **Storage**: MongoDB `sessions` collection (full document with embedded races + recovery_chains).
-- **Simulation**: 6 fake UK greyhounds per race, weighted-random winner by 1/odds, commission applied on wins.
-- **Modes**: Simulator (fake), Paper-Live (real Betfair odds, simulated settlement), Live (real LAY orders).
+- **Backend**: FastAPI + Motor (async MongoDB) + httpx (Betfair JSON-RPC). All routes prefixed `/api`.
+- **Frontend**: React 19 + react-router-dom 7 + Tailwind + Shadcn UI + Recharts + framer-motion + sonner.
+- **Storage**: MongoDB (`sessions`, `contact_messages`).
+- **Routing**:
+  - `/` — Marketing landing (one-page scroll: Hero, Features, How, Demo, Pricing, FAQ, Contact, Footer)
+  - `/app` — The simulator (formerly the entire app)
+  - `/terms`, `/privacy`, `/refund` — Legal pages
+  - `/checkout/success`, `/checkout/cancel` — Payment redirects
+- **Modes**: Simulator (free, fake races) / Paper-Live (real odds, simulated settlement) / Live (real lay bets) — Paper-Live + Live gated behind a future licence-key check (Phase 2).
 
-## Core Requirements (locked)
-- Configurable stake (£0.05, £0.50, £1.00, £1.50, £2.00).
-- Configurable recovery depth L1–L5 (default L3).
-- Recovery is per-favourite-rank slot, not per-dog.
-- Number of favourites laid: configurable 1–4.
-- Stop conditions: stop-win, stop-loss, max-races (with recovery-overrun option).
-- Liability cap (bust protection) — recovery bets exceeding cap auto-bust the chain.
-- Configurable Betfair commission (0 / 2 / 5 / 6.5 / 10%).
-- Odds range filter (skip favs outside min/max band).
-- Batch race execution (1/5/10/25/50).
-- Bank carryover between sessions + daily P&L graph.
+## Brand
+- Name: **Lay-Hounds**
+- Domain: lay-hounds.co.uk
+- Location: Durham, United Kingdom
+- Contact: hello@lay-hounds.co.uk
 
-## Implemented (2026-02)
-### Core MVP
-- Session CRUD (POST/GET/DELETE /api/sessions), next-race, stop.
-- Recovery math validated end-to-end (all levels up to L5, plus bust).
-- UK greyhound names (36) + 8 venues, randomised odds 1.5–15.
-- Dark "Tactical Minimalism" theme: Barlow Condensed / DM Sans / JetBrains Mono, pink accents, rounded-none.
-- Full data-testid coverage.
+## Pricing model
+- **Free Simulator** — permanent, no card, all simulator features.
+- **Live Unlock** — £19.99/month (Stripe or PayPal), unlocks Paper-Live + Live modes. Cancel anytime. 14-day money-back guarantee.
 
-### Betfair Integration
-- `betfair_client.py` raw async httpx JSON-RPC with interactive login, 12h session + auto-refresh.
-- listMarketCatalogue / listMarketBook / placeOrders / cancelOrders wired.
-- Mode-aware `next-race`: simulator / paper_live / live.
-- Live-mode guardrails: `risk_accepted=true`, per-bet liability capped at `max_liability_cap`.
-- Credentials stored only in `backend/.env`.
+## Implemented (2026-02 → 2026-05)
+### Simulator core (Feb 2026)
+- Configurable stake (£0.05–£2.00), commission (0–10%), liability cap (bust protection).
+- Recovery depth L1–L5 user-configurable.
+- Monte-Carlo cap preview (1500 iterations, dynamic level mapping).
+- Odds-range filter, batch run-races (1/5/10/25/50), recovery overrun.
+- Bank carryover, daily P&L cumulative line + per-session bar chart.
+- One-click Reset (DELETE /api/sessions wipes all).
+- Dark "Tactical Minimalism" UI with pink #EC4899 accent, Barlow Condensed display + JetBrains Mono.
 
-### Advanced (added since MVP)
-- Configurable stakes (£0.05–£2.00) & commission tiers.
-- Liability cap / bust protection in all three modes.
-- Monte-Carlo cap preview (`POST /api/preview-cap`, 1500–2000 iterations).
-- Odds-range filter on lay selection.
-- Batch run-races (`batch_size` param, 1–50).
-- Recovery-overrun: continue active chains past `max_races` until resolved.
-- Bank carryover (`GET /api/bank/current`).
-- Daily P&L graph (`GET /api/daily-stats` + Recharts cumulative line + per-session bar).
-- **Dynamic recovery depth L1–L5 (2026-02-06)**: `max_recovery_level` now on SessionConfig and CapPreviewInput. All backend math, Monte-Carlo bust-distribution keys, and frontend CapPreview / RecoveryStatus / NewSessionDialog dynamically render 1–5 levels.
-- DailyChart negative-height SVG warning fixed (2026-02-06).
+### Betfair integration (Feb 2026)
+- `betfair_client.py` raw httpx JSON-RPC client (login, listMarketCatalogue, listMarketBook, placeOrders, cancelOrders).
+- Mode-aware `next-race` endpoint (simulator / paper_live / live).
+- Live-mode safeguards (risk_accepted flag, liability cap).
+- ⚠️ Live API requires UK/EU host — current preview pod returns GEO_BLOCKED (graceful UI fallback).
 
-## ⚠️ Known deployment constraint
-Betfair geo-blocks all non-UK/EU traffic. The Emergent preview pod is in the US, so `GET /api/betfair/status` returns `GEO_BLOCKED` and paper-live/live modes are disabled in the UI with a clear badge. Simulator mode is fully functional. The integration code is correct and will work unchanged once the backend is deployed on a UK/EU host (UK VPS / UK reverse proxy).
+### Deployment toolchain (Feb–May 2026)
+- `/app/DEPLOYMENT.md` — full UK/EU deploy walkthrough (Hetzner / OVH / Linode / Fasthosts).
+- `/app/deploy.sh` — one-command bootstrap on Ubuntu 22.04 (`jammy`) and 24.04 (`noble`); auto-detects codename, picks Python 3.11/3.12 + MongoDB 7.0/8.0; supports `SKIP_TLS=1` and IP-only deployments.
+- `/app/update.sh` — zero-downtime updater (atomic frontend swap, `pm2 reload`, smart dep reinstall).
+- Slim `requirements.txt` — removed `emergentintegrations` and other Emergent template boilerplate so external deploys install cleanly from public PyPI.
+
+### Marketing site (May 2026)
+- `pages/Landing.jsx` — one-page hero + features grid + how-it-works + demo + pricing + FAQ + contact form. Bright SaaS aesthetic, framer-motion fade-up scroll reveals.
+- Sticky glassmorphism `MarketingHeader`, dark `MarketingFooter` with responsible-gambling disclaimer (GamCare + BeGambleAware links).
+- Pricing card with **Stripe Card** + **PayPal** buttons (Phase 1 stubs).
+- `pages/{Terms,Privacy,Refund}.jsx` — full UK-GDPR-compliant legal copy.
+- `pages/Checkout.jsx` — `CheckoutSuccess` + `CheckoutCancel` redirect targets.
+- New API endpoints (Phase 1 stubs):
+  - `POST /api/payments/stripe/checkout`
+  - `POST /api/payments/paypal/checkout`
+  - `POST /api/contact` (persists to MongoDB `contact_messages`).
+
+## Test status
+- **Backend**: **35/35 pytest pass** (`/app/backend/tests/test_simulator.py`, `test_new_features.py`, `test_marketing.py`).
+- **Frontend**: full e2e verified by testing agent — all 16 flows pass (iteration_3.json).
+- Live mode: not testable from US preview pod (GEO_BLOCKED), code-reviewed only.
+
+## Roadmap
+
+### Phase 2 — Real payments + licence keys (next)
+- Real Stripe Checkout Session creation + webhook.
+- Real PayPal Subscriptions API + webhook.
+- Licence-key issuance on successful checkout (email delivery).
+- `/api/licenses/activate` endpoint + simulator UI for pasting key.
+- Gate Paper-Live + Live modes behind valid licence.
+
+### Phase 3 — backlog
+- Aggregate all-time dashboard across all historical days.
+- CSV export of races + bets.
+- Per-dog (vs per-rank) recovery toggle.
+- Email/Telegram alert on stop-win / stop-loss.
+- Auto-settlement of live bets via market polling.
+- Migrate `@app.on_event('shutdown')` → lifespan.
+- Split `server.py` (now ~700 lines) into route modules (`/app/backend/routes/{sessions,marketing,payments}.py`).
+- Strategy Comparison overlay (run two configs side-by-side).
+- Carry-forward: DailyChart Recharts negative-height warnings (cosmetic, chart still functional).
+
+## Files of reference
+- `/app/frontend/src/App.js` — Router shell
+- `/app/frontend/src/pages/Landing.jsx` — Marketing one-page
+- `/app/frontend/src/pages/Simulator.jsx` — The simulator (was App.js)
+- `/app/frontend/src/marketing/MarketingLayout.jsx`, `LegalShell.jsx`
+- `/app/backend/server.py` — All API routes
+- `/app/deploy.sh`, `/app/update.sh`, `/app/DEPLOYMENT.md`
+- `/app/design_guidelines.json` — Marketing site design system
 
 ## Credentials
-- Betfair App Key / Username / Password in `/app/backend/.env` (provided by user).
-
-## Test Status
-- Backend: **25/25 pytest passing** (`/app/backend/tests/test_simulator.py` + `test_new_features.py`) — covers CRUD, recovery math, all dynamic levels, cap bust, overrun, stop conditions, bank carryover, daily-stats, batch runs, preview-cap.
-- Frontend: Full flow verified by testing agent — L1-L5 toggles, dynamic CapPreview, RecoveryStatus dot count, batch buttons, Stop-button sync, welcome copy, DailyChart renders across 95 days.
-- Live mode: not testable from this pod (GEO_BLOCKED), code-reviewed only.
-
-## Backlog
-### P1
-- Aggregate all-time dashboard (across every historical day, not just current bank streak).
-- UK/EU proxy/deployment guide in README for Live mode.
-- CSV export of races + bets.
-
-### P2
-- Per-dog (vs per-rank) recovery mode toggle.
-- Per-race manual winner override for deterministic stress-testing.
-- Migrate FastAPI `on_event('shutdown')` → `lifespan`.
-- Optional email / webhook on stop-win / stop-loss.
-
-## Next Tasks
-1. All-time aggregate dashboard.
-2. CSV export.
-3. Live-mode UK/EU proxy write-up.
+- Betfair: `backend/.env` (App Key + username + password). User-supplied per install.
+- Stripe / PayPal: env-var placeholders; real keys to land in Phase 2.
