@@ -1,108 +1,158 @@
 {
-  "theme": "dark",
-  "archetype": "2 (Performance Pro)",
-  "rationale": "The application is a data-dense betting simulator. It requires a 'Control Room' feel, prioritizing high-visibility data clarity, rapid scannability, and high-stakes performance styling.",
-  "typography": {
-    "fonts": {
-      "heading": "Barlow Condensed",
-      "body": "DM Sans",
-      "mono": "JetBrains Mono"
-    },
-    "scale": {
-      "h1": "text-4xl sm:text-5xl tracking-tighter uppercase font-black",
-      "h2": "text-2xl sm:text-3xl tracking-tight uppercase font-bold",
-      "h3": "text-xl sm:text-2xl uppercase font-semibold",
-      "h4": "text-lg uppercase tracking-widest text-zinc-400 font-semibold",
-      "body": "text-sm sm:text-base leading-relaxed font-medium",
-      "mono_data": "font-mono text-sm tracking-tight",
-      "labels": "text-xs uppercase tracking-[0.2em] font-bold text-zinc-500"
-    },
-    "rules": [
-      "No generic sans like Inter for headings.",
-      "Use JetBrains Mono for all racing odds, liabilities, stakes, and P&L data.",
-      "Use Barlow Condensed for section headers and aggressive styling."
-    ]
+  "theme": "light",
+  "archetype": "4 (Swiss & High-Contrast)",
+  "brand": {
+    "name": "Lay-Hounds",
+    "location": "Durham, UK",
+    "domain": "lay-hounds.co.uk",
+    "aesthetic_goal": "Bright, trustworthy SaaS landing page. Share brand DNA (pink accent) with the simulator app (/app) but prioritize a light, high-converting marketing feel."
   },
   "colors": {
-    "background": "#0A0A0A",
-    "surface": {
-      "default": "#141414",
-      "elevated": "#1C1C1C",
-      "border": "#2A2A2A"
+    "primary_accent": "#EC4899",
+    "primary_accent_hover": "#BE185D",
+    "background_base": "#FFFFFF",
+    "background_subtle": "#F8FAFC",
+    "background_dark": "#0F172A",
+    "surface": "#FFFFFF",
+    "surface_hover": "#F1F5F9",
+    "text_primary": "#0F172A",
+    "text_secondary": "#475569",
+    "text_inverse": "#FFFFFF",
+    "border_light": "#E2E8F0",
+    "border_dark": "#94A3B8"
+  },
+  "typography": {
+    "headings": {
+      "family": "Cabinet Grotesk, sans-serif",
+      "weight": "800",
+      "tracking": "tracking-tighter"
     },
-    "text": {
-      "primary": "#FFFFFF",
-      "secondary": "#A1A1AA",
-      "tertiary": "#52525B"
+    "body": {
+      "family": "Manrope, sans-serif",
+      "weight": "400",
+      "tracking": "tracking-normal"
     },
-    "accents": {
-      "primary": "#EC4899",
-      "primary_hover": "#F472B6",
-      "secondary": "#3B82F6",
-      "win": "#10B981",
-      "loss": "#EF4444",
-      "liability": "#F59E0B"
+    "mono_accent": {
+      "family": "JetBrains Mono, monospace",
+      "weight": "600",
+      "tracking": "tracking-widest",
+      "usage": "Overlines, labels, and micro-copy to bridge the gap with the tactical simulator app."
     },
-    "betfair_specific": {
-      "lay_bg": "bg-pink-500/10",
-      "lay_border": "border-pink-500/30",
-      "lay_text": "text-pink-400",
-      "back_bg": "bg-blue-500/10",
-      "back_border": "border-blue-500/30",
-      "back_text": "text-blue-400"
+    "scale": {
+      "h1": "text-5xl sm:text-6xl md:text-7xl",
+      "h2": "text-4xl sm:text-5xl",
+      "h3": "text-2xl sm:text-3xl",
+      "h4": "text-xl",
+      "body": "text-base md:text-lg",
+      "small": "text-sm"
     }
   },
-  "layout": {
-    "spacing_scale": "tight",
-    "grid_mode": "Control Room Grid",
-    "border_radius": "rounded-none",
-    "surface_styles": {
-      "cards": "bg-[#141414] border border-[#2A2A2A] shadow-none",
-      "headers": "bg-[#0A0A0A] border-b border-[#2A2A2A]",
-      "tables": "border-collapse border border-[#2A2A2A] text-left"
-    },
-    "rules": [
-      "Use dense, compact spacing (`p-4`, `p-6`) for data cards.",
-      "1px solid strokes everywhere. No soft dropshadows. Use inner glows or solid borders for depth.",
-      "Grid children must stretch to match row height (`h-full`)."
-    ]
+  "spacing_and_layout": {
+    "container_padding": "px-6 md:px-12 lg:px-24",
+    "section_spacing": "py-20 md:py-32",
+    "grid_pattern": "Bento Grid Protocol (Tetris) for features. Asymmetric spans with gap-8.",
+    "border_radius": "rounded-xl for cards to soften the stark white, contrasting with the app's rounded-none. Buttons rounded-full or rounded-lg."
   },
-  "components": {
-    "buttons": {
-      "primary": "bg-pink-600 hover:bg-pink-500 text-white font-bold uppercase tracking-wider rounded-none transition-colors border-b-2 border-pink-800 active:translate-y-[2px] active:border-b-0",
-      "secondary": "bg-[#1C1C1C] hover:bg-[#2A2A2A] text-white border border-[#2A2A2A] rounded-none transition-colors"
+  "surface_strategies": {
+    "header": "Glassmorphism: bg-white/70 backdrop-blur-xl border-b border-slate-200. Sticky top.",
+    "cards": "Flat background (bg-white), 1px solid border (border-slate-200), subtle shadow-sm. Hover: -translate-y-1 shadow-md border-pink-500/30 transition-all.",
+    "footer": "High-contrast dark mode. bg-slate-900 text-white py-24."
+  },
+  "sections": {
+    "header": {
+      "components": ["Logo", "Navigation Links (Features, How it Works, Pricing, FAQ)", "CTA Button (Open App)"],
+      "layout": "Flex container, logo left, nav center (desktop), CTA right. Use Shadcn Sheet for mobile nav."
     },
-    "tables": {
-      "header": "bg-[#1C1C1C] text-xs font-bold uppercase tracking-wider text-zinc-400 border-b border-[#2A2A2A] p-3",
-      "row": "border-b border-[#2A2A2A] hover:bg-[#1C1C1C]/50 transition-colors",
-      "cell": "p-3 font-mono text-sm"
+    "hero": {
+      "layout": "Grid 12-col. Left 7-col: Text content. Right 5-col: Dashboard Mockup or Hero Abstract image.",
+      "content": {
+        "headline": "Lay smarter. Recover faster.",
+        "subheadline": "The premier Betfair greyhound lay-betting recovery simulator. Test your strategies safely, then go Live.",
+        "primary_cta": "Try Free Simulator",
+        "secondary_cta": "See pricing"
+      },
+      "style": "Bright, white background. Primary CTA in solid Pink (#EC4899), Secondary CTA outline/ghost."
     },
-    "inputs": {
-      "default": "bg-[#0A0A0A] border border-[#2A2A2A] text-white p-2 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 rounded-none font-mono"
+    "features": {
+      "layout": "Bento Grid (Mode A). 3 columns on desktop. gap-6.",
+      "items": [
+        "Configurable Stakes",
+        "Recovery L1-L5",
+        "Monte-Carlo Preview",
+        "Batch Racing",
+        "Real Betfair Live",
+        "Daily P&L Journal"
+      ],
+      "style": "Cards with icons. Icons in Pink. Use Phosphor Icons or lucide-react."
+    },
+    "how_it_works": {
+      "layout": "Vertical timeline or 3-step horizontal cards.",
+      "steps": [
+        "1. Configure strategy (Simulator)",
+        "2. Run simulation (Test Phase)",
+        "3. Go live with unlock (Real Money)"
+      ],
+      "style": "Use JetBrains Mono for the step numbers to hint at the app's tactical nature."
+    },
+    "demo_embed": {
+      "layout": "Full-width container with a max-w-5xl constrained inner wrapper.",
+      "content": "Image or Video placeholder showing the dashboard mockup.",
+      "style": "Wrap the image in a browser-mockup window. Deep shadow (shadow-2xl) to make it pop off the white background."
+    },
+    "pricing": {
+      "layout": "2-column grid. Max-w-4xl mx-auto.",
+      "tiers": [
+        {"name": "Simulator Only", "price": "Free", "features": ["Virtual funds", "Strategy testing"]},
+        {"name": "Live Unlock", "price": "£19.99/mo", "features": ["Live Betfair connection", "Paper-Live mode", "Unlimited batch racing"], "highlight": true}
+      ],
+      "style": "Highlight the paid tier with a pink border and a 'Most Popular' badge. Trust logos (Stripe, PayPal) directly under the paid CTA."
+    },
+    "faq": {
+      "layout": "Accordion (Shadcn UI). Max-w-3xl mx-auto.",
+      "style": "Clean, left-aligned, border-b only."
+    },
+    "footer": {
+      "layout": "Grid with Brand info on left, links on right.",
+      "content": "© 2026 Lay-Hounds, Durham, UK. Links: Terms, Privacy, Refund.",
+      "style": "Dark background (#0F172A). Text slate-400. Hover text white."
     }
   },
-  "animations": {
-    "transitions": "transition-all duration-200 ease-in-out",
-    "micro_interactions": "Hover states must lighten background and change text colors. Buttons have a tactile click (active:translate-y).",
-    "data_updates": "Use flash effects (green/red background pulse) when P&L updates."
+  "interactions_and_motion": {
+    "hover": "Buttons and cards should have slight lift (-translate-y-0.5) and shadow increase. Use Tailwind transition-all duration-300.",
+    "scroll": "Fade-in up animations for sections as they enter viewport using framer-motion (initial: opacity 0, y: 20; whileInView: opacity 1, y: 0)."
   },
   "media": {
-    "image_urls": [
-      {
-        "url": "https://images.unsplash.com/photo-1711635745205-1fb145e0e458?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwxfHxncmV5aG91bmQlMjByYWNpbmclMjBzaWxob3VldHRlfGVufDB8fHx8MTc3Nzk3OTUxMXww&ixlib=rb-4.1.0&q=85",
-        "category": "background_ambient",
-        "description": "Abstract greyhound/dog aesthetic for login or empty states, use with heavy dark overlay (bg-black/80)."
-      }
-    ]
+    "dashboard_mockup": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/abc83fac-9099-4a47-9758-47d27c91dbc1/images/0b70164da77105a7af94ba0cc4fa0117e303ce75477d2dc4bdb57eb0a8a045ef.png",
+      "description": "Clean, high-end SaaS dashboard mockup on a solid background.",
+      "usage": "Hero section right column or Demo embed section."
+    },
+    "hero_abstract": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/abc83fac-9099-4a47-9758-47d27c91dbc1/images/f5d39017cb7a033b0518a25d24c13a350fcc1cc110f4c766ad2ffabd8ef686bc.png",
+      "description": "Abstract, dynamic 3D graphic showing data flow.",
+      "usage": "Alternative hero graphic or background texture."
+    },
+    "greyhound_image": {
+      "url": "https://images.unsplash.com/photo-1549355517-0a46fac40ff1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAxODF8MHwxfHNlYXJjaHwxfHxncmV5aG91bmQlMjByYWNpbmd8ZW58MHx8fHwxNzc4MTQzMDA2fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Close-up photography of adult greyhound.",
+      "usage": "About/Contact section background or subtle texture."
+    },
+    "paypal_logo": {
+      "url": "https://images.unsplash.com/photo-1641350625112-3b1d73c71418?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzN8MHwxfHNlYXJjaHwxfHxwYXlwYWwlMjBsb2dvfGVufDB8fHx8MTc3ODE0MzAwNnww&ixlib=rb-4.1.0&q=85",
+      "description": "PayPal generic logo element.",
+      "usage": "Pricing section trust badges."
+    },
+    "mastercard_logo": {
+      "url": "https://images.unsplash.com/photo-1741649416158-0e72ddcffadb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwxfHx2aXNhJTIwbWFzdGVyY2FyZCUyMGxvZ298ZW58MHx8fHwxNzc4MTQzMDIzfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Mastercard generic logo element.",
+      "usage": "Pricing section trust badges."
+    }
   },
   "instructions_to_main_agent": [
-    "Follow the 'Control Room' grid system for layout. The dashboard should have a settings panel on the left/top and live race card/P&L in the center/right.",
-    "Data density is critical. Use Shadcn Table but customize it to have tight padding and no rounded corners.",
-    "Highlight Betfair 'Lay' actions clearly using the provided pink accents (#EC4899).",
-    "All monetary values and odds MUST use the `JetBrains Mono` font for perfect alignment.",
-    "Implement the strategy accurately: target the specific favourite that lost. Display the recovery level (1, 2, 3) visually, perhaps with segmented progress bars or badges.",
-    "Use Phosphor Icons (sharp/regular) for UI elements.",
-    "Ensure all interactive elements have `data-testid` attributes.",
-    "Maintain the dark 'Tactical Minimalism' vibe. Avoid large blocks of color; use color sparingly for data visualization (wins/losses)."
+    "Use pure HTML and Tailwind for marketing page structures. Use Shadcn components for complex interactions like Accordion (FAQ).",
+    "Implement lucide-react for standard icons.",
+    "Add data-testid attributes to all buttons, links, and major sections.",
+    "Ensure the hero section uses the generated dashboard mockup.",
+    "Do not alter the /app route or simulator styling, apply these changes ONLY to the marketing pages (/)."
   ]
 }
