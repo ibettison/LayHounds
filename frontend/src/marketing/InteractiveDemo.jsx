@@ -1,13 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, Trophy, ShieldAlert, ShieldCheck, ArrowUpRight } from "lucide-react";
+import { Play, Pause, RotateCcw, Trophy, ShieldAlert, ShieldCheck, ArrowUpRight, Shuffle } from "lucide-react";
 import { Button } from "../components/ui/button";
 
 // ---------- Demo configuration ----------
-const STAKE = 0.5;
 const COMMISSION = 0.05;
-const STARTING_BANK = 50.0;
 const RACE_DURATION_MS = 1100;       // "running" animation
 const RESOLVE_PAUSE_MS = 1600;       // pause after a result before next race
 const TOTAL_RACES = 10;
@@ -16,7 +14,7 @@ const TOTAL_RACES = 10;
 //   F1 = lowest-odds dog, F2 = second lowest. Winner trap is the dog that crosses the line first.
 //   When F1 / F2 wins, our LAY bet on it loses (we pay liability).
 //   When any other trap wins, our LAY bet wins (we collect stake minus commission).
-const RACES = [
+const RACES_RECOVERY = [
   { v: "Sheffield", d: [
     { trap: 1, name: "Swift Iconic",     odds: 2.4 },
     { trap: 2, name: "Droopys Sydney",   odds: 3.2 },
@@ -99,13 +97,213 @@ const RACES = [
   ], w: 4 },                                // mid wins → F1 L2 recovery WINS (final pop)
 ];
 
+// Scenario B: "Steady Grinder" — small stake, low-odds favs, mostly clean wins.
+// Outcome: small steady positive grind (~+£3 over 10 races, no recovery drama).
+const RACES_GRINDER = [
+  { v: "Yarmouth", d: [
+    { trap: 1, name: "Coolavanny Star",  odds: 1.9 },
+    { trap: 2, name: "Droopys Buzz",     odds: 2.4 },
+    { trap: 3, name: "Hovex Sprite",     odds: 4.2 },
+    { trap: 4, name: "Westmead Sapphire", odds: 6.0 },
+    { trap: 5, name: "Skywalker Trust",  odds: 8.5 },
+    { trap: 6, name: "Magical Wave",     odds: 11.0 },
+  ], w: 3 },
+  { v: "Sheffield", d: [
+    { trap: 1, name: "Bockos Diamond",   odds: 2.0 },
+    { trap: 2, name: "Romeo Forte",      odds: 2.6 },
+    { trap: 3, name: "Imperial Dawn",    odds: 4.4 },
+    { trap: 4, name: "Pestana Storm",    odds: 6.2 },
+    { trap: 5, name: "Toolatetosell II", odds: 9.0 },
+    { trap: 6, name: "Yahoo Tornado",    odds: 12.5 },
+  ], w: 4 },
+  { v: "Crayford", d: [
+    { trap: 1, name: "Slippy Comet",     odds: 1.95 },
+    { trap: 2, name: "Crash Bandit",     odds: 2.5 },
+    { trap: 3, name: "Burgess Echo",     odds: 4.6 },
+    { trap: 4, name: "Templeogue Bolt",  odds: 6.5 },
+    { trap: 5, name: "King Apache",      odds: 8.8 },
+    { trap: 6, name: "Loughteen Frost",  odds: 11.5 },
+  ], w: 1 },                              // F1 wins → small loss enters L1
+  { v: "Nottingham", d: [
+    { trap: 1, name: "Swift Iconic",     odds: 2.1 },
+    { trap: 2, name: "Newinn Cara",      odds: 2.7 },
+    { trap: 3, name: "Ballyboden Spirit", odds: 4.5 },
+    { trap: 4, name: "Crossfield Pulse", odds: 6.0 },
+    { trap: 5, name: "Jaytee Apollo",    odds: 9.0 },
+    { trap: 6, name: "Romeo Solo",       odds: 13.0 },
+  ], w: 4 },                              // mid wins → F1 L1 recovery clears
+  { v: "Romford", d: [
+    { trap: 1, name: "Tullymurry Glow",  odds: 2.0 },
+    { trap: 2, name: "Westmead Hero",    odds: 2.55 },
+    { trap: 3, name: "Bockos Tempo",     odds: 4.2 },
+    { trap: 4, name: "Fearless Frost",   odds: 5.8 },
+    { trap: 5, name: "Toolatetosell",    odds: 9.5 },
+    { trap: 6, name: "Dazzling Star",    odds: 12.0 },
+  ], w: 5 },
+  { v: "Sunderland", d: [
+    { trap: 1, name: "Ballyboden King",  odds: 1.85 },
+    { trap: 2, name: "Crossfield Wave",  odds: 2.4 },
+    { trap: 3, name: "Swift Falcon",     odds: 4.4 },
+    { trap: 4, name: "Jaytee Pacer",     odds: 6.5 },
+    { trap: 5, name: "Romeo Mirage",     odds: 9.0 },
+    { trap: 6, name: "Droopys Verve",    odds: 12.5 },
+  ], w: 6 },
+  { v: "Sheffield", d: [
+    { trap: 1, name: "Pestana Drift",    odds: 2.05 },
+    { trap: 2, name: "Newinn Dawn",      odds: 2.5 },
+    { trap: 3, name: "Burgess Lightning", odds: 4.5 },
+    { trap: 4, name: "Imperial Light",   odds: 6.2 },
+    { trap: 5, name: "King Bandit",      odds: 9.0 },
+    { trap: 6, name: "Tullymurry Wisp",  odds: 12.0 },
+  ], w: 3 },
+  { v: "Yarmouth", d: [
+    { trap: 1, name: "Crash Brave",      odds: 1.95 },
+    { trap: 2, name: "Bockos Jazz",      odds: 2.4 },
+    { trap: 3, name: "Westmead Nova",    odds: 4.6 },
+    { trap: 4, name: "Templeogue Joy",   odds: 6.0 },
+    { trap: 5, name: "Loughteen Glow",   odds: 9.0 },
+    { trap: 6, name: "Yahoo Daze",       odds: 12.5 },
+  ], w: 4 },
+  { v: "Romford", d: [
+    { trap: 1, name: "Fearless Crown",   odds: 2.0 },
+    { trap: 2, name: "Ballyboden Echo",  odds: 2.6 },
+    { trap: 3, name: "Crossfield Nova",  odds: 4.2 },
+    { trap: 4, name: "Swift Mirage",     odds: 6.5 },
+    { trap: 5, name: "Jaytee Reign",     odds: 8.5 },
+    { trap: 6, name: "Romeo Edge",       odds: 12.0 },
+  ], w: 3 },
+  { v: "Nottingham", d: [
+    { trap: 1, name: "Slippy Onyx",      odds: 1.9 },
+    { trap: 2, name: "Skywalker Pulse",  odds: 2.5 },
+    { trap: 3, name: "Toolatetosell",    odds: 4.4 },
+    { trap: 4, name: "Dazzling Frost",   odds: 6.5 },
+    { trap: 5, name: "Coolavanny Sky",   odds: 9.0 },
+    { trap: 6, name: "Magical Surge",    odds: 12.0 },
+  ], w: 4 },
+];
+
+// Scenario C: "Cap Crisis" — bigger £2 stake hits the £15 liability cap and busts.
+// Outcome: shows the bust-protection safety mechanism (and that you live to bet another day).
+const RACES_CAP = [
+  { v: "Crayford", d: [
+    { trap: 1, name: "Storm Surge",      odds: 2.1 },
+    { trap: 2, name: "Sky Diamond",      odds: 3.0 },
+    { trap: 3, name: "Burgess Echo",     odds: 4.5 },
+    { trap: 4, name: "Imperial Flash",   odds: 7.0 },
+    { trap: 5, name: "King Sabre",       odds: 9.0 },
+    { trap: 6, name: "Tullymurry Heat",  odds: 12.5 },
+  ], w: 4 },                              // both win
+  { v: "Sheffield", d: [
+    { trap: 1, name: "Newinn Aura",      odds: 2.5 },
+    { trap: 2, name: "Pestana Drift",    odds: 3.4 },
+    { trap: 3, name: "Hovex Pulse",      odds: 4.8 },
+    { trap: 4, name: "Skywalker Logan",  odds: 7.0 },
+    { trap: 5, name: "Magical Bale",     odds: 9.5 },
+    { trap: 6, name: "Westmead Bay",     odds: 13.0 },
+  ], w: 1 },                              // F1 wins → F1 L1 (£5 stake at 2.5 odds = liability £7.50)
+  { v: "Romford", d: [
+    { trap: 1, name: "Fearless Crown",   odds: 2.6 },
+    { trap: 2, name: "Crossfield Pulse", odds: 3.2 },
+    { trap: 3, name: "Bockos Comet",     odds: 5.0 },
+    { trap: 4, name: "Templeogue Bolt",  odds: 7.5 },
+    { trap: 5, name: "Loughteen Frost",  odds: 9.5 },
+    { trap: 6, name: "Yahoo Drift",      odds: 13.0 },
+  ], w: 1 },                              // F1 wins again → F1 chain BUSTS via cap!
+  { v: "Sunderland", d: [
+    { trap: 1, name: "Ballyboden King",  odds: 2.4 },
+    { trap: 2, name: "Crossfield Sky",   odds: 3.4 },
+    { trap: 3, name: "Swift Falcon",     odds: 4.6 },
+    { trap: 4, name: "Jaytee Pacer",     odds: 7.0 },
+    { trap: 5, name: "Romeo Mirage",     odds: 9.0 },
+    { trap: 6, name: "Droopys Verve",    odds: 12.0 },
+  ], w: 5 },                              // F1 busted, only F2 active → wins
+  { v: "Yarmouth", d: [
+    { trap: 1, name: "Coolavanny Star",  odds: 2.6 },
+    { trap: 2, name: "Droopys Buzz",     odds: 3.3 },
+    { trap: 3, name: "Hovex Sprite",     odds: 4.5 },
+    { trap: 4, name: "Westmead Sapphire", odds: 7.0 },
+    { trap: 5, name: "Skywalker Trust",  odds: 9.0 },
+    { trap: 6, name: "Magical Wave",     odds: 12.5 },
+  ], w: 3 },                              // F2 also wins
+  { v: "Sheffield", d: [
+    { trap: 1, name: "Pestana Storm",    odds: 2.5 },
+    { trap: 2, name: "Newinn Cara",      odds: 3.4 },
+    { trap: 3, name: "Burgess Echo",     odds: 4.8 },
+    { trap: 4, name: "Imperial Light",   odds: 6.8 },
+    { trap: 5, name: "King Bandit",      odds: 9.5 },
+    { trap: 6, name: "Tullymurry Heat",  odds: 13.0 },
+  ], w: 4 },
+  { v: "Crayford", d: [
+    { trap: 1, name: "Storm Surge",      odds: 2.7 },
+    { trap: 2, name: "Sky Diamond",      odds: 3.6 },
+    { trap: 3, name: "Burgess Comet",    odds: 4.5 },
+    { trap: 4, name: "Templeogue Bolt",  odds: 7.0 },
+    { trap: 5, name: "King Sabre",       odds: 9.0 },
+    { trap: 6, name: "Loughteen Frost",  odds: 12.5 },
+  ], w: 5 },
+  { v: "Nottingham", d: [
+    { trap: 1, name: "Fearless Storm",   odds: 2.4 },
+    { trap: 2, name: "Ballyboden Boss",  odds: 3.5 },
+    { trap: 3, name: "Crossfield Sky",   odds: 5.0 },
+    { trap: 4, name: "Swift Falcon",     odds: 7.0 },
+    { trap: 5, name: "Jaytee Reign",     odds: 9.5 },
+    { trap: 6, name: "Romeo Solo",       odds: 13.0 },
+  ], w: 6 },
+  { v: "Romford", d: [
+    { trap: 1, name: "Newinn Taylor",    odds: 2.5 },
+    { trap: 2, name: "Pestana Rocky",    odds: 3.4 },
+    { trap: 3, name: "Burgess Bullet",   odds: 4.6 },
+    { trap: 4, name: "Imperial Flash",   odds: 7.0 },
+    { trap: 5, name: "King Bandit",      odds: 9.5 },
+    { trap: 6, name: "Tullymurry Heat",  odds: 13.0 },
+  ], w: 4 },
+  { v: "Sheffield", d: [
+    { trap: 1, name: "Bockos Diamond",   odds: 2.6 },
+    { trap: 2, name: "Romeo Forte",      odds: 3.5 },
+    { trap: 3, name: "Hovex Sprite",     odds: 4.6 },
+    { trap: 4, name: "Pestana Drift",    odds: 6.8 },
+    { trap: 5, name: "Westmead Hero",    odds: 9.0 },
+    { trap: 6, name: "Magical Wave",     odds: 12.5 },
+  ], w: 3 },
+];
+
+const SCENARIOS = [
+  {
+    id: "recovery",
+    name: "Recovery Pop",
+    desc: "Loss enters L1, drops to L2, then bounces back with a big recovery win.",
+    stake: 0.5,
+    startBank: 50.0,
+    cap: 0,                // 0 = disabled
+    races: RACES_RECOVERY,
+  },
+  {
+    id: "grinder",
+    name: "Steady Grinder",
+    desc: "Low-odds favs, mostly clean wins. Small steady grind, few drawdowns.",
+    stake: 1.0,
+    startBank: 50.0,
+    cap: 0,
+    races: RACES_GRINDER,
+  },
+  {
+    id: "cap",
+    name: "Cap Crisis",
+    desc: "£2 stake, £15 liability cap. Watch a chain bust safely instead of spiraling.",
+    stake: 2.0,
+    startBank: 50.0,
+    cap: 15.0,
+    races: RACES_CAP,
+  },
+];
+
 // ---------- Pure simulator (mirrors backend math) ----------
-const initChains = () => ({
-  1: { level: 0, pendingStake: STAKE, accumLoss: 0 },
-  2: { level: 0, pendingStake: STAKE, accumLoss: 0 },
+const initChains = (stake) => ({
+  1: { level: 0, pendingStake: stake, accumLoss: 0, busted: false },
+  2: { level: 0, pendingStake: stake, accumLoss: 0, busted: false },
 });
 
-function applyRace(state, race) {
+function applyRace(state, race, cfg) {
   // F1 = lowest odds, F2 = second lowest
   const sorted = [...race.d].sort((a, b) => a.odds - b.odds);
   const slots = [
@@ -116,22 +314,53 @@ function applyRace(state, race) {
   let pnlDelta = 0;
   const bets = slots.map(({ rank, runner }) => {
     const c = { ...chains[rank] };
+    if (c.busted) {
+      // chain is dead — skip betting but still report it as a no-op slot
+      chains[rank] = c;
+      return {
+        rank,
+        runner,
+        stake: 0,
+        liability: 0,
+        layWon: null,
+        resultPnl: 0,
+        newLevel: c.level,
+        capBlocked: false,
+        skipped: true,
+      };
+    }
     const stake = c.pendingStake;
     const liability = stake * (runner.odds - 1);
+
+    // Liability cap check (only blocks recovery bets, not initial L0)
+    if (cfg.cap > 0 && c.level > 0 && liability > cfg.cap) {
+      c.busted = true;
+      chains[rank] = c;
+      return {
+        rank,
+        runner,
+        stake,
+        liability,
+        layWon: null,
+        resultPnl: 0,
+        newLevel: c.level,
+        capBlocked: true,
+        skipped: false,
+      };
+    }
+
     const layWon = runner.trap !== race.w;
     let resultPnl;
     if (layWon) {
-      const grossWin = stake * (1 - COMMISSION);
-      resultPnl = grossWin;
-      // reset chain
+      resultPnl = stake * (1 - COMMISSION);
       c.level = 0;
-      c.pendingStake = STAKE;
+      c.pendingStake = cfg.stake;
       c.accumLoss = 0;
     } else {
       resultPnl = -liability;
       c.accumLoss += liability + stake;
       c.level += 1;
-      c.pendingStake = c.accumLoss + STAKE; // recovery stake formula
+      c.pendingStake = c.accumLoss + cfg.stake;
     }
     chains[rank] = c;
     pnlDelta += resultPnl;
@@ -143,6 +372,8 @@ function applyRace(state, race) {
       layWon,
       resultPnl,
       newLevel: c.level,
+      capBlocked: false,
+      skipped: false,
     };
   });
   return {
@@ -183,9 +414,11 @@ const StatCell = ({ label, value, tone = "white", flash = null }) => (
   </div>
 );
 
-const ChainPill = ({ rank, level }) => {
-  const status =
-    level === 0
+const ChainPill = ({ rank, chain }) => {
+  const { level, busted } = chain;
+  const status = busted
+    ? { cls: "bg-red-500/10 text-red-300 border-red-500/30", label: "Busted" }
+    : level === 0
       ? { cls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30", label: "Clean" }
       : { cls: "bg-amber-500/10 text-amber-300 border-amber-500/30", label: `Recovery L${level}` };
   return (
@@ -198,7 +431,9 @@ const ChainPill = ({ rank, level }) => {
         {[1, 2, 3].map((i) => (
           <span
             key={i}
-            className={`w-2 h-2 ${i <= level ? "bg-amber-400" : "bg-[#2A2A2A]"}`}
+            className={`w-2 h-2 ${
+              busted ? "bg-red-500/60" : i <= level ? "bg-amber-400" : "bg-[#2A2A2A]"
+            }`}
           />
         ))}
       </span>
@@ -208,8 +443,11 @@ const ChainPill = ({ rank, level }) => {
 
 // ---------- The interactive demo ----------
 export const InteractiveDemo = () => {
-  const [chains, setChains] = useState(initChains());
-  const [bank, setBank] = useState(STARTING_BANK);
+  const [scenarioIdx, setScenarioIdx] = useState(0);
+  const scenario = SCENARIOS[scenarioIdx];
+
+  const [chains, setChains] = useState(() => initChains(scenario.stake));
+  const [bank, setBank] = useState(scenario.startBank);
   const [pnl, setPnl] = useState(0);
   const [history, setHistory] = useState([]);          // resolved races
   const [phase, setPhase] = useState("idle");          // idle | running | resolved | done
@@ -219,15 +457,23 @@ export const InteractiveDemo = () => {
   const [completedSeed, setCompletedSeed] = useState(0); // bumps each loop
   const timerRef = useRef(null);
 
-  const reset = () => {
+  const reset = (idx = scenarioIdx) => {
     clearTimeout(timerRef.current);
-    setChains(initChains());
-    setBank(STARTING_BANK);
+    const s = SCENARIOS[idx];
+    setChains(initChains(s.stake));
+    setBank(s.startBank);
     setPnl(0);
     setHistory([]);
     setPhase("idle");
     setActive(null);
     setLatest(null);
+  };
+
+  const cycleScenario = () => {
+    const next = (scenarioIdx + 1) % SCENARIOS.length;
+    setScenarioIdx(next);
+    setPlaying(true);
+    reset(next);
   };
 
   // Engine loop
@@ -241,10 +487,10 @@ export const InteractiveDemo = () => {
         setPhase("done");
         return;
       }
-      setActive({ race: RACES[nextIdx], idx: nextIdx });
+      setActive({ race: scenario.races[nextIdx], idx: nextIdx });
       setPhase("running");
       timerRef.current = setTimeout(() => {
-        const result = applyRace({ chains, bank, pnl }, RACES[nextIdx]);
+        const result = applyRace({ chains, bank, pnl }, scenario.races[nextIdx], scenario);
         setChains(result.chains);
         setBank(result.bank);
         setPnl(result.pnl);
@@ -259,8 +505,7 @@ export const InteractiveDemo = () => {
       }, RESOLVE_PAUSE_MS);
     }
     // No cleanup here — the next state transition naturally replaces the timer.
-    // (Cleaning here would cancel a timer that was just set in the same run.)
-  }, [phase, playing, history.length, completedSeed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, playing, history.length, completedSeed, scenarioIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pause clears any pending timer so playback truly stops.
   useEffect(() => {
@@ -275,11 +520,11 @@ export const InteractiveDemo = () => {
     if (phase !== "done") return;
     if (!playing) return;
     const t = setTimeout(() => {
-      reset();
+      reset(scenarioIdx);
       setCompletedSeed((s) => s + 1);
     }, 3500);
     return () => clearTimeout(t);
-  }, [phase, playing]);
+  }, [phase, playing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sparkData = useMemo(() => {
     const points = [{ x: 0, y: 0 }];
@@ -309,7 +554,17 @@ export const InteractiveDemo = () => {
           <span className="ml-3 text-[11px] font-mono text-slate-400 uppercase tracking-widest">
             lay-hounds.co.uk/app — live demo
           </span>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              data-testid="demo-cycle-scenario"
+              onClick={cycleScenario}
+              className="px-2.5 py-1.5 rounded text-[10px] font-mono uppercase tracking-widest font-bold bg-pink-500/10 hover:bg-pink-500/25 text-pink-300 hover:text-pink-100 border border-pink-500/30 transition-colors flex items-center gap-1.5"
+              aria-label="Try a different scenario"
+              title="Try a different scenario"
+            >
+              <Shuffle className="w-3 h-3" />
+              <span className="hidden sm:inline">Try Different</span>
+            </button>
             <button
               data-testid="demo-toggle-play"
               onClick={() => setPlaying((p) => !p)}
@@ -320,12 +575,41 @@ export const InteractiveDemo = () => {
             </button>
             <button
               data-testid="demo-reset"
-              onClick={reset}
+              onClick={() => reset(scenarioIdx)}
               className="p-1.5 rounded hover:bg-slate-700 text-slate-300 transition-colors"
               aria-label="Reset"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
+          </div>
+        </div>
+
+        {/* Scenario header */}
+        <div
+          data-testid="demo-scenario-header"
+          className="bg-[#0A0A0A] border-b border-[#1A1A1A] px-4 sm:px-6 py-3 flex items-center justify-between gap-3"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[9px] font-mono uppercase tracking-widest text-pink-400 font-bold shrink-0">
+              Scenario {scenarioIdx + 1}/{SCENARIOS.length}
+            </span>
+            <span className="text-pink-500/40 hidden sm:inline">·</span>
+            <span className="font-display font-bold text-base text-white tracking-tight truncate" data-testid="demo-scenario-name">
+              {scenario.name}
+            </span>
+            <span className="text-[11px] text-zinc-500 hidden md:inline truncate" data-testid="demo-scenario-desc">
+              — {scenario.desc}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {SCENARIOS.map((_, i) => (
+              <span
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                  i === scenarioIdx ? "bg-pink-500" : "bg-zinc-700"
+                }`}
+              />
+            ))}
           </div>
         </div>
 
@@ -336,7 +620,7 @@ export const InteractiveDemo = () => {
               <StatCell
                 label="Bank"
                 value={`£${bank.toFixed(2)}`}
-                tone={bank >= STARTING_BANK ? "text-emerald-400" : "text-red-400"}
+                tone={bank >= scenario.startBank ? "text-emerald-400" : "text-red-400"}
                 flash={latest?.idx ?? null}
               />
               <StatCell
@@ -352,13 +636,13 @@ export const InteractiveDemo = () => {
               />
               <StatCell
                 label="Stake"
-                value={`£${STAKE.toFixed(2)}`}
+                value={`£${scenario.stake.toFixed(2)}`}
                 tone="text-white"
               />
             </div>
 
-            <ChainPill rank={1} level={chains[1].level} />
-            <ChainPill rank={2} level={chains[2].level} />
+            <ChainPill rank={1} chain={chains[1]} />
+            <ChainPill rank={2} chain={chains[2]} />
 
             {/* Mini sparkline */}
             <div className="bg-[#141414] border border-[#2A2A2A] p-3">
@@ -490,7 +774,7 @@ export const InteractiveDemo = () => {
 };
 
 // ---------- Sub-components ----------
-const RunnerRow = ({ dog, layRank, running, winner, layWon, pnl }) => {
+const RunnerRow = ({ dog, layRank, running, winner, layWon, pnl, capBlocked, skipped }) => {
   const trapCls = TRAP_COLORS[dog.trap] || "bg-zinc-700 text-white";
   return (
     <div
@@ -505,18 +789,20 @@ const RunnerRow = ({ dog, layRank, running, winner, layWon, pnl }) => {
       <span className="flex-1 text-xs text-zinc-200 truncate">{dog.name}</span>
       <span className="text-xs font-mono text-zinc-400 w-14 text-right">{dog.odds.toFixed(1)}</span>
       {layRank && (
-        <span className="text-[9px] font-mono uppercase tracking-widest text-pink-400 font-bold w-12 text-right">
-          LAY F{layRank}
+        <span className={`text-[9px] font-mono uppercase tracking-widest font-bold w-12 text-right ${
+          skipped ? "text-zinc-600 line-through" : capBlocked ? "text-red-400" : "text-pink-400"
+        }`}>
+          {skipped ? "—" : capBlocked ? "BUST" : `LAY F${layRank}`}
         </span>
       )}
       {winner && <Trophy className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
       {!running && layRank && (
         <span
           className={`text-xs font-mono font-bold w-16 text-right ${
-            layWon ? "text-emerald-400" : "text-red-400"
+            skipped ? "text-zinc-600" : capBlocked ? "text-red-400" : layWon ? "text-emerald-400" : "text-red-400"
           }`}
         >
-          {layWon ? "+" : ""}£{pnl.toFixed(2)}
+          {skipped ? "skipped" : capBlocked ? "cap-block" : `${layWon ? "+" : ""}£${pnl.toFixed(2)}`}
         </span>
       )}
     </div>
@@ -559,6 +845,8 @@ const ResolvedRaceView = ({ race }) => {
               winner={dog.trap === race.winnerTrap}
               layWon={bet?.layWon}
               pnl={bet?.resultPnl ?? 0}
+              capBlocked={bet?.capBlocked}
+              skipped={bet?.skipped}
             />
           );
         })}

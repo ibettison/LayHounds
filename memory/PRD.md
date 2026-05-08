@@ -50,7 +50,7 @@ Build a Betfair-style system to lay multiple UK greyhounds with a configurable s
 
 ### Marketing site (May 2026)
 - `pages/Landing.jsx` — one-page hero + features grid + how-it-works + **interactive 10-race demo** + pricing + FAQ + contact form. Bright SaaS aesthetic, framer-motion fade-up scroll reveals.
-- `marketing/InteractiveDemo.jsx` — self-contained 10-race auto-playing animation with real recovery math, pause/reset controls, hand-scripted races for narrative drama (clean wins → recovery L1/L2 → big-pop wins). Auto-loops after completion.
+- `marketing/InteractiveDemo.jsx` — self-contained 10-race auto-playing animation with real recovery math, pause/reset controls, hand-scripted races for narrative drama. **3 scenarios** (Recovery Pop / Steady Grinder / Cap Crisis) cyclable via the "Try Different" toolbar button — each with its own stake, starting bank, race script, and (for Cap Crisis) liability cap. Auto-loops after completion.
 - Sticky glassmorphism `MarketingHeader`, dark `MarketingFooter` with responsible-gambling disclaimer (GamCare + BeGambleAware links).
 - Pricing card with **Stripe Card** + **PayPal** buttons (Phase 1 stubs).
 - `pages/{Terms,Privacy,Refund}.jsx` — full UK-GDPR-compliant legal copy.
