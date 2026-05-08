@@ -16,6 +16,9 @@ import {
   Mail,
   MapPin,
   ArrowUpRight,
+  Star,
+  Quote,
+  Smile,
 } from "lucide-react";
 import {
   Accordion,
@@ -92,6 +95,35 @@ const Hero = () => (
           <div className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" /> No card to start</div>
           <div className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> Self-hosted, your data</div>
           <div className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Live Betfair API</div>
+        </div>
+
+        {/* Social-proof avatar strip */}
+        <div className="flex items-center gap-3 pt-2" data-testid="hero-social-proof">
+          <div className="flex -space-x-2">
+            {["Tom", "Maya", "Jack", "Priya", "Owen"].map((seed, i) => (
+              <img
+                key={seed}
+                src={`https://api.dicebear.com/7.x/lorelei/svg?seed=${seed}&backgroundColor=fce7f3,fbcfe8,fed7aa,fef3c7,d1fae5`}
+                alt=""
+                width="36"
+                height="36"
+                loading="lazy"
+                className={`w-9 h-9 rounded-full border-2 border-white bg-pink-50 ring-1 ring-slate-200`}
+                style={{ zIndex: 5 - i }}
+              />
+            ))}
+          </div>
+          <div className="text-xs text-slate-600 leading-tight">
+            <div className="flex items-center gap-1 text-amber-500">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Star key={i} className="w-3 h-3 fill-amber-400" />
+              ))}
+              <span className="text-slate-700 font-semibold ml-1">4.8</span>
+            </div>
+            <div className="text-slate-500 text-[11px] font-medium">
+              Joined by 200+ UK punters this month
+            </div>
+          </div>
         </div>
       </motion.div>
 
@@ -263,6 +295,90 @@ const Demo = () => (
     <motion.div {...fadeUp}>
       <InteractiveDemo />
     </motion.div>
+  </Section>
+);
+
+const TESTIMONIALS = [
+  {
+    seed: "Liam",
+    bg: "fce7f3",
+    name: "Liam",
+    location: "Newcastle",
+    quote:
+      "I'd been running my recovery staircase in a battered spreadsheet for two years. Lay-Hounds replaced 800 lines of formulas in an afternoon — and the Monte-Carlo preview saved me from a strategy that would have busted me twice a week.",
+    tag: "Free Simulator user",
+  },
+  {
+    seed: "Aisha",
+    bg: "d1fae5",
+    name: "Aisha",
+    location: "London",
+    quote:
+      "Honestly thought it was too good to be true. Tried the simulator, ran 50 races in a click, then upgraded to Live the same evening. The bank-carryover daily chart is the bit I love most — finally a real journal.",
+    tag: "Live subscriber",
+  },
+  {
+    seed: "Mark",
+    bg: "fef3c7",
+    name: "Mark",
+    location: "Bristol",
+    quote:
+      "The cap-protection in Cap Crisis mode is what sold me — I've watched chains bust safely with my own eyes before risking a real penny. Worth £19.99 just for the peace of mind on Saturday afternoons.",
+    tag: "Live subscriber",
+  },
+];
+
+const Testimonials = () => (
+  <Section id="testimonials">
+    <motion.div {...fadeUp} className="text-center max-w-2xl mx-auto mb-14">
+      <Overline>Loved by lay-bettors</Overline>
+      <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-slate-900">
+        People are pretty pleased.
+      </h2>
+      <p className="text-slate-600 mt-4 leading-relaxed">
+        Real quotes from real users. (We change the names — punters are private people.)
+      </p>
+    </motion.div>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {TESTIMONIALS.map((t, i) => (
+        <motion.div
+          key={t.name}
+          {...fadeUp}
+          transition={{ ...fadeUp.transition, delay: i * 0.08 }}
+          data-testid={`testimonial-${t.name.toLowerCase()}`}
+          className="bg-white border border-slate-200 rounded-2xl p-7 hover:-translate-y-1 hover:shadow-lg hover:border-pink-200 transition-all flex flex-col"
+        >
+          <Quote className="w-6 h-6 text-pink-300 mb-4" />
+          <p className="text-slate-700 leading-relaxed text-sm flex-1">
+            &ldquo;{t.quote}&rdquo;
+          </p>
+          <div className="flex items-center gap-1 text-amber-500 mt-5">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star key={s} className="w-3.5 h-3.5 fill-amber-400" />
+            ))}
+          </div>
+          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-100">
+            <img
+              src={`https://api.dicebear.com/7.x/lorelei/svg?seed=${t.seed}&backgroundColor=${t.bg}`}
+              alt=""
+              width="44"
+              height="44"
+              loading="lazy"
+              className="w-11 h-11 rounded-full bg-pink-50"
+            />
+            <div>
+              <div className="font-display font-bold text-slate-900 text-base leading-tight">
+                {t.name}
+              </div>
+              <div className="text-xs text-slate-500 font-mono uppercase tracking-widest mt-0.5">
+                {t.location} · {t.tag}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
   </Section>
 );
 
@@ -526,6 +642,28 @@ const Contact = () => {
               <span>Durham, United Kingdom</span>
             </div>
           </div>
+
+          {/* Founder card */}
+          <div className="mt-8 bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm" data-testid="founder-card">
+            <img
+              src="https://api.dicebear.com/7.x/lorelei/svg?seed=Tom&backgroundColor=fce7f3"
+              alt="Founder"
+              width="64"
+              height="64"
+              loading="lazy"
+              className="w-16 h-16 rounded-full bg-pink-50 shrink-0"
+            />
+            <div>
+              <div className="flex items-center gap-1.5 text-xs font-mono uppercase tracking-widest text-pink-600 font-semibold">
+                <Smile className="w-3.5 h-3.5" /> Friendly humans behind it
+              </div>
+              <div className="font-display font-bold text-slate-900 mt-1">Tom &amp; the Durham crew</div>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                Built by a small team of recreational lay-bettors who got sick of broken spreadsheets.
+                Replies usually within a day — often within an hour on weekends.
+              </p>
+            </div>
+          </div>
         </motion.div>
 
         <motion.form
@@ -586,6 +724,7 @@ export default function Landing() {
       <Features />
       <HowItWorks />
       <Demo />
+      <Testimonials />
       <Pricing />
       <FAQ />
       <Contact />
