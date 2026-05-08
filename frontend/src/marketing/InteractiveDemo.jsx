@@ -761,7 +761,7 @@ export const InteractiveDemo = () => {
           <div className="text-xs font-mono text-slate-400 uppercase tracking-widest">
             Real algorithm · pre-scripted races for demo
           </div>
-          <Link to="/app" data-testid="demo-cta-open">
+          <Link to="/app" state={{ fromMarketing: true }} data-testid="demo-cta-open">
             <Button className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-4 rounded-lg font-semibold text-sm shadow-lg shadow-pink-500/30 hover:-translate-y-0.5 transition-all">
               Run your own configuration
               <ArrowUpRight className="w-3.5 h-3.5 ml-1" />

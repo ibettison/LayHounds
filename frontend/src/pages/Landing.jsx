@@ -72,7 +72,7 @@ const Hero = () => (
           No spreadsheet hell. No real money lost in testing.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
-          <Link to="/app" data-testid="hero-cta-try">
+          <Link to="/app" state={{ fromMarketing: true }} data-testid="hero-cta-try">
             <Button
               size="lg"
               className="bg-pink-500 hover:bg-pink-600 text-white px-8 py-6 rounded-lg font-semibold text-base shadow-lg shadow-pink-500/30 hover:shadow-xl hover:shadow-pink-500/40 hover:-translate-y-0.5 transition-all w-full sm:w-auto"
@@ -495,7 +495,7 @@ const Pricing = () => {
               Real lay bets (Live mode)
             </li>
           </ul>
-          <Link to="/app" data-testid="pricing-free-cta">
+          <Link to="/app" state={{ fromMarketing: true }} data-testid="pricing-free-cta">
             <Button
               variant="outline"
               className="w-full border-slate-300 text-slate-700 hover:bg-slate-100 rounded-lg font-semibold py-6"

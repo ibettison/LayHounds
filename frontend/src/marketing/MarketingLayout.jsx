@@ -41,7 +41,7 @@ export const MarketingHeader = () => {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link to="/app" data-testid="header-open-app">
+          <Link to="/app" state={{ fromMarketing: true }} data-testid="header-open-app">
             <Button className="bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold shadow-sm shadow-pink-500/30 transition-all hover:-translate-y-0.5">
               Open App
               <ChevronRight className="w-4 h-4 ml-1" />
@@ -104,7 +104,7 @@ export const MarketingFooter = () => (
           <li><a href="/#features" className="hover:text-white transition-colors">Features</a></li>
           <li><a href="/#how" className="hover:text-white transition-colors">How it works</a></li>
           <li><a href="/#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-          <li><Link to="/app" data-testid="footer-open-app" className="hover:text-white transition-colors">Open App</Link></li>
+          <li><Link to="/app" state={{ fromMarketing: true }} data-testid="footer-open-app" className="hover:text-white transition-colors">Open App</Link></li>
         </ul>
       </div>
 
