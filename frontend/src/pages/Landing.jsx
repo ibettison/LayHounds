@@ -235,16 +235,22 @@ const STEPS = [
     n: "01",
     t: "Configure your strategy",
     d: "Pick your stake, recovery depth (L1–L5), liability cap, commission and odds range. Monte-Carlo previews show your projected bust rate before you risk a penny.",
+    img: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=720&h=480&auto=format&fit=crop&q=80",
+    alt: "Setting up the strategy on a laptop",
   },
   {
     n: "02",
     t: "Test in the simulator",
     d: "Run individual races or batch 50 at a time on simulated UK greyhound fields. Bank carries between sessions so you can stress-test over hundreds of days.",
+    img: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=720&h=480&auto=format&fit=crop&q=80",
+    alt: "Watching the dashboard run through races",
   },
   {
     n: "03",
     t: "Unlock and go live",
     d: "Subscribe to Live Mode (£19.99/mo). Same UI, but Paper-Live uses real Betfair odds and Live mode places real lay bets on your Betfair account.",
+    img: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=720&h=480&auto=format&fit=crop&q=80",
+    alt: "Relaxed and confident after going live",
   },
 ];
 
@@ -294,15 +300,26 @@ const HowItWorks = () => (
           {...fadeUp}
           transition={{ ...fadeUp.transition, delay: i * 0.1 }}
           data-testid={`how-step-${s.n}`}
-          className="relative bg-white border border-slate-200 rounded-xl p-7 hover:shadow-md transition-all"
+          className="group relative bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all"
         >
-          <div className="font-mono font-bold text-pink-500 text-sm tracking-widest mb-4">
-            STEP / {s.n}
+          <div className="relative h-44 sm:h-48 overflow-hidden">
+            <img
+              src={s.img}
+              alt={s.alt}
+              loading="lazy"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-white/30 via-transparent to-transparent" />
+            <div className="absolute top-3 left-3 bg-white/95 backdrop-blur px-2.5 py-1 rounded-md font-mono font-bold text-pink-600 text-[10px] tracking-widest shadow-sm">
+              STEP / {s.n}
+            </div>
           </div>
-          <h3 className="font-display font-bold text-2xl tracking-tight text-slate-900 mb-3">
-            {s.t}
-          </h3>
-          <p className="text-sm text-slate-600 leading-relaxed">{s.d}</p>
+          <div className="p-7">
+            <h3 className="font-display font-bold text-2xl tracking-tight text-slate-900 mb-3">
+              {s.t}
+            </h3>
+            <p className="text-sm text-slate-600 leading-relaxed">{s.d}</p>
+          </div>
         </motion.div>
       ))}
     </div>
