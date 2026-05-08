@@ -248,6 +248,36 @@ const STEPS = [
   },
 ];
 
+const LifestyleBanner = () => (
+  <section className="relative" data-testid="lifestyle-banner">
+    <div className="max-w-7xl mx-auto px-6 md:px-12 py-12 md:py-16">
+      <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+        <img
+          src="https://images.unsplash.com/photo-1521119989659-a83eee488004?w=1600&h=700&auto=format&fit=crop&q=80"
+          alt="Friends celebrating together"
+          className="w-full h-[280px] sm:h-[360px] md:h-[420px] object-cover"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-gradient-to-tr from-slate-900/80 via-slate-900/40 to-transparent" />
+        <div className="absolute inset-0 flex items-center px-8 sm:px-14">
+          <motion.div {...fadeUp} className="max-w-xl text-white">
+            <div className="text-xs font-mono uppercase tracking-[0.18em] text-pink-300 font-semibold mb-3">
+              Made for the punters
+            </div>
+            <h3 className="font-display font-black text-3xl sm:text-4xl md:text-5xl tracking-tighter leading-[1.05]">
+              Saturday afternoons,<br />finally relaxing.
+            </h3>
+            <p className="text-sm sm:text-base text-slate-200 leading-relaxed mt-4 max-w-md">
+              Punters who switched to Lay-Hounds tell us the same thing: the spreadsheet
+              stress is gone. Watch the Monte-Carlo do the worrying so you can enjoy the racing.
+            </p>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
 const HowItWorks = () => (
   <Section id="how">
     <motion.div {...fadeUp} className="max-w-2xl mb-14">
@@ -300,8 +330,7 @@ const Demo = () => (
 
 const TESTIMONIALS = [
   {
-    seed: "Liam",
-    bg: "fce7f3",
+    photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&auto=format&fit=crop&q=80",
     name: "Liam",
     location: "Newcastle",
     quote:
@@ -309,8 +338,7 @@ const TESTIMONIALS = [
     tag: "Free Simulator user",
   },
   {
-    seed: "Aisha",
-    bg: "d1fae5",
+    photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&auto=format&fit=crop&q=80",
     name: "Aisha",
     location: "London",
     quote:
@@ -318,8 +346,7 @@ const TESTIMONIALS = [
     tag: "Live subscriber",
   },
   {
-    seed: "Mark",
-    bg: "fef3c7",
+    photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&auto=format&fit=crop&q=80",
     name: "Mark",
     location: "Bristol",
     quote:
@@ -360,12 +387,12 @@ const Testimonials = () => (
           </div>
           <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-100">
             <img
-              src={`https://api.dicebear.com/7.x/lorelei/svg?seed=${t.seed}&backgroundColor=${t.bg}`}
-              alt=""
+              src={t.photo}
+              alt={`${t.name} from ${t.location}`}
               width="44"
               height="44"
               loading="lazy"
-              className="w-11 h-11 rounded-full bg-pink-50"
+              className="w-11 h-11 rounded-full object-cover bg-slate-100"
             />
             <div>
               <div className="font-display font-bold text-slate-900 text-base leading-tight">
@@ -646,12 +673,12 @@ const Contact = () => {
           {/* Founder card */}
           <div className="mt-8 bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm" data-testid="founder-card">
             <img
-              src="https://api.dicebear.com/7.x/lorelei/svg?seed=Tom&backgroundColor=fce7f3"
-              alt="Founder"
+              src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&h=200&auto=format&fit=crop&q=80"
+              alt="Tom, Lay-Hounds founder"
               width="64"
               height="64"
               loading="lazy"
-              className="w-16 h-16 rounded-full bg-pink-50 shrink-0"
+              className="w-16 h-16 rounded-full object-cover bg-slate-100 shrink-0"
             />
             <div>
               <div className="flex items-center gap-1.5 text-xs font-mono uppercase tracking-widest text-pink-600 font-semibold">
@@ -722,6 +749,7 @@ export default function Landing() {
     <MarketingLayout>
       <Hero />
       <Features />
+      <LifestyleBanner />
       <HowItWorks />
       <Demo />
       <Testimonials />
