@@ -251,15 +251,23 @@ async def create_session(config: SessionConfig):
             funds = await betfair.get_account_funds()
             starting_bank = round(float(funds.get("availableToBetBalance", 0.0) or 0.0), 2)
         except BetfairError as e:
-            # Hard fail — if we can't read the balance we shouldn't pretend.
             raise HTTPException(502, f"Could not fetch Betfair balance: {e}")
+        except Exception as e:
+            # Catch httpx.HTTPStatusError, connect errors, JSON decode errors, etc.
+            logger.exception("Betfair funds fetch failed during session create")
+            raise HTTPException(502, f"Betfair connectivity error: {type(e).__name__}: {e}")
 
-    chains = {str(i): RecoveryChain(pending_stake=config.stake) for i in range(1, config.num_favourites + 1)}
-    session = Session(config=config, bank=starting_bank, recovery_chains=chains)
-    # Reflect the actual starting bank back into config so the UI shows the right number
-    session.config.starting_bank = starting_bank
-    await db.sessions.insert_one(session_to_doc(session))
-    return session
+    try:
+        chains = {str(i): RecoveryChain(pending_stake=config.stake) for i in range(1, config.num_favourites + 1)}
+        session = Session(config=config, bank=starting_bank, recovery_chains=chains)
+        session.config.starting_bank = starting_bank
+        await db.sessions.insert_one(session_to_doc(session))
+        return session
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Session create failed (mode=%s)", config.mode)
+        raise HTTPException(500, f"Session create failed: {type(e).__name__}: {e}")
 
 
 @api_router.get("/sessions", response_model=List[Session])

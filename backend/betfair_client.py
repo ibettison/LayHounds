@@ -97,9 +97,21 @@ class BetfairClient:
         prefix = "AccountAPING" if account else "SportsAPING"
         url = ACCOUNT_URL if account else EXCHANGE_URL
         payload = {"jsonrpc": "2.0", "method": f"{prefix}/v1.0/{method}", "params": params, "id": self._req_id}
-        resp = await http.post(url, headers=headers, json=payload)
-        resp.raise_for_status()
-        body = resp.json()
+        try:
+            resp = await http.post(url, headers=headers, json=payload)
+        except httpx.HTTPError as e:
+            raise BetfairError(f"Network error contacting Betfair: {type(e).__name__}: {e}")
+        if resp.status_code == 403 and ("Restricted" in resp.text or "geographic" in resp.text.lower()):
+            raise BetfairError(
+                "GEO_BLOCKED: Betfair restricts API access by IP region. "
+                "This server appears to be in a blocked region."
+            )
+        if resp.status_code != 200:
+            raise BetfairError(f"Betfair HTTP {resp.status_code}: {resp.text[:240]}")
+        try:
+            body = resp.json()
+        except ValueError as e:
+            raise BetfairError(f"Betfair returned non-JSON response: {e} (body={resp.text[:200]})")
         if "error" in body:
             err = body["error"]
             msg = err.get("data", {}).get("APINGException", {}).get("errorCode") or \
