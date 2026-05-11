@@ -48,6 +48,16 @@ Build a Betfair-style system to lay multiple UK greyhounds with a configurable s
 - `/app/update.sh` — zero-downtime updater (atomic frontend swap, `pm2 reload`, smart dep reinstall).
 - Slim `requirements.txt` — removed `emergentintegrations` and other Emergent template boilerplate so external deploys install cleanly from public PyPI.
 
+### Betfair Live integration (May 2026, iter 4)
+- **`betfair_client.get_account_funds()`** — calls `AccountAPING/v1.0/getAccountFunds` (different endpoint to the SportsAPING — added `account=True` flag to `_rpc`).
+- **`betfair_client._snap_to_tick()`** — snaps any price to the nearest valid Betfair tick (1.01-2.00 = 0.01 steps, 2-3 = 0.02, ... up to 100-1000 = 10). Prevents `INVALID_BACK_LAY_COMBINATION` rejections.
+- **`betfair_client.place_lay_bet()` reworked** — surfaces per-instruction failures (was silently swallowing them, the user's reported "live bet bug"), adds `customer_order_ref` for idempotency, enforces Betfair UK £1.00 minimum stake with a friendly error.
+- **`GET /api/betfair/funds`** — returns `{available_to_bet, exposure, exposure_limit, retained_commission, wallet}`.
+- **`POST /api/sessions/{id}/refresh-bank`** — re-fetches Betfair balance for a live session and updates `bank` + `total_pnl` delta. Live mode only (paper-live settles locally).
+- **`create_session`** — for paper-live + live modes, auto-overrides `starting_bank` with the live Betfair `availableToBetBalance`. Hard-fails with 502 if Betfair can't be reached (no more silent zero-bank sessions).
+- **NewSessionDialog** — for paper-live/live, the Starting-Bank input is replaced with a "Live Betfair balance · auto-synced" readout.
+- **Simulator header** — new **Sync Bank** button (only for live sessions) pulls the latest Betfair balance and updates the session in place.
+
 ### Marketing site (May 2026)
 - `pages/Landing.jsx` — one-page hero + features grid + how-it-works + **interactive 10-race demo** + pricing + FAQ + contact form. Bright SaaS aesthetic, framer-motion fade-up scroll reveals.
 - `marketing/InteractiveDemo.jsx` — self-contained 10-race auto-playing animation with real recovery math, pause/reset controls, hand-scripted races for narrative drama. **3 scenarios** (Recovery Pop / Steady Grinder / Cap Crisis) cyclable via the "Try Different" toolbar button — each with its own stake, starting bank, race script, and (for Cap Crisis) liability cap. Auto-loops after completion.
