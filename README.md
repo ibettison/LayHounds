@@ -1,4 +1,4 @@
-# Lay-Lab — Greyhound Recovery Simulator
+# LayHounds — Greyhound Recovery Simulator
 
 A full-stack lay-betting lab for UK greyhound racing. Test configurable
 staircase-recovery strategies in a **Simulator**, against real Betfair odds
@@ -49,7 +49,7 @@ That's it — ~3 minutes later you'll have an HTTPS site with Betfair connected.
 **Updating** (after pushing new commits from Emergent → GitHub):
 
 ```bash
-cd /opt/laylab && sudo ./update.sh
+cd /opt/layhounds && sudo ./update.sh
 ```
 
 Zero-downtime: pulls latest, rebuilds only what changed, atomically swaps the

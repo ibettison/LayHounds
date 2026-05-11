@@ -1,6 +1,6 @@
-# Lay-Lab — UK/EU Deployment Guide
+# LayHounds — UK/EU Deployment Guide
 
-This guide walks you through deploying Lay-Lab on a UK or EU server so that the
+This guide walks you through deploying LayHounds on a UK or EU server so that the
 Betfair API integration works end-to-end (Paper-Live and Live modes).
 
 > **Why this is needed** — Betfair geo-blocks all non-UK/EU traffic at the
@@ -50,7 +50,7 @@ Betfair API integration works end-to-end (Paper-Live and Live modes).
 > ```
 >
 > The script auto-detects 22.04 (`jammy`) vs 24.04 (`noble`), installs the
-> matching Python and MongoDB versions, creates a `laylab` user, builds the
+> matching Python and MongoDB versions, creates a `layhounds` user, builds the
 > frontend, starts the API under PM2, configures Nginx and provisions
 > Let's Encrypt — typically ~3 minutes end-to-end. Continue reading the manual
 > steps below if you'd rather walk through it yourself.
@@ -96,8 +96,8 @@ the repo, then clone it on the VPS:
 
 ```bash
 cd ~
-git clone https://github.com/<your-username>/<your-repo>.git laylab
-cd laylab
+git clone https://github.com/<your-username>/<your-repo>.git layhounds
+cd layhounds
 ```
 
 ---
@@ -105,7 +105,7 @@ cd laylab
 ## 5. Backend
 
 ```bash
-cd ~/laylab/backend
+cd ~/layhounds/backend
 python3.11 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
@@ -117,7 +117,7 @@ Create the env file **manually on the server** (never commit it):
 ```bash
 cat > .env <<'EOF'
 MONGO_URL=mongodb://127.0.0.1:27017
-DB_NAME=laylab
+DB_NAME=layhounds
 CORS_ORIGINS=*
 
 BETFAIR_APP_KEY=YsAUSaAAUO10jdDw
@@ -131,7 +131,7 @@ Start the API with PM2 (auto-restart on crash / reboot):
 
 ```bash
 pm2 start "venv/bin/uvicorn server:app --host 0.0.0.0 --port 8001" \
-       --name laylab-api --cwd /home/ubuntu/laylab/backend
+       --name layhounds-api --cwd /home/ubuntu/layhounds/backend
 pm2 save
 pm2 startup systemd -u $USER --hp $HOME   # follow the printed command
 ```
@@ -153,7 +153,7 @@ The React app needs to know the public URL of the backend at **build time**
 bundle.
 
 ```bash
-cd ~/laylab/frontend
+cd ~/layhounds/frontend
 
 # Point the bundle at your public HTTPS URL
 echo "REACT_APP_BACKEND_URL=https://your-domain.com" > .env
@@ -166,7 +166,7 @@ yarn build          # outputs a static bundle in ./build
 
 ## 7. Nginx reverse proxy
 
-Create `/etc/nginx/sites-available/laylab`:
+Create `/etc/nginx/sites-available/layhounds`:
 
 ```nginx
 server {
@@ -174,7 +174,7 @@ server {
     server_name your-domain.com;
 
     # Serve the React build
-    root /home/ubuntu/laylab/frontend/build;
+    root /home/ubuntu/layhounds/frontend/build;
     index index.html;
 
     # API proxy
@@ -202,7 +202,7 @@ server {
 Enable and reload:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/laylab /etc/nginx/sites-enabled/laylab
+sudo ln -s /etc/nginx/sites-available/layhounds /etc/nginx/sites-enabled/layhounds
 sudo rm /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 ```
@@ -244,7 +244,7 @@ When you push new commits from Emergent to GitHub, just run the bundled
 **`update.sh`** on the VPS:
 
 ```bash
-cd /opt/laylab && sudo ./update.sh
+cd /opt/layhounds && sudo ./update.sh
 ```
 
 The script:
@@ -283,8 +283,8 @@ Wire it to a cron / GitHub webhook later if you want auto-deploys.
 | MongoDB exposed | Default `mongod.conf` binds to `127.0.0.1` only — verify with `ss -lntp`. |
 | `.env` permissions | `chmod 600 backend/.env`. |
 | Live-mode safeguard | Keep `Max Liability Cap` ≤ £5 while you confirm bet placement works correctly. |
-| Logs | `pm2 logs laylab-api` for API, `sudo journalctl -u nginx` for web. |
-| Backups | Add a nightly `mongodump --db=laylab --out=/backups/$(date +%F)` cron. |
+| Logs | `pm2 logs layhounds-api` for API, `sudo journalctl -u nginx` for web. |
+| Backups | Add a nightly `mongodump --db=layhounds --out=/backups/$(date +%F)` cron. |
 
 ---
 
@@ -293,7 +293,7 @@ Wire it to a cron / GitHub webhook later if you want auto-deploys.
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | `GEO_BLOCKED` still showing | VPS is in a non-UK/EU region; some AWS edges also blocked | Pick a confirmed-UK/EU region: Hetzner FSN1/NBG1, OVH UK, Linode London, AWS eu-west-2. |
-| `502 Bad Gateway` | Backend not running or wrong port | `pm2 status`, `pm2 logs laylab-api`. |
+| `502 Bad Gateway` | Backend not running or wrong port | `pm2 status`, `pm2 logs layhounds-api`. |
 | Betfair login 401 | Password contains shell-special chars in `.env` not quoted | Wrap the value in single quotes or escape `$`, `[`, `]`. |
 | Live bets not settling | App does not poll Betfair for CLOSED markets yet | Settle manually via Betfair web UI; auto-settlement is on the P1 roadmap. |
 | CORS errors in browser | `CORS_ORIGINS` too strict | Set `CORS_ORIGINS=https://your-domain.com` or `*` for sandbox. |

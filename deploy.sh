@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Lay-Lab — one-command UK/EU deployment bootstrap
+#  Lay-Hounds — one-command UK/EU deployment bootstrap
 # ------------------------------------------------------------------------------
 #  Takes a fresh Ubuntu 22.04 LTS VPS (root or sudo user) to a live HTTPS site
 #  with the Betfair integration working end-to-end.
@@ -19,8 +19,8 @@
 #
 #  Optional env vars:
 #    REPO             — git URL to clone (skip if running from inside the repo)
-#    APP_DIR          — install path (default: /opt/laylab)
-#    APP_USER         — owner of app files (default: laylab)
+#    APP_DIR          — install path (default: /opt/layhounds)
+#    APP_USER         — owner of app files (default: layhounds)
 #    BETFAIR_APP_KEY  — prompted if missing
 #    BETFAIR_USERNAME — prompted if missing
 #    BETFAIR_PASSWORD — prompted if missing
@@ -42,8 +42,8 @@ step()  { echo -e "\n${BOLD}==> $*${NC}"; }
 
 : "${DOMAIN:?Set DOMAIN=your-domain.com OR your server IP}"
 
-APP_DIR="${APP_DIR:-/opt/laylab}"
-APP_USER="${APP_USER:-laylab}"
+APP_DIR="${APP_DIR:-/opt/layhounds}"
+APP_USER="${APP_USER:-layhounds}"
 REPO="${REPO:-}"
 SKIP_TLS="${SKIP_TLS:-0}"
 
@@ -193,7 +193,7 @@ PUBLIC_URL="${PROTO_BUILD}://${DOMAIN}"
 BE_ENV="$APP_DIR/backend/.env"
 cat > "$BE_ENV" <<EOF
 MONGO_URL=mongodb://127.0.0.1:27017
-DB_NAME=laylab
+DB_NAME=layhounds
 CORS_ORIGINS=${PUBLIC_URL}
 BETFAIR_APP_KEY=${BETFAIR_APP_KEY}
 BETFAIR_USERNAME=${BETFAIR_USERNAME}
@@ -221,9 +221,9 @@ step "6/8  Start API with PM2 (auto-start on boot)"
 sudo -u "$APP_USER" bash <<EOF
 set -e
 cd "$APP_DIR/backend"
-pm2 delete laylab-api >/dev/null 2>&1 || true
+pm2 delete layhounds-api >/dev/null 2>&1 || true
 pm2 start "venv/bin/uvicorn server:app --host 127.0.0.1 --port 8001" \
-          --name laylab-api --cwd "$APP_DIR/backend"
+          --name layhounds-api --cwd "$APP_DIR/backend"
 pm2 save
 EOF
 
@@ -236,7 +236,7 @@ systemctl restart "pm2-$APP_USER" >/dev/null 2>&1 || true
 # ==============================================================================
 step "7/8  Nginx reverse proxy"
 # ==============================================================================
-NGINX_CONF="/etc/nginx/sites-available/laylab"
+NGINX_CONF="/etc/nginx/sites-available/layhounds"
 cat > "$NGINX_CONF" <<EOF
 server {
     listen 80;
@@ -275,7 +275,7 @@ server {
 }
 EOF
 
-ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/laylab
+ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/layhounds
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
 systemctl reload nginx
@@ -303,13 +303,13 @@ API_STATUS="$(curl -s -o /dev/null -w '%{http_code}' "${PROTO}://${DOMAIN}/api/"
 BF_STATUS="$(curl -s "${PROTO}://${DOMAIN}/api/betfair/status" || true)"
 
 echo
-echo -e "${BOLD}Lay-Lab deployment complete.${NC}"
+echo -e "${BOLD}Lay-Hounds deployment complete.${NC}"
 echo "  URL:              ${PROTO}://${DOMAIN}"
 echo "  API /api/:        HTTP ${API_STATUS}"
 echo "  Betfair status:   ${BF_STATUS}"
 echo
-echo "  Backend logs:     sudo -u $APP_USER pm2 logs laylab-api"
-echo "  Restart API:      sudo -u $APP_USER pm2 restart laylab-api"
+echo "  Backend logs:     sudo -u $APP_USER pm2 logs layhounds-api"
+echo "  Restart API:      sudo -u $APP_USER pm2 restart layhounds-api"
 echo "  Nginx config:     $NGINX_CONF"
 echo "  App dir:          $APP_DIR"
 echo

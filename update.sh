@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Lay-Lab — zero-downtime updater
+#  Lay-Hounds — zero-downtime updater
 # ------------------------------------------------------------------------------
 #  Pulls latest code, reinstalls deps if their lockfiles changed, rebuilds the
 #  React bundle, and rolls the API under PM2 — all without dropping requests.
 #
 #  Usage (on the VPS, as root or sudo):
-#    cd /opt/laylab && sudo ./update.sh
+#    cd /opt/layhounds && sudo ./update.sh
 #
 #  Optional env vars:
-#    APP_DIR   — install path  (default: /opt/laylab)
-#    APP_USER  — file owner    (default: laylab)
+#    APP_DIR   — install path  (default: /opt/layhounds)
+#    APP_USER  — file owner    (default: layhounds)
 #    BRANCH    — git branch    (default: current)
 #    FORCE=1   — rebuild frontend + reinstall deps even if nothing changed
 # ==============================================================================
@@ -25,8 +25,8 @@ step() { echo -e "\n${BOLD}==> $*${NC}"; }
 
 [ "${EUID:-$(id -u)}" -eq 0 ] || die "Run as root (or via sudo)."
 
-APP_DIR="${APP_DIR:-/opt/laylab}"
-APP_USER="${APP_USER:-laylab}"
+APP_DIR="${APP_DIR:-/opt/layhounds}"
+APP_USER="${APP_USER:-layhounds}"
 FORCE="${FORCE:-0}"
 
 [ -d "$APP_DIR/.git" ]    || die "$APP_DIR is not a git repo."
@@ -116,11 +116,11 @@ if changed "backend/" || [ "$FORCE" = "1" ]; then
   log "Backend changed → pm2 reload (graceful)"
   # `pm2 reload` waits for in-flight requests to finish before swapping workers,
   # giving zero-downtime restarts. Falls back to `restart` if reload unavailable.
-  if sudo -u "$APP_USER" pm2 reload laylab-api 2>/dev/null; then
+  if sudo -u "$APP_USER" pm2 reload layhounds-api 2>/dev/null; then
     log "pm2 reload OK"
   else
     warn "pm2 reload failed — falling back to restart"
-    sudo -u "$APP_USER" pm2 restart laylab-api
+    sudo -u "$APP_USER" pm2 restart layhounds-api
   fi
 else
   log "Backend unchanged — skipping API reload"
@@ -131,11 +131,11 @@ step "5/5  Nginx reload + verify"
 # ==============================================================================
 nginx -t && systemctl reload nginx
 
-DOMAIN="$(awk '/server_name/ {print $2; exit}' /etc/nginx/sites-enabled/laylab 2>/dev/null | tr -d ';')"
+DOMAIN="$(awk '/server_name/ {print $2; exit}' /etc/nginx/sites-enabled/layhounds 2>/dev/null | tr -d ';')"
 if [ -n "$DOMAIN" ]; then
   sleep 1
   PROTO="https"
-  grep -q 'listen 443' /etc/nginx/sites-enabled/laylab 2>/dev/null || PROTO="http"
+  grep -q 'listen 443' /etc/nginx/sites-enabled/layhounds 2>/dev/null || PROTO="http"
   HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' "${PROTO}://${DOMAIN}/api/" || echo 000)"
   BF="$(curl -s "${PROTO}://${DOMAIN}/api/betfair/status" || echo '{}')"
 
@@ -147,7 +147,7 @@ if [ -n "$DOMAIN" ]; then
   echo "  Betfair status: ${BF}"
   echo
   if [ "$HTTP_CODE" != "200" ]; then
-    warn "API did not return 200 — check 'sudo -u $APP_USER pm2 logs laylab-api --lines 50'"
+    warn "API did not return 200 — check 'sudo -u $APP_USER pm2 logs layhounds-api --lines 50'"
     exit 1
   fi
 else
