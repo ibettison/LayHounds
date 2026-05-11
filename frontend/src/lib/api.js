@@ -18,4 +18,6 @@ export const api = {
   resetAll: () => axios.delete(`${API}/sessions`).then((r) => r.data),
   startCheckout: (provider) => axios.post(`${API}/payments/${provider}/checkout`).then((r) => r.data),
   contact: (payload) => axios.post(`${API}/contact`, payload).then((r) => r.data),
+  betfairFunds: () => axios.get(`${API}/betfair/funds`).then((r) => r.data),
+  refreshBank: (id) => axios.post(`${API}/sessions/${id}/refresh-bank`).then((r) => r.data),
 };

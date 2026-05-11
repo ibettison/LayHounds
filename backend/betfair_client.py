@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 EVENT_TYPE_GREYHOUND = "4339"
 IDENTITY_URL = "https://identitysso.betfair.com/api"
 EXCHANGE_URL = "https://api.betfair.com/exchange/betting/json-rpc/v1"
+ACCOUNT_URL = "https://api.betfair.com/exchange/account/json-rpc/v1"
 
 
 class BetfairError(Exception):
@@ -83,7 +84,7 @@ class BetfairClient:
             if not self._token_valid():
                 await self.login()
 
-    async def _rpc(self, method: str, params: Dict[str, Any]) -> Any:
+    async def _rpc(self, method: str, params: Dict[str, Any], *, account: bool = False) -> Any:
         await self.ensure_session()
         self._req_id += 1
         http = await self._client()
@@ -93,17 +94,21 @@ class BetfairClient:
             "X-Authentication": self.session_token or "",
             "Accept": "application/json",
         }
-        payload = {"jsonrpc": "2.0", "method": f"SportsAPING/v1.0/{method}", "params": params, "id": self._req_id}
-        resp = await http.post(EXCHANGE_URL, headers=headers, json=payload)
+        prefix = "AccountAPING" if account else "SportsAPING"
+        url = ACCOUNT_URL if account else EXCHANGE_URL
+        payload = {"jsonrpc": "2.0", "method": f"{prefix}/v1.0/{method}", "params": params, "id": self._req_id}
+        resp = await http.post(url, headers=headers, json=payload)
         resp.raise_for_status()
         body = resp.json()
         if "error" in body:
             err = body["error"]
-            msg = err.get("data", {}).get("APINGException", {}).get("errorCode") or err.get("message", str(err))
+            msg = err.get("data", {}).get("APINGException", {}).get("errorCode") or \
+                  err.get("data", {}).get("AccountAPINGException", {}).get("errorCode") or \
+                  err.get("message", str(err))
             if "INVALID_SESSION_INFORMATION" in str(msg):
                 self.session_token = None
                 await self.ensure_session()
-                return await self._rpc(method, params)
+                return await self._rpc(method, params, account=account)
             raise BetfairError(f"API error: {msg}")
         return body.get("result")
 
@@ -130,20 +135,93 @@ class BetfairClient:
         books = await self._rpc("listMarketBook", params) or []
         return books[0] if books else None
 
-    async def place_lay_bet(self, market_id: str, selection_id: int, price: float, size: float) -> Dict[str, Any]:
+    @staticmethod
+    def _snap_to_tick(price: float) -> float:
+        """Snap a price to the nearest valid Betfair price tick.
+
+        Betfair only accepts prices on a fixed ladder; arbitrary decimals like 3.45 are rejected.
+        Ladder steps: 1.01-2.00 = 0.01, 2-3 = 0.02, 3-4 = 0.05, 4-6 = 0.1,
+                      6-10 = 0.2, 10-20 = 0.5, 20-30 = 1, 30-50 = 2, 50-100 = 5, 100-1000 = 10.
+        Rounded UP for LAY orders so we keep our intended price-or-better.
+        """
+        bands = [
+            (1.01, 2.0, 0.01), (2.0, 3.0, 0.02), (3.0, 4.0, 0.05),
+            (4.0, 6.0, 0.1), (6.0, 10.0, 0.2), (10.0, 20.0, 0.5),
+            (20.0, 30.0, 1.0), (30.0, 50.0, 2.0), (50.0, 100.0, 5.0),
+            (100.0, 1000.01, 10.0),
+        ]
+        if price < 1.01:
+            return 1.01
+        if price > 1000.0:
+            return 1000.0
+        for lo, hi, step in bands:
+            if lo <= price < hi:
+                # Round up to the next tick to be conservative for a LAY
+                ticks = round((price - lo) / step + 0.5)
+                snapped = round(lo + ticks * step, 2)
+                return min(snapped, hi - step) if snapped >= hi else snapped
+        return round(price, 2)
+
+    async def place_lay_bet(self, market_id: str, selection_id: int, price: float, size: float,
+                            *, customer_order_ref: Optional[str] = None) -> Dict[str, Any]:
+        """Place a single LAY bet on a market.
+
+        Raises BetfairError if Betfair rejects the placement at any level —
+        top-level status, individual instruction status, or zero size matched at FOK.
+        Returns the raw PlaceExecutionReport on success.
+        """
         if price < 1.01:
             raise BetfairError("Odds must be >= 1.01")
+        if size < 1.0:
+            # Betfair UK minimum lay stake is £1 unless using the "small bet" allowance.
+            # Bubble this up clearly so the user understands why the bet was rejected.
+            raise BetfairError(
+                f"Lay stake ({size:.2f}) below Betfair UK £1.00 minimum. "
+                "Increase your stake or your recovery target."
+            )
+        snapped = self._snap_to_tick(price)
         instruction = {
             "orderType": "LIMIT",
             "selectionId": selection_id,
             "handicap": 0,
             "side": "LAY",
-            "limitOrder": {"size": size, "price": price, "persistenceType": "LAPSE"},
+            "limitOrder": {"size": round(size, 2), "price": snapped, "persistenceType": "LAPSE"},
         }
-        return await self._rpc("placeOrders", {"marketId": market_id, "instructions": [instruction]})
+        if customer_order_ref:
+            # Betfair allows a-zA-Z0-9_-.+:; up to 32 chars
+            instruction["customerOrderRef"] = customer_order_ref[:32]
+
+        result = await self._rpc("placeOrders", {
+            "marketId": market_id,
+            "instructions": [instruction],
+        })
+
+        # The PlaceExecutionReport top-level can be SUCCESS / FAILURE / PROCESSED_WITH_ERRORS.
+        top_status = (result or {}).get("status")
+        if top_status not in ("SUCCESS", None):
+            err_code = result.get("errorCode") or "UNKNOWN"
+            raise BetfairError(f"Betfair rejected order: {top_status} ({err_code})")
+
+        reports = (result or {}).get("instructionReports", []) or []
+        if not reports:
+            raise BetfairError("Betfair returned no instruction report — bet not placed")
+
+        rep = reports[0]
+        if rep.get("status") != "SUCCESS":
+            err_code = rep.get("errorCode") or "UNKNOWN_ERROR"
+            raise BetfairError(
+                f"Betfair rejected lay bet: {err_code} "
+                f"(market={market_id}, sel={selection_id}, price={snapped}, size={size})"
+            )
+        return result
 
     async def cancel_all(self, market_id: str) -> Dict[str, Any]:
         return await self._rpc("cancelOrders", {"marketId": market_id})
+
+    async def get_account_funds(self) -> Dict[str, Any]:
+        """Returns Betfair account funds. Keys: availableToBetBalance, exposure,
+        exposureLimit, retainedCommission, discountRate, pointsBalance, wallet."""
+        return await self._rpc("getAccountFunds", {"wallet": "UK"}, account=True) or {}
 
     async def status(self) -> Dict[str, Any]:
         if not self.is_configured():

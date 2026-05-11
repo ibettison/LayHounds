@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 4: tested new Betfair-integration endpoints + regression of all simulator and marketing flows. Backend: 43/43 pytest pass (8 new tests in test_betfair_integration.py + 35 existing). Frontend: marketing landing renders, /app simulator loads with new GEO-BLOCKED badge in header, New Session dialog opens with simulator-mode editable Starting Bank input, paper_live tile correctly disabled in GEO-blocked preview pod, session create + run-next-race + recovery chains all work end-to-end. Betfair endpoints behave correctly: /api/betfair/status reports configured=true, logged_in=false with GEO_BLOCKED reason; /api/betfair/funds returns HTTP 502 with GEO_BLOCKED detail; /api/sessions/{id}/refresh-bank returns 400 on simulator sessions and 404 on missing ids; POST /api/sessions with mode=paper_live and mode=live (risk_accepted=true) propagate the 502 GEO_BLOCKED error rather than silently creating zero-bank sessions; mode=live without risk_accepted is rejected 400 before any Betfair call; mode=simulator continues to use the user-supplied starting_bank with no Betfair call.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_betfair_integration.py",
+    "/app/backend/tests/test_marketing.py",
+    "/app/backend/tests/test_new_features.py",
+    "/app/backend/tests/test_simulator.py",
+    "/app/test_reports/pytest/iteration_4.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py now ~766 lines (was 702). Still approaching split threshold. With Betfair, marketing, payments, and simulator all in one file, recommend extracting routers: routes/betfair.py, routes/marketing.py, routes/payments.py before next feature wave.",
+    "create_session lines 248-254: Betfair fetch is awaited synchronously inside the request. If the Account API is slow this stalls session creation. Acceptable for now but consider a short timeout (httpx default is 5s in betfair_client) and a clearer 504-vs-502 distinction.",
+    "refresh-bank computes total_pnl delta from bank movement, but doesn't write a settlement record to the races collection. Net effect: daily journal sees pnl change but no bet-level audit trail. Worth a follow-up.",
+    "Carry-forward from iter_3: ContactInput email validation split between Field(min_length=3) and manual @/. check yields inconsistent 400 vs 422; switch to pydantic.EmailStr.",
+    "Carry-forward: FastAPI @app.on_event('shutdown') still deprecated. Migrate to lifespan handler."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_betfair_integration.py (NEW — 8 tests covering /api/betfair/funds, /api/sessions/{id}/refresh-bank, paper_live/live session creation 502 propagation, live-mode risk gating, simulator-bank passthrough regression)"
+  ],
+  "success_rate": {"backend": "100% (43/43)", "frontend": "100% (all listed flows verified)"},
+  "test_credentials": "none required (no auth in system)",
+  "seed_data_creation": "Pytest cleanup fixtures delete every TEST-created session via DELETE /api/sessions/{id}. One simulator session was created by Playwright (cleaned up via in-app delete is not strictly automated, but is reset-able via the Reset button).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Four pytest files in /app/backend/tests/: test_simulator.py (CRUD + race math), test_new_features.py (recovery levels, preview-cap, stop-loss/win), test_marketing.py (Stripe/PayPal placeholders + /api/contact), test_betfair_integration.py (NEW Betfair endpoints). Run full regression with `pytest /app/backend/tests/ -v --junitxml=/app/test_reports/pytest/iteration_N.xml` (~55s, 43 tests). Betfair endpoints are GEO-blocked in this preview pod — all tests assert the 502 GEO_BLOCKED response. On the user's UK Fasthosts VPS these same endpoints will return real fund data and tests for 502 will need replacement with happy-path assertions. New endpoints: GET /api/betfair/funds, POST /api/sessions/{id}/refresh-bank. Sync Bank UI button only renders when current.config.mode === 'live' (verified hidden for simulator).",
+  "rca of the issue": "No bugs found. Both reported issues (bank auto-sync from Betfair on paper-live/live + silent bet-placement failure) are correctly handled by the new endpoints and create-session flow. The 502 propagation on paper_live/live session creation is verified end-to-end — sessions are no longer silently created with bank=0 when Betfair is unreachable."
+}

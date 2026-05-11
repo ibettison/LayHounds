@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import "../App.css";
 import { toast } from "sonner";
-import { Play, Square, Activity, TrendingUp, TrendingDown, Wallet, Flag, Trash2 } from "lucide-react";
+import { Play, Square, Activity, TrendingUp, TrendingDown, Wallet, Flag, Trash2, RefreshCw } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../components/ui/button";
@@ -106,6 +106,19 @@ export default function Simulator() {
       toast.success(`Reset complete — ${res.deleted} session${res.deleted === 1 ? "" : "s"} cleared`);
     } catch (e) {
       toast.error(`Reset failed: ${e.message}`);
+    }
+  };
+
+  const onRefreshBank = async () => {
+    if (!current) return;
+    try {
+      const updated = await api.refreshBank(current.id);
+      setCurrent(updated);
+      await refreshList();
+      toast.success(`Bank synced from Betfair — £${updated.bank.toFixed(2)}`);
+    } catch (e) {
+      const detail = e.response?.data?.detail || e.message;
+      toast.error(`Could not refresh bank: ${detail}`);
     }
   };
 
@@ -221,6 +234,17 @@ export default function Simulator() {
           </Link>
           <div className="flex items-center gap-3">
             <BetfairStatusBadge />
+            {current && current.config.mode === "live" && (
+              <Button
+                data-testid="refresh-bank-btn"
+                variant="ghost"
+                onClick={onRefreshBank}
+                className="rounded-none border border-[#2A2A2A] text-zinc-400 hover:text-pink-400 hover:bg-pink-500/10 hover:border-pink-500/40 font-bold uppercase tracking-wider text-xs"
+                title="Sync bank with Betfair available-to-bet balance"
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Sync Bank
+              </Button>
+            )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button

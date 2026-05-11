@@ -176,10 +176,26 @@ export const NewSessionDialog = ({ onCreated }) => {
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label className="label-xs">Starting Bank £</Label>
-            <Input data-testid="input-starting-bank" type="number" step="0.01"
-              value={form.starting_bank} onChange={(e) => update("starting_bank", e.target.value)}
-              className={inputCls} />
+            <Label className="label-xs">
+              Starting Bank £
+              {(form.mode === "paper_live" || form.mode === "live") && (
+                <span className="ml-1.5 text-pink-400 normal-case tracking-normal">(from Betfair)</span>
+              )}
+            </Label>
+            {form.mode === "simulator" ? (
+              <Input data-testid="input-starting-bank" type="number" step="0.01"
+                value={form.starting_bank} onChange={(e) => update("starting_bank", e.target.value)}
+                className={inputCls} />
+            ) : (
+              <div data-testid="starting-bank-live" className={`${inputCls} flex items-center justify-between !cursor-default`}>
+                <span className="text-pink-400 font-bold">
+                  Live Betfair balance
+                </span>
+                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                  auto-synced
+                </span>
+              </div>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label className="label-xs"># Favourites</Label>

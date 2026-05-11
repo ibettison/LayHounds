@@ -241,8 +241,22 @@ async def create_session(config: SessionConfig):
         raise HTTPException(400, "Betfair credentials not configured on server")
     if config.mode == "live" and not config.risk_accepted:
         raise HTTPException(400, "Live mode requires explicit risk acceptance")
+
+    # For paper_live + live, the bank tracks the REAL Betfair available balance.
+    # Override the user-supplied starting_bank with the live value so the UI is honest.
+    starting_bank = config.starting_bank
+    if config.mode in ("paper_live", "live"):
+        try:
+            funds = await betfair.get_account_funds()
+            starting_bank = round(float(funds.get("availableToBetBalance", 0.0) or 0.0), 2)
+        except BetfairError as e:
+            # Hard fail — if we can't read the balance we shouldn't pretend.
+            raise HTTPException(502, f"Could not fetch Betfair balance: {e}")
+
     chains = {str(i): RecoveryChain(pending_stake=config.stake) for i in range(1, config.num_favourites + 1)}
-    session = Session(config=config, bank=config.starting_bank, recovery_chains=chains)
+    session = Session(config=config, bank=starting_bank, recovery_chains=chains)
+    # Reflect the actual starting bank back into config so the UI shows the right number
+    session.config.starting_bank = starting_bank
     await db.sessions.insert_one(session_to_doc(session))
     return session
 
@@ -338,11 +352,17 @@ async def next_race(session_id: str):
         if mode == "live":
             try:
                 sel_id = selection_by_rank[rank]
-                result = await betfair.place_lay_bet(market_id, sel_id, runner.odds, stake)
+                # Idempotent ref: session + race + rank → unique per attempt
+                cor = f"layhounds-{session.id[:8]}-{session.races_played + 1}-{rank}"
+                result = await betfair.place_lay_bet(
+                    market_id, sel_id, runner.odds, stake,
+                    customer_order_ref=cor,
+                )
                 for rep in result.get("instructionReports", []):
                     if rep.get("betId"):
                         betfair_bet_ids.append(rep["betId"])
             except BetfairError as e:
+                # Surface the precise Betfair error so the user knows WHY it failed.
                 raise HTTPException(502, f"Betfair bet placement failed: {e}")
 
     # Live mode: bet placed on real Betfair, no simulated settlement
@@ -429,6 +449,50 @@ async def next_race(session_id: str):
 @api_router.get("/betfair/status")
 async def betfair_status():
     return await betfair.status()
+
+
+@api_router.get("/betfair/funds")
+async def betfair_funds():
+    """Return the Betfair account balance — used by Paper-Live / Live to source the bank.
+    Falls back to a structured error so the UI can render a helpful message.
+    """
+    if not betfair.is_configured():
+        raise HTTPException(400, "Betfair credentials not configured on server")
+    try:
+        funds = await betfair.get_account_funds()
+        return {
+            "available_to_bet": float(funds.get("availableToBetBalance", 0.0) or 0.0),
+            "exposure": float(funds.get("exposure", 0.0) or 0.0),
+            "exposure_limit": float(funds.get("exposureLimit", 0.0) or 0.0),
+            "retained_commission": float(funds.get("retainedCommission", 0.0) or 0.0),
+            "wallet": funds.get("wallet") or "UK",
+        }
+    except BetfairError as e:
+        raise HTTPException(502, str(e))
+
+
+@api_router.post("/sessions/{session_id}/refresh-bank", response_model=Session)
+async def refresh_session_bank(session_id: str):
+    """Sync a Paper-Live or Live session's bank with the live Betfair balance.
+    Computes the realised P&L delta and updates total_pnl accordingly so the
+    daily journal stays accurate.
+    """
+    doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Session not found")
+    session = Session(**doc)
+    if session.config.mode != "live":
+        raise HTTPException(400, "refresh-bank only applies to live sessions (paper-live settles locally)")
+    try:
+        funds = await betfair.get_account_funds()
+    except BetfairError as e:
+        raise HTTPException(502, str(e))
+    new_bank = round(float(funds.get("availableToBetBalance", 0.0) or 0.0), 2)
+    delta = round(new_bank - session.bank, 4)
+    session.bank = new_bank
+    session.total_pnl = round(session.total_pnl + delta, 4)
+    await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
+    return session
 
 
 @api_router.get("/bank/current")
