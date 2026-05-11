@@ -25,6 +25,7 @@ import { RaceHistory } from "../components/RaceHistory";
 import { SessionList } from "../components/SessionList";
 import { BetfairStatusBadge } from "../components/BetfairStatusBadge";
 import { DailyChart } from "../components/DailyChart";
+import { LiveCountdown } from "../components/LiveCountdown";
 
 export default function Simulator() {
   const [sessions, setSessions] = useState([]);
@@ -122,8 +123,9 @@ export default function Simulator() {
     }
   };
 
-  const runNextRace = async () => {
+  const runNextRace = useCallback(async (opts = {}) => {
     if (!current) return;
+    const auto = opts.auto === true;
     setLoading(true);
     try {
       const updated = batchSize === 1
@@ -138,18 +140,27 @@ export default function Simulator() {
         tone(`Ran ${racesAdded} races: ${pnlDelta >= 0 ? "+" : ""}£${pnlDelta.toFixed(2)}`);
       } else {
         const last = updated.races[updated.races.length - 1];
-        if (last.pnl_change >= 0) toast.success(`Race #${last.race_num}: +£${last.pnl_change.toFixed(2)}`);
-        else toast.error(`Race #${last.race_num}: £${last.pnl_change.toFixed(2)}`);
+        const prefix = auto ? "AUTO · " : "";
+        if (last.pnl_change >= 0) toast.success(`${prefix}Race #${last.race_num}: +£${last.pnl_change.toFixed(2)}`);
+        else toast.error(`${prefix}Race #${last.race_num}: £${last.pnl_change.toFixed(2)}`);
       }
       if (updated.status !== "active") {
         toast.warning(`Session ${updated.status.replace("_", " ").toUpperCase()}`);
       }
     } catch (e) {
-      toast.error(e.response?.data?.detail || e.message);
+      const detail = e.response?.data?.detail || e.message;
+      toast.error(`${opts.auto ? "AUTO-place failed · " : ""}${detail}`);
     } finally {
       setLoading(false);
     }
-  };
+  }, [current, batchSize]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-fire callback used by LiveCountdown at T-60s
+  const onAutoFire = useCallback((market) => {
+    if (!current || current.status !== "active") return;
+    toast.message(`Auto-placing lays for ${market.venue}…`, { duration: 3000 });
+    runNextRace({ auto: true });
+  }, [current, runNextRace]);
 
   const stopSession = async () => {
     if (!current) return;
@@ -290,6 +301,17 @@ export default function Simulator() {
         </div>
       </header>
 
+      {/* Live race countdown (live mode only) */}
+      {current && current.config.mode === "live" && current.status === "active" && (
+        <div className="max-w-[1600px] mx-auto px-6 pt-4">
+          <LiveCountdown
+            session={current}
+            autoPlace={!!current.config.auto_place}
+            onAutoFire={onAutoFire}
+          />
+        </div>
+      )}
+
       <main className="max-w-[1600px] mx-auto px-6 py-6 grid grid-cols-12 gap-4">
         {/* Left column */}
         <aside className="col-span-12 lg:col-span-3 space-y-4">
@@ -307,6 +329,9 @@ export default function Simulator() {
                 <ConfRow l="Stake" v={`£${current.config.stake.toFixed(2)}`} />
                 <ConfRow l="Commission" v={`${((current.config.commission_rate ?? 0.05) * 100).toFixed(1)}%`} />
                 <ConfRow l="Liab Cap" v={(current.config.max_liability_cap ?? 0) > 0 ? `£${current.config.max_liability_cap.toFixed(2)}` : "off"} />
+                {current.config.mode === "live" && (
+                  <ConfRow l="Auto-place" v={current.config.auto_place ? "ON · T-60s" : "off"} />
+                )}
                 <ConfRow l="# Favs" v={current.config.num_favourites} />
                 <ConfRow l="Stop Win" v={`£${current.config.stop_win.toFixed(2)}`} />
                 <ConfRow l="Stop Loss" v={`£${current.config.stop_loss.toFixed(2)}`} />

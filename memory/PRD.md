@@ -48,7 +48,7 @@ Build a Betfair-style system to lay multiple UK greyhounds with a configurable s
 - `/app/update.sh` — zero-downtime updater (atomic frontend swap, `pm2 reload`, smart dep reinstall).
 - Slim `requirements.txt` — removed `emergentintegrations` and other Emergent template boilerplate so external deploys install cleanly from public PyPI.
 
-### Betfair Live integration (May 2026, iter 4)
+### Betfair Live integration (May 2026, iter 4–5)
 - **`betfair_client.get_account_funds()`** — calls `AccountAPING/v1.0/getAccountFunds` (different endpoint to the SportsAPING — added `account=True` flag to `_rpc`).
 - **`betfair_client._snap_to_tick()`** — snaps any price to the nearest valid Betfair tick (1.01-2.00 = 0.01 steps, 2-3 = 0.02, ... up to 100-1000 = 10). Prevents `INVALID_BACK_LAY_COMBINATION` rejections.
 - **`betfair_client.place_lay_bet()` reworked** — surfaces per-instruction failures (was silently swallowing them, the user's reported "live bet bug"), adds `customer_order_ref` for idempotency, enforces Betfair UK £1.00 minimum stake with a friendly error.
@@ -57,6 +57,13 @@ Build a Betfair-style system to lay multiple UK greyhounds with a configurable s
 - **`create_session`** — for paper-live + live modes, auto-overrides `starting_bank` with the live Betfair `availableToBetBalance`. Hard-fails with 502 if Betfair can't be reached (no more silent zero-bank sessions).
 - **NewSessionDialog** — for paper-live/live, the Starting-Bank input is replaced with a "Live Betfair balance · auto-synced" readout.
 - **Simulator header** — new **Sync Bank** button (only for live sessions) pulls the latest Betfair balance and updates the session in place.
+
+### Live race countdown + auto-place (May 2026, iter 5)
+- **`SessionConfig.auto_place`** (bool, default False) — only used by live mode.
+- **NewSessionDialog** — Switch added inside the Live Mode block: "Auto-place bets 60s before start".
+- **`components/LiveCountdown.jsx`** — only shown for active live sessions. Polls `/api/betfair/races` every 30s, locks onto the soonest upcoming UK greyhound market, renders a `MM:SS` countdown to its scheduled start, glows pink and pulses when ≤ 60s. If `auto_place` is ON it fires `runNextRace({ auto: true })` exactly once at T-60s per market (deduped via `firedRef` Set).
+- **`runNextRace`** — refactored into a `useCallback` and now accepts an `{ auto: true }` flag so AUTO-placed bets show with an "AUTO · " prefix in success/error toasts.
+- **Defensive URL guard in `lib/api.js`** — `resolveBackendUrl()` strips trailing slashes, auto-prefixes `https://` for bare hostnames, falls back to `window.location.origin` if the env was empty at build time, and throws a clear human error if `REACT_APP_BACKEND_URL` is malformed (fixes "Failed to construct URL" UX).
 
 ### Marketing site (May 2026)
 - `pages/Landing.jsx` — one-page hero + features grid + how-it-works + **interactive 10-race demo** + pricing + FAQ + contact form. Bright SaaS aesthetic, framer-motion fade-up scroll reveals.

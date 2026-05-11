@@ -12,6 +12,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Checkbox } from "../components/ui/checkbox";
+import { Switch } from "../components/ui/switch";
 import { Plus, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ export const NewSessionDialog = ({ onCreated }) => {
     odds_min: 1.01,
     odds_max: 10.0,
     max_recovery_level: 3,
+    auto_place: false,
   });
 
   useEffect(() => {
@@ -317,6 +319,25 @@ export const NewSessionDialog = ({ onCreated }) => {
                 I accept that real lay bets will be placed on my Betfair account and real money is at risk.
                 I understand the recovery system can lose money and agree to use a max liability cap.
               </label>
+            </div>
+
+            {/* Auto-place toggle */}
+            <div className="flex items-start justify-between gap-3 p-3 bg-[#141414] border border-[#2A2A2A]" data-testid="auto-place-row">
+              <div>
+                <div className="font-display font-bold text-sm uppercase tracking-wider text-white">
+                  Auto-place bets
+                </div>
+                <div className="text-[11px] text-zinc-500 leading-relaxed mt-1 max-w-md">
+                  Automatically fire the lay bets <span className="text-pink-400 font-bold">60 seconds before</span> each
+                  upcoming UK greyhound race. Leave OFF to place each race manually.
+                </div>
+              </div>
+              <Switch
+                data-testid="auto-place-switch"
+                checked={form.auto_place}
+                onCheckedChange={(v) => update("auto_place", !!v)}
+                className="data-[state=checked]:bg-pink-500"
+              />
             </div>
           </div>
         )}

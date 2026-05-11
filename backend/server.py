@@ -57,6 +57,7 @@ class SessionConfig(BaseModel):
     odds_min: float = Field(default=1.01, ge=1.01, le=1000.0)  # only lay favs with odds >=
     odds_max: float = Field(default=1000.0, ge=1.01, le=1000.0)  # and <=
     max_recovery_level: int = Field(default=3, ge=1, le=5)  # configurable depth of recovery staircase
+    auto_place: bool = False  # live mode: auto-fire bet 60s before next race start
 
 
 class Greyhound(BaseModel):

@@ -1,6 +1,33 @@
 import axios from "axios";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+// Normalise REACT_APP_BACKEND_URL so misconfigurations (trailing slash, missing scheme,
+// dev host with no port) produce a clear error rather than a cryptic "Failed to construct URL".
+function resolveBackendUrl() {
+  let raw = (process.env.REACT_APP_BACKEND_URL || "").trim();
+  if (!raw) {
+    // Fall back to current origin so the SPA still works when env wasn't baked at build time.
+    if (typeof window !== "undefined" && window.location?.origin) {
+      console.warn("[api] REACT_APP_BACKEND_URL was empty at build time — falling back to window.location.origin");
+      return window.location.origin;
+    }
+    throw new Error("REACT_APP_BACKEND_URL is not set");
+  }
+  raw = raw.replace(/\/+$/, ""); // strip trailing slashes
+  if (!/^https?:\/\//i.test(raw)) {
+    // Auto-prefix protocol so "lay-hounds.co.uk" works
+    raw = `https://${raw}`;
+  }
+  try {
+    // Validate — throws on malformed URL
+    // eslint-disable-next-line no-new
+    new URL(raw);
+  } catch (e) {
+    throw new Error(`REACT_APP_BACKEND_URL is invalid: ${raw} (${e.message})`);
+  }
+  return raw;
+}
+
+const BACKEND_URL = resolveBackendUrl();
 export const API = `${BACKEND_URL}/api`;
 
 export const api = {
@@ -19,5 +46,6 @@ export const api = {
   startCheckout: (provider) => axios.post(`${API}/payments/${provider}/checkout`).then((r) => r.data),
   contact: (payload) => axios.post(`${API}/contact`, payload).then((r) => r.data),
   betfairFunds: () => axios.get(`${API}/betfair/funds`).then((r) => r.data),
+  betfairRaces: (minutesAhead = 60) => axios.get(`${API}/betfair/races?minutes_ahead=${minutesAhead}`).then((r) => r.data),
   refreshBank: (id) => axios.post(`${API}/sessions/${id}/refresh-bank`).then((r) => r.data),
 };
