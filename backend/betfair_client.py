@@ -185,12 +185,21 @@ class BetfairClient:
         if price < 1.01:
             raise BetfairError("Odds must be >= 1.01")
         if size < 1.0:
+    		return await self.place_sub_minimum_lay(
+        	market_id=market_id,
+        	selection_id=selection_id,
+        	price=price,
+        	size=size,
+        	customer_order_ref=customer_order_ref,
+    		)
+
+	#if size < 1.0:
             # Betfair UK minimum lay stake is £1 unless using the "small bet" allowance.
             # Bubble this up clearly so the user understands why the bet was rejected.
-            raise BetfairError(
-                f"Lay stake ({size:.2f}) below Betfair UK £1.00 minimum. "
-                "Increase your stake or your recovery target."
-            )
+            #raise BetfairError(
+             #   f"Lay stake ({size:.2f}) below Betfair UK £1.00 minimum. "
+              #  "Increase your stake or your recovery target."
+           # )
         snapped = self._snap_to_tick(price)
         instruction = {
             "orderType": "LIMIT",
@@ -249,6 +258,115 @@ class BetfairClient:
         except Exception as e:
             return {"configured": True, "logged_in": False, "reason": str(e)[:200]}
 
+async def replace_lay_order(
+    self, market_id: str, bet_id: str, new_price: float,) -> Dict[str, Any]:
+    """
+    Replace the price of an existing unmatched lay order.
+    Betfair replaceOrders only changes price.
+    """
+
+    snapped = self._snap_to_tick(new_price)
+
+    result = await self._rpc("replaceOrders", {
+        "marketId": market_id,
+        "instructions": [{
+            "betId": bet_id,
+            "newPrice": snapped,
+        }],
+    })
+
+    top_status = (result or {}).get("status")
+    if top_status not in ("SUCCESS", None):
+        err_code = result.get("errorCode") or "UNKNOWN"
+        raise BetfairError(
+            f"replaceOrders failed ({top_status}) ({err_code})"
+        )
+
+    reports = (result or {}).get("instructionReports", []) or []
+    if not reports:
+        raise BetfairError("replaceOrders returned no instruction reports")
+
+    rep = reports[0]
+
+    if rep.get("status") != "SUCCESS":
+        err_code = rep.get("errorCode") or "UNKNOWN_ERROR"
+        raise BetfairError(
+            f"replaceOrders rejected: {err_code}"
+        )
+
+    return result
+
+async def place_sub_minimum_lay(
+    self, market_id: str, selection_id: int, price: float, size: float, *, customer_order_ref: Optional[str] = None,) -> Dict[str, Any]:
+    """
+    Experimental workaround for sub-£1 lay stakes.
+
+    Flow:
+    1. Place £1 seed lay at 1.2
+    2. Immediately cancel unwanted amount
+    3. Replace odds with target price
+
+    WARNING:
+    Seed order must remain unmatched.
+    """
+
+    seed_price = 1.2
+    seed_size = 1.0
+
+    # STEP 1 — PLACE SEED ORDER
+    seed_result = await self.place_lay_bet(
+        market_id=market_id,
+        selection_id=selection_id,
+        price=seed_price,
+        size=seed_size,
+        customer_order_ref=customer_order_ref,
+    )
+
+    reports = seed_result.get("instructionReports", [])
+    if not reports:
+        raise BetfairError("Seed order returned no reports")
+
+    report = reports[0]
+
+    bet_id = report.get("betId")
+    if not bet_id:
+        raise BetfairError("Seed order returned no betId")
+
+    # STEP 2 — CANCEL DOWN TO TARGET SIZE
+    cancel_size = round(seed_size - size, 2)
+
+    if cancel_size > 0:
+        cancel_result = await self._rpc("cancelOrders", {
+            "marketId": market_id,
+            "instructions": [{
+                "betId": bet_id,
+                "sizeReduction": cancel_size,
+            }],
+        })
+
+        cancel_reports = cancel_result.get("instructionReports", [])
+        if not cancel_reports:
+            raise BetfairError("cancelOrders returned no reports")
+
+        cancel_rep = cancel_reports[0]
+
+        if cancel_rep.get("status") != "SUCCESS":
+            raise BetfairError(
+                f"cancelOrders failed: {cancel_rep.get('errorCode')}"
+            )
+
+    # STEP 3 — REPLACE PRICE
+    replace_result = await self.replace_lay_order(
+        market_id=market_id,
+        bet_id=bet_id,
+        new_price=price,
+    )
+
+    return {
+        "seed": seed_result,
+        "replace": replace_result,
+        "betId": bet_id,
+    }
 
 # Singleton
 betfair = BetfairClient()
