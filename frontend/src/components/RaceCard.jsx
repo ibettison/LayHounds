@@ -44,7 +44,7 @@ export const RaceCard = ({ race, layedRanks }) => {
             }`}
             data-testid="race-pnl-change"
           >
-            {race.pnl_change >= 0 ? "+" : ""}£{race.pnl_change.toFixed(2)}
+            {race.pnl_change >= 0 ? "+" : ""}£{Number(race.pnl_change || 0).toFixed(2)}
           </div>
         </div>
       </div>
@@ -91,13 +91,13 @@ export const RaceCard = ({ race, layedRanks }) => {
                     <span className="text-zinc-500 text-xs font-mono">#{r.favourite_rank}</span>
                   )}
                 </td>
-                <td className="p-3 text-right font-mono text-base">{r.odds.toFixed(2)}</td>
+                <td className="p-3 text-right font-mono text-base">{Number(r.odds || 0).toFixed(2)}</td>
                 <td className="p-3 text-right font-mono text-sm">
                   {bet ? (
                     <div>
-                      <div className="text-pink-400">£{bet.stake.toFixed(2)}</div>
+                      <div className="text-pink-400">£{Number(bet.stake || 0).toFixed(2)}</div>
                       <div className="text-amber-400/80 text-xs">
-                        liab £{bet.liability.toFixed(2)}
+                        liab £{Number(bet.liability || 0).toFixed(2)}
                       </div>
                     </div>
                   ) : (
@@ -111,14 +111,14 @@ export const RaceCard = ({ race, layedRanks }) => {
                         className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2 py-1 text-xs font-bold uppercase"
                         data-testid={`bet-result-${r.favourite_rank}`}
                       >
-                        Lay Won +£{bet.pnl.toFixed(2)}
+                        Lay Won +£{Number(bet.pnl || 0).toFixed(2)}
                       </span>
                     ) : (
                       <span
                         className="bg-red-500/10 border border-red-500/30 text-red-400 px-2 py-1 text-xs font-bold uppercase"
                         data-testid={`bet-result-${r.favourite_rank}`}
                       >
-                        Lay Lost £{bet.pnl.toFixed(2)}
+                        Lay Lost £{Number(bet.pnl || 0).toFixed(2)}
                       </span>
                     )
                   ) : (
