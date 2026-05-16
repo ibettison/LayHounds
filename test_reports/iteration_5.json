@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 5: full central-licensing + Stripe checkout regression. New /app/backend/tests/test_licensing.py (11 tests) all pass: GET /api/licence/status returns real install_id+has_key=false on fresh state; POST /api/licence/activate binds with valid key (ok=true, bound=true), returns 404 on unknown key, returns 409 on already-bound-elsewhere (verified via direct POST /api/licences/activate with a bogus install_id); POST /api/licence/refresh re-validates and advances last_validation_at; POST /api/licence/release unbinds + clears local state; POST /api/sessions mode=simulator works with no licence; mode=paper_live without licence returns 402 with 'Live Unlock required' detail; mode=paper_live AFTER activation no longer returns 402 (returns 502 GEO_BLOCKED as expected); POST /api/payments/stripe/checkout returns {url, session_id} pointing at checkout.stripe.com; GET /api/payments/stripe/status/{sid} returns payment_status='unpaid' with no pydantic crash (emergentintegrations 0.1.2 fix confirmed working). Frontend Playwright run on /app verified LicencePanel mounts with data-testid='licence-panel', the licence-key-input + licence-activate flow transitions UI to bound state (ACTIVE badge + RELEASE THIS INSTALL button visible + green toast 'Licence activated — Paper-Live & Live unlocked'), licence-refresh shows 'Licence re-validated' toast, and licence-release returns the UI to the activate-key input. Full pytest suite: 51/54 pass. 3 PRE-EXISTING tests in test_betfair_integration.py now fail because the licence gate (402) runs before the betfair fetch (502) / risk_accepted check (400) — see action_items.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/sessions (mode=live, risk_accepted=false)", "issue": "Returns 402 (Live Unlock required) instead of 400 (risk not accepted) because licence gate runs before risk-accepted validation. Either order is defensible, but it breaks the existing test_create_live_session_requires_risk_acceptance_first assertion. Recommend moving the risk_accepted check ABOVE the licence gate so users see the more actionable error first."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_licensing.py",
+    "/app/test_reports/pytest/iteration_5_licensing.xml",
+    "/app/test_reports/pytest/iteration_5.xml"
+  ],
+  "action_items": [
+    "test_betfair_integration.py has 3 tests that assert 502/400 on paper_live & live session creation but now get 402 (licence gate fires first). Either (a) update those tests to activate the test licence in a fixture before asserting on 502, or (b) re-order create_session to check risk_accepted before the licence gate. (a) is the cleaner long-term fix because in production the licence will be present.",
+    "Consider extracting central licensing endpoints into a dedicated router file — licences.py is now 545 lines and houses both central+customer roles + Stripe helpers + a background loop. Suggest splitting into licences/central.py, licences/customer.py, licences/stripe.py.",
+    "Carry-forward from iter_4: server.py still ~800 lines; ContactInput still mixes Field(min_length) and manual email validation; @app.on_event('shutdown') still deprecated."
+  ],
+  "critical_code_review_comments": [
+    "licences.py L405-422 (is_licence_active) treats a missing last_validation_at as 'not expired' (the if last_validation_at check short-circuits to true). Acceptable for first-activate path, but means a licence whose cached state has no validation timestamp will pass forever. Consider asserting last_validation_at is required for ok=true.",
+    "licences.py L260-303 (create_stripe_checkout_session) uses one-time amount instead of a real recurring price_id — this is documented but means there is NO actual auto-renewal yet. The PRD claims £19.99/month recurring; today's flow is £19.99 one-off that issues a 30-day licence. Needs follow-up before launch.",
+    "licences.py L425-440 (_call_central) raises HTTPException(502) on httpx.HTTPError but uses the inner exception message verbatim — fine for now but could leak network detail. Acceptable for an internal-loop call.",
+    "licences.py background_revalidate_loop uses asyncio.sleep(LICENCE_REVALIDATE_HOURS*3600) — there's no startup hook wiring it in server.py (the loop is defined but only fired if server.py explicitly does asyncio.create_task). Worth confirming it's actually started in production lifespan.",
+    "LicencePanel.jsx: when activation fails because the key is bound elsewhere (409), the toast surfaces the full server detail string which contains a punctuation-heavy sentence. Cosmetic — consider a friendlier UI state."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_licensing.py (NEW — 11 tests: TestLicenceStatus, TestLicenceActivate (incl. 404 unknown-key + 409 already-bound), TestLicenceRefresh, TestLicenceRelease, TestSessionLicenceGate (simulator no-gate / paper_live 402 / paper_live unlocked), TestStripeCheckout (checkout URL + unpaid status no-crash))"
+  ],
+  "success_rate": {
+    "backend": "100% on new licensing tests (11/11). 51/54 overall — the 3 pre-existing test_betfair_integration failures are due to new licence-gate ordering, not regressions in the new code.",
+    "frontend": "100% — all 4 LicencePanel flows (mount, activate, refresh, release) verified end-to-end with toasts."
+  },
+  "test_credentials": "Licence key LH-TEST-AAAA-BBBB-CCCC (seeded). install_id 8b4552f0-ba64-4a9e-a15e-5401965f7d70.",
+  "seed_data_creation": "Re-seeded the test licence and reset bound_install_id=None + cleared db.app_meta licence_state at end of run so next test iteration starts from a known UNBOUND state. Pytest module also auto-releases on teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend tests now in /app/backend/tests/: test_simulator.py, test_new_features.py, test_marketing.py, test_betfair_integration.py, test_licensing.py (NEW). Run full regression: `pytest /app/backend/tests/ -v --junitxml=/app/test_reports/pytest/iteration_N.xml` (~25s, 54 tests; 51 pass, 3 betfair-integration tests fail until the licence ordering is fixed or those tests activate the licence first). The licence-gate-vs-risk-accepted ordering is an open product decision. Test licence is auto-released at module teardown; if Mongo state ever leaks, run the seed script from /app/memory/test_credentials.md, then `db.licences.update_one({licence_key:'LH-TEST-AAAA-BBBB-CCCC'},{ $set:{bound_install_id:null}})` and `db.app_meta.delete_many({_meta_key:'licence_state'})`.",
+  "rca of the issue": "No bugs found in the new licensing code. The 3 betfair-integration failures have RCA: server.py L256-260 places the licence gate before both the risk_accepted validation and the Betfair fetch, so what used to return 400 or 502 now returns 402 for any paper_live/live session created without a licence. This is correct gate behaviour — the tests were written before the gate existed and need to either (a) activate the test licence in a fixture or (b) the gate should be reordered after the risk_accepted check. The pydantic crash on /api/payments/stripe/status that the main agent fixed via emergentintegrations 0.1.2 is confirmed resolved (test_status_unpaid_session_no_pydantic_crash passes)."
+}

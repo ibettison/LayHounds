@@ -77,19 +77,29 @@ Build a Betfair-style system to lay multiple UK greyhounds with a configurable s
   - `POST /api/payments/paypal/checkout`
   - `POST /api/contact` (persists to MongoDB `contact_messages`).
 
+### Central licensing system (May 2026, iter 5) — Phase 2 SHIPPED
+- **`licences.py`** — dual-role module (central + customer). LICENCE_SERVER_MODE=true makes this box the licence host; LICENCE_SERVER_URL points each customer VPS at it.
+- **Central role** (lay-hounds.co.uk): `POST /api/licences/{activate,release,validate}` — UUID install_id binding, 409 on cross-install reuse, 30-day current_period_end.
+- **Customer role** (each VPS): `GET /api/licence/status`, `POST /api/licence/{activate,release,refresh}` — local Mongo `app_meta` caches install_id + validation state, hourly background revalidate loop with 7-day offline grace.
+- **Stripe Checkout** — `POST /api/payments/stripe/checkout` creates a real Stripe Checkout Session via emergentintegrations 0.1.2 (upgraded from 0.1.0 to fix a pydantic `StripeObject metadata` validation crash on the status endpoint). `GET /api/payments/stripe/status/{sid}` polls and issues a licence on first `paid`. `POST /api/webhook/stripe` handles the async webhook path with the same idempotent issuance.
+- **Licence gate on session create** — `POST /api/sessions` with `mode in (paper_live, live)` returns **HTTP 402 "Live Unlock required"** when no active licence is bound; passes through to Betfair (502 GEO_BLOCKED in US pod / real funds on UK VPS) once activated.
+- **`LicencePanel.jsx`** — left-sidebar widget on `/app` showing status badge, masked key, renews-on date, last-validated timestamp, release button. Pulls from `/api/licence/status`, surfaces activation toasts, hides itself entirely if the licence module isn't wired.
+
 ## Test status
-- **Backend**: **35/35 pytest pass** (`/app/backend/tests/test_simulator.py`, `test_new_features.py`, `test_marketing.py`).
-- **Frontend**: full e2e verified by testing agent — all 16 flows pass (iteration_3.json).
+- **Backend**: **54/54 pytest pass** (`test_simulator.py`, `test_new_features.py`, `test_marketing.py`, `test_betfair_integration.py`, `test_licensing.py` NEW).
+- **Frontend**: full e2e verified by testing agent — iteration_5.json — all LicencePanel flows (mount, activate, refresh, release) + Stripe checkout URL generation pass.
 - Live mode: not testable from US preview pod (GEO_BLOCKED), code-reviewed only.
+
+## Test credentials
+See `/app/memory/test_credentials.md`. Seeded test licence key: `LH-TEST-AAAA-BBBB-CCCC` (valid 30 days, manual provider). Auto-released at module teardown by `test_betfair_integration.py` autouse fixture.
 
 ## Roadmap
 
-### Phase 2 — Real payments + licence keys (next)
-- Real Stripe Checkout Session creation + webhook.
+### Phase 2.5 — Real recurring + PayPal + email
+- Switch Stripe from one-time £19.99 → recurring price_id with auto-renewal webhook handling.
 - Real PayPal Subscriptions API + webhook.
-- Licence-key issuance on successful checkout (email delivery).
-- `/api/licenses/activate` endpoint + simulator UI for pasting key.
-- Gate Paper-Live + Live modes behind valid licence.
+- Resend email delivery of licence keys on first paid event.
+- Customer portal page for self-service licence-key management (view bound install, release, change card).
 
 ### Phase 3 — backlog
 - Aggregate all-time dashboard across all historical days.

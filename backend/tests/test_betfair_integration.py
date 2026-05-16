@@ -25,6 +25,44 @@ def client():
     return s
 
 
+# All paper_live + live session-creation paths now require an active licence
+# (gate added in iter-5). Seed the test licence and bind it to this install
+# for the duration of the module so the Betfair-error paths are still reachable.
+@pytest.fixture(scope="module", autouse=True)
+def _ensure_test_licence_active():
+    import asyncio
+    import os as _os
+    from pathlib import Path
+    from datetime import timedelta
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parents[1] / '.env')
+    from motor.motor_asyncio import AsyncIOMotorClient
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from licences import Licence, _now  # noqa: E402
+
+    async def setup():
+        c = AsyncIOMotorClient(_os.environ['MONGO_URL'])
+        db = c[_os.environ['DB_NAME']]
+        await db.licences.delete_many({'licence_key': 'LH-TEST-AAAA-BBBB-CCCC'})
+        lic = Licence(
+            licence_key='LH-TEST-AAAA-BBBB-CCCC',
+            email='test@layhounds.test',
+            provider='manual',
+            status='active',
+            current_period_end=_now() + timedelta(days=30),
+        )
+        await db.licences.insert_one(lic.model_dump(mode='json'))
+        c.close()
+    asyncio.run(setup())
+    # Activate via the running server so install_id binding is correct
+    s = requests.Session()
+    s.headers.update({"Content-Type": "application/json"})
+    s.post(f"{API}/licence/activate", json={"key": "LH-TEST-AAAA-BBBB-CCCC", "install_id": ""}, timeout=10)
+    yield
+    s.post(f"{API}/licence/release", timeout=10)
+
+
 @pytest.fixture
 def cleanup_sessions(client):
     created = []

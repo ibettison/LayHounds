@@ -9,5 +9,8 @@ requests>=2.31.0
 python-multipart>=0.0.9
 tzdata>=2024.2
 
+# Stripe + payment integrations (Emergent-managed wrapper)
+emergentintegrations
+
 # Dev / test
 pytest>=8.0.0

@@ -26,6 +26,7 @@ import { SessionList } from "../components/SessionList";
 import { BetfairStatusBadge } from "../components/BetfairStatusBadge";
 import { DailyChart } from "../components/DailyChart";
 import { LiveCountdown } from "../components/LiveCountdown";
+import { LicencePanel } from "../components/LicencePanel";
 
 export default function Simulator() {
   const [sessions, setSessions] = useState([]);
@@ -315,6 +316,7 @@ export default function Simulator() {
       <main className="max-w-[1600px] mx-auto px-6 py-6 grid grid-cols-12 gap-4">
         {/* Left column */}
         <aside className="col-span-12 lg:col-span-3 space-y-4">
+          <LicencePanel />
           <SessionList
             sessions={sessions}
             currentId={current?.id}

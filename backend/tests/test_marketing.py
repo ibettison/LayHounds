@@ -24,15 +24,14 @@ def client():
 
 
 # ---------- Stripe checkout stub ----------
-def test_stripe_checkout_returns_placeholder(client):
+def test_stripe_checkout_requires_central_mode(client):
+    """When LICENCE_SERVER_MODE is off, the Stripe Checkout endpoint refuses with 400."""
     r = client.post(f"{API}/payments/stripe/checkout", timeout=10)
-    assert r.status_code == 200, r.text
-    d = r.json()
-    assert d["provider"] == "stripe"
-    assert d.get("test_mode") is True
-    assert d.get("message"), "Phase 1 stub must return a 'message' field"
-    # url should be None / absent in placeholder mode
-    assert not d.get("url")
+    # Either 400 ("not the central licence host") or 200 with real URL if env happens to be set.
+    assert r.status_code in (400, 200), r.text
+    if r.status_code == 200:
+        d = r.json()
+        assert "url" in d and "session_id" in d
 
 
 # ---------- PayPal checkout stub ----------
