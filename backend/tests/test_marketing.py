@@ -25,13 +25,16 @@ def client():
 
 # ---------- Stripe checkout stub ----------
 def test_stripe_checkout_requires_central_mode(client):
-    """When LICENCE_SERVER_MODE is off, the Stripe Checkout endpoint refuses with 400."""
+    """Without a real Stripe key, the endpoint returns a friendly 500. With
+    LICENCE_SERVER_MODE off it would return 400. With both configured, 200."""
     r = client.post(f"{API}/payments/stripe/checkout", timeout=10)
-    # Either 400 ("not the central licence host") or 200 with real URL if env happens to be set.
-    assert r.status_code in (400, 200), r.text
+    assert r.status_code in (400, 200, 500), r.text
     if r.status_code == 200:
         d = r.json()
         assert "url" in d and "session_id" in d
+    elif r.status_code == 500:
+        # Placeholder Stripe key — friendly hint to drop a real one
+        assert "STRIPE_API_KEY" in r.json().get("detail", "")
 
 
 # ---------- PayPal checkout stub ----------

@@ -128,10 +128,13 @@ BETFAIR_PASSWORD=0J[A5yG[[BHT18DgZnXQ
 # CUSTOMER installs (every customer's VPS): point at the central server
 LICENCE_SERVER_URL=https://lay-hounds.co.uk
 
-# CENTRAL install (lay-hounds.co.uk ONLY — also accepts customers):
-#   uncomment the next two lines and drop your live Stripe key
+# CENTRAL install (lay-hounds.co.uk ONLY — also accepts customers).
+# Drop a REAL Stripe secret key here (get one free from
+# https://dashboard.stripe.com/test/apikeys after creating an account).
+# Lay-Hounds talks directly to Stripe via the official `stripe` Python SDK.
 # LICENCE_SERVER_MODE=true
 # STRIPE_API_KEY=sk_live_xxxxxxxxxx
+# STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxx   # optional but recommended in prod
 EOF
 chmod 600 .env
 ```

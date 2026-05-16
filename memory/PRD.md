@@ -77,11 +77,12 @@ Build a Betfair-style system to lay multiple UK greyhounds with a configurable s
   - `POST /api/payments/paypal/checkout`
   - `POST /api/contact` (persists to MongoDB `contact_messages`).
 
-### Central licensing system (May 2026, iter 5) — Phase 2 SHIPPED
+### Central licensing system (May 2026, iter 5–6) — Phase 2 SHIPPED
 - **`licences.py`** — dual-role module (central + customer). LICENCE_SERVER_MODE=true makes this box the licence host; LICENCE_SERVER_URL points each customer VPS at it.
 - **Central role** (lay-hounds.co.uk): `POST /api/licences/{activate,release,validate}` — UUID install_id binding, 409 on cross-install reuse, 30-day current_period_end.
 - **Customer role** (each VPS): `GET /api/licence/status`, `POST /api/licence/{activate,release,refresh}` — local Mongo `app_meta` caches install_id + validation state, hourly background revalidate loop with 7-day offline grace.
-- **Stripe Checkout** — `POST /api/payments/stripe/checkout` creates a real Stripe Checkout Session via emergentintegrations 0.1.2 (upgraded from 0.1.0 to fix a pydantic `StripeObject metadata` validation crash on the status endpoint). `GET /api/payments/stripe/status/{sid}` polls and issues a licence on first `paid`. `POST /api/webhook/stripe` handles the async webhook path with the same idempotent issuance.
+- **Stripe Checkout** — **rewritten to use the official `stripe` Python SDK directly** (iter-6) so external VPS deploys install cleanly from public PyPI — removed `emergentintegrations` from requirements.txt because it lives on a private Emergent mirror and was blocking `pip install -r requirements.txt` on user VPSs. `POST /api/payments/stripe/checkout` creates a Checkout Session (`mode=payment`, line_items price_data £19.99 GBP, idempotent), `GET /api/payments/stripe/status/{sid}` polls + mints a licence on first `paid`, `POST /api/webhook/stripe` handles async path with optional `STRIPE_WEBHOOK_SECRET` signature verification.
+- **Friendly placeholder check** — server returns a 500 with a copy-pasteable hint ("get a key from dashboard.stripe.com/test/apikeys") instead of a raw Stripe AuthenticationError when STRIPE_API_KEY is the dev placeholder `sk_test_emergent`.
 - **Licence gate on session create** — `POST /api/sessions` with `mode in (paper_live, live)` returns **HTTP 402 "Live Unlock required"** when no active licence is bound; passes through to Betfair (502 GEO_BLOCKED in US pod / real funds on UK VPS) once activated.
 - **`LicencePanel.jsx`** — left-sidebar widget on `/app` showing status badge, masked key, renews-on date, last-validated timestamp, release button. Pulls from `/api/licence/status`, surfaces activation toasts, hides itself entirely if the licence module isn't wired.
 
