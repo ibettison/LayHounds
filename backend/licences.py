@@ -26,7 +26,8 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional, Literal
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request, Header
+import stripe
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -256,24 +257,34 @@ def build_central_router(db: AsyncIOMotorDatabase) -> APIRouter:
 
 
 # ---- Stripe integration (central role only) -------------------------------
+#
+# Uses the official `stripe` Python SDK directly so external VPS deploys can
+# install cleanly from public PyPI (no private Emergent mirror needed).
 
-async def create_stripe_checkout_session(*, db: AsyncIOMotorDatabase, origin_url: str, email: Optional[str] = None) -> dict:
-    """Spins up a Stripe Checkout Session for a one-month £19.99 GBP subscription.
-
-    NOTE: Until we have a recurring Stripe Price ID, we charge a one-time £19.99
-    via the dynamic-amount path. The webhook handler then issues a 30-day licence
-    so the customer-side flow already works end-to-end. Wire a real recurring
-    `price_xxx` and switch to `stripe_price_id=...` for true auto-renewal.
-    """
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
-
+def _stripe_client() -> stripe.StripeClient:
     api_key = os.environ.get("STRIPE_API_KEY", "")
     if not api_key:
         raise HTTPException(500, "STRIPE_API_KEY not set on server")
+    if api_key == "sk_test_emergent":
+        raise HTTPException(
+            500,
+            "STRIPE_API_KEY is the Emergent dev placeholder ('sk_test_emergent'). "
+            "Set a real Stripe secret key (sk_test_xxx or sk_live_xxx) in backend/.env to enable checkout. "
+            "Grab a test key from https://dashboard.stripe.com/test/apikeys after creating a free Stripe account."
+        )
+    return stripe.StripeClient(api_key=api_key)
 
+
+async def create_stripe_checkout_session(*, db: AsyncIOMotorDatabase, origin_url: str, email: Optional[str] = None) -> dict:
+    """Spins up a Stripe Checkout Session for a one-month £19.99 GBP charge.
+
+    NOTE: Until we have a recurring Stripe Price ID, we charge a one-time £19.99
+    via `mode='payment'`. The status/webhook handler then issues a 30-day licence
+    so the customer-side flow already works end-to-end. Switch `mode` to
+    `'subscription'` and pass a recurring `price` for true auto-renewal.
+    """
+    client = _stripe_client()
     origin_url = origin_url.rstrip("/")
-    webhook_url = f"{origin_url}/api/webhook/stripe"
-    stripe = StripeCheckout(api_key=api_key, webhook_url=webhook_url)
 
     success_url = f"{origin_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{origin_url}/#pricing"
@@ -282,17 +293,29 @@ async def create_stripe_checkout_session(*, db: AsyncIOMotorDatabase, origin_url
     if email:
         metadata["email"] = email
 
-    req = CheckoutSessionRequest(
-        amount=LICENCE_PRICE_GBP,
-        currency="gbp",
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata=metadata,
+    amount_pence = int(round(LICENCE_PRICE_GBP * 100))
+
+    session = await asyncio.to_thread(
+        client.checkout.sessions.create,
+        params={
+            "mode": "payment",
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "line_items": [{
+                "price_data": {
+                    "currency": "gbp",
+                    "product_data": {"name": "Lay-Hounds Live Unlock — 30 days"},
+                    "unit_amount": amount_pence,
+                },
+                "quantity": 1,
+            }],
+            "metadata": metadata,
+            **({"customer_email": email} if email else {}),
+        },
     )
-    session = await stripe.create_checkout_session(req)
-    # Record initiated transaction
+
     tx = PaymentTransaction(
-        session_id=session.session_id,
+        session_id=session.id,
         amount=LICENCE_PRICE_GBP,
         currency="gbp",
         metadata=metadata,
@@ -300,24 +323,17 @@ async def create_stripe_checkout_session(*, db: AsyncIOMotorDatabase, origin_url
         payment_status="initiated",
     )
     await db.payment_transactions.insert_one(tx.model_dump(mode="json"))
-    return {"url": session.url, "session_id": session.session_id}
+    return {"url": session.url, "session_id": session.id}
 
 
-async def get_stripe_checkout_status(*, db: AsyncIOMotorDatabase, session_id: str, origin_url: str) -> dict:
-    """Poll endpoint — also responsible for issuing the licence on first paid status."""
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
-
-    api_key = os.environ.get("STRIPE_API_KEY", "")
-    stripe = StripeCheckout(api_key=api_key, webhook_url=f"{origin_url.rstrip('/')}/api/webhook/stripe")
-    status = await stripe.get_checkout_status(session_id)
-
+async def _issue_licence_if_paid(db: AsyncIOMotorDatabase, session_id: str, payment_status: str, metadata: dict) -> Optional[str]:
+    """Idempotent: on first time we see `paid` for this session, mint a licence."""
     tx = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
     if not tx:
         raise HTTPException(404, "Unknown checkout session")
 
-    # First time we see `paid` → issue licence, update tx
-    if status.payment_status == "paid" and tx.get("payment_status") != "paid":
-        email = (status.metadata or {}).get("email") or tx.get("email") or "unknown@unknown"
+    if payment_status == "paid" and tx.get("payment_status") != "paid":
+        email = (metadata or {}).get("email") or tx.get("email") or "unknown@unknown"
         licence = Licence(
             licence_key=_generate_licence_key(),
             email=email,
@@ -332,47 +348,56 @@ async def get_stripe_checkout_status(*, db: AsyncIOMotorDatabase, session_id: st
             {"$set": {"payment_status": "paid", "licence_key": licence.licence_key,
                       "email": email, "updated_at": _now().isoformat()}},
         )
-        return {"payment_status": "paid", "status": status.status, "licence_key": licence.licence_key}
+        return licence.licence_key
 
-    # Already-issued path — return the stored licence key
-    if status.payment_status == "paid":
-        return {"payment_status": "paid", "status": status.status, "licence_key": tx.get("licence_key")}
+    if payment_status == "paid":
+        return tx.get("licence_key")
 
-    # Update transaction if status changed
-    if tx.get("payment_status") != status.payment_status:
+    if tx.get("payment_status") != payment_status:
         await db.payment_transactions.update_one(
             {"session_id": session_id},
-            {"$set": {"payment_status": status.payment_status, "updated_at": _now().isoformat()}},
+            {"$set": {"payment_status": payment_status, "updated_at": _now().isoformat()}},
         )
-    return {"payment_status": status.payment_status, "status": status.status, "licence_key": None}
+    return None
+
+
+async def get_stripe_checkout_status(*, db: AsyncIOMotorDatabase, session_id: str, origin_url: str) -> dict:
+    """Poll endpoint — also responsible for issuing the licence on first paid status."""
+    client = _stripe_client()
+    session = await asyncio.to_thread(client.checkout.sessions.retrieve, session_id)
+    payment_status = session.payment_status or "unpaid"
+    metadata = dict(session.metadata or {})
+    licence_key = await _issue_licence_if_paid(db, session_id, payment_status, metadata)
+    return {"payment_status": payment_status, "status": session.status, "licence_key": licence_key}
 
 
 async def handle_stripe_webhook(*, db: AsyncIOMotorDatabase, body: bytes, signature: str, origin_url: str) -> dict:
-    """Webhook entry — idempotent, issues licence on first paid event for a session."""
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    """Webhook entry — idempotent, issues licence on first paid event for a session.
 
-    api_key = os.environ.get("STRIPE_API_KEY", "")
-    stripe = StripeCheckout(api_key=api_key, webhook_url=f"{origin_url.rstrip('/')}/api/webhook/stripe")
-    event = await stripe.handle_webhook(body, signature)
-    logger.info("Stripe webhook: type=%s session=%s status=%s", event.event_type, event.session_id, event.payment_status)
-    if event.payment_status == "paid" and event.session_id:
-        # Re-use the same idempotent path as polling
-        tx = await db.payment_transactions.find_one({"session_id": event.session_id}, {"_id": 0})
-        if tx and tx.get("payment_status") != "paid":
-            email = (event.metadata or {}).get("email") or tx.get("email") or "unknown@unknown"
-            licence = Licence(
-                licence_key=_generate_licence_key(),
-                email=email, provider="stripe",
-                provider_subscription_id=event.session_id,
-                status="active",
-                current_period_end=_now() + timedelta(days=30),
-            )
-            await db.licences.insert_one(licence.model_dump(mode="json"))
-            await db.payment_transactions.update_one(
-                {"session_id": event.session_id},
-                {"$set": {"payment_status": "paid", "licence_key": licence.licence_key,
-                          "email": email, "updated_at": _now().isoformat()}},
-            )
+    If STRIPE_WEBHOOK_SECRET is configured, the signature is verified (recommended in
+    production). Otherwise we parse the event payload unsigned — fine for local /
+    test environments but DO NOT ship that to a public production endpoint.
+    """
+    import json
+    webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+    if webhook_secret and signature:
+        try:
+            event = stripe.Webhook.construct_event(body, signature, webhook_secret)
+        except Exception as e:
+            raise HTTPException(400, f"Stripe webhook signature verification failed: {e}")
+    else:
+        event = json.loads(body.decode() or "{}")
+
+    event_type = event.get("type") if isinstance(event, dict) else event["type"]
+    data_obj = (event.get("data", {}) or {}).get("object", {}) if isinstance(event, dict) else event["data"]["object"]
+    logger.info("Stripe webhook: type=%s", event_type)
+
+    if event_type in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
+        session_id = data_obj.get("id")
+        payment_status = data_obj.get("payment_status") or "paid"
+        metadata = data_obj.get("metadata") or {}
+        if session_id:
+            await _issue_licence_if_paid(db, session_id, payment_status, metadata)
     return {"received": True}
 
 

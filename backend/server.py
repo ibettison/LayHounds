@@ -723,6 +723,8 @@ async def stripe_checkout(request: Request, email: Optional[str] = None):
     origin = str(request.base_url).rstrip("/")
     try:
         return await create_stripe_checkout_session(db=db, origin_url=origin, email=email)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Stripe checkout create failed")
         raise HTTPException(502, f"Stripe checkout failed: {type(e).__name__}: {e}")

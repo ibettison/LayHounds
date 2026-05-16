@@ -163,6 +163,12 @@ class TestSessionLicenceGate:
 
 # ---- Stripe checkout ------------------------------------------------------
 
+# Skip Stripe tests when only the Emergent dev placeholder is configured
+# (the official Stripe SDK rejects 'sk_test_emergent' with AuthenticationError).
+_STRIPE_KEY = os.environ.get("STRIPE_API_KEY", "")
+_STRIPE_PLACEHOLDER = _STRIPE_KEY in ("", "sk_test_emergent")
+
+@pytest.mark.skipif(_STRIPE_PLACEHOLDER, reason="No real Stripe test key configured (STRIPE_API_KEY=sk_test_emergent)")
 class TestStripeCheckout:
     @pytest.fixture
     def checkout_session(self, http):
