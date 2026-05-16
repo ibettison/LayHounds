@@ -185,15 +185,15 @@ class BetfairClient:
         if price < 1.01:
             raise BetfairError("Odds must be >= 1.01")
         if size < 1.0:
-    		return await self.place_sub_minimum_lay(
-        	market_id=market_id,
-        	selection_id=selection_id,
-        	price=price,
-        	size=size,
-        	customer_order_ref=customer_order_ref,
-    		)
+            return await self.place_sub_minimum_lay(
+            market_id=market_id,
+            selection_id=selection_id,
+            price=price,
+            size=size,
+            customer_order_ref=customer_order_ref,
+            )
 
-	#if size < 1.0:
+    #if size < 1.0:
             # Betfair UK minimum lay stake is £1 unless using the "small bet" allowance.
             # Bubble this up clearly so the user understands why the bet was rejected.
             #raise BetfairError(

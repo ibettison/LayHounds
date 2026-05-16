@@ -635,6 +635,98 @@ const FAQ = () => (
   </Section>
 );
 
+const VPSReferral = () => (
+  <Section id="hosting">
+    <motion.div {...fadeUp} className="max-w-6xl mx-auto">
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 md:p-12 shadow-2xl">
+        
+        <div className="absolute top-0 right-0 opacity-5 text-[180px] font-black leading-none select-none text-white">
+          VPS
+        </div>
+
+        <div className="relative z-10 grid md:grid-cols-2 gap-10 items-center">
+          
+          <div>
+            <Overline className="text-pink-400">
+              Recommended Hosting
+            </Overline>
+
+            <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-white leading-tight mt-3">
+              Run LayHounds on a Fast UK VPS
+            </h2>
+
+            <p className="text-slate-300 mt-5 leading-relaxed text-lg">
+              For the best Betfair connectivity and reliable 24/7 uptime,
+              we recommend using a UK-based VPS provider.
+            </p>
+
+            <div className="mt-8 space-y-3">
+              {[
+                "UK-based infrastructure",
+                "Ideal for Betfair API access",
+                "Perfect for live betting uptime",
+                "Works great with Ubuntu + Nginx",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="flex items-center gap-3 text-slate-200"
+                >
+                  <div className="w-2 h-2 rounded-full bg-pink-400" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+
+            <a
+              href="https://www.fasthosts.co.uk/referral?referral=37u6fp7gtbgc9n"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 mt-8 bg-pink-600 hover:bg-pink-500 text-white px-7 py-4 rounded-2xl font-bold transition-all hover:scale-[1.02] shadow-lg"
+            >
+              Launch Your VPS
+              <span>→</span>
+            </a>
+          </div>
+
+          <div className="bg-slate-950/70 border border-slate-700 rounded-2xl p-8 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white font-display font-bold text-2xl">
+                Recommended Setup
+              </h3>
+
+              <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                Optimised
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {[
+                ["OS", "Ubuntu 22.04"],
+                ["RAM", "2GB+"],
+                ["CPU", "1 vCPU+"],
+                ["Region", "UK / EU"],
+                ["Best For", "Betfair Trading"],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex justify-between border-b border-slate-800 pb-3"
+                >
+                  <span className="text-slate-400">{label}</span>
+
+                  <span className="text-white font-semibold">
+                    {value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </motion.div>
+  </Section>
+);
+
 const Contact = () => {
   const [form, setForm] = useState({ email: "", message: "" });
   const [sending, setSending] = useState(false);
@@ -772,6 +864,7 @@ export default function Landing() {
       <Testimonials />
       <Pricing />
       <FAQ />
+      <VPSReferral />
       <Contact />
     </MarketingLayout>
   );
