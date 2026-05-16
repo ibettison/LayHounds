@@ -436,7 +436,7 @@ const Pricing = () => {
       if (res.url) {
         window.location.href = res.url;
       } else {
-        toast.message(res.message || "Checkout coming soon — sign up below to be notified.");
+        toast.message(res.message || "Checkout coming soon — try again later or use the other payment option.");
       }
     } catch (e) {
       toast.error(e.response?.data?.detail || "Could not start checkout");

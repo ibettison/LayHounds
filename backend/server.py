@@ -1,10 +1,11 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Header
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import random
 import logging
+import asyncio
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Optional, Literal, Any
@@ -15,6 +16,17 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 from betfair_client import betfair, BetfairError, EVENT_TYPE_GREYHOUND  # noqa: E402,F401
+from licences import (  # noqa: E402
+    LICENCE_SERVER_MODE,
+    LICENCE_SERVER_URL,
+    build_central_router,
+    build_customer_router,
+    create_stripe_checkout_session,
+    get_stripe_checkout_status,
+    handle_stripe_webhook,
+    is_licence_active,
+    background_revalidate_loop,
+)
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -238,8 +250,14 @@ async def root():
 
 @api_router.post("/sessions", response_model=Session)
 async def create_session(config: SessionConfig):
-    if config.mode in ("paper_live", "live") and not betfair.is_configured():
-        raise HTTPException(400, "Betfair credentials not configured on server")
+    if config.mode in ("paper_live", "live"):
+        if not betfair.is_configured():
+            raise HTTPException(400, "Betfair credentials not configured on server")
+        # Licence gate — only checked if this install is wired to a licence server.
+        if LICENCE_SERVER_URL:
+            allowed, reason = await is_licence_active(db)
+            if not allowed:
+                raise HTTPException(402, f"Live Unlock required: {reason}")
     if config.mode == "live" and not config.risk_accepted:
         raise HTTPException(400, "Live mode requires explicit risk acceptance")
 
@@ -691,46 +709,64 @@ class CheckoutResponse(BaseModel):
     test_mode: bool = True
 
 
-@api_router.post("/payments/stripe/checkout", response_model=CheckoutResponse)
-async def stripe_checkout():
-    """Create a Stripe Checkout Session for the £19.99/mo Live Unlock.
+@api_router.post("/payments/stripe/checkout")
+async def stripe_checkout(request: Request, email: Optional[str] = None):
+    """Create a real Stripe Checkout Session via emergentintegrations.
 
-    Phase 1: returns a friendly placeholder so the marketing buttons are clickable.
-    Phase 2: replace with stripe.checkout.Session.create(...) using STRIPE_SECRET_KEY.
+    The Checkout Session redirects to Stripe-hosted payment UI; on success Stripe
+    sends the customer back to /checkout/success?session_id=... which polls
+    /api/payments/stripe/status/{session_id} until paid, at which point a Licence
+    is issued and the licence_key is returned to the success page.
     """
-    stripe_key = os.environ.get("STRIPE_SECRET_KEY", "")
-    if not stripe_key or stripe_key.startswith("sk_test_PLACEHOLDER"):
-        return CheckoutResponse(
-            provider="stripe",
-            message="Stripe checkout launches Phase 2 — drop your Stripe keys in backend/.env and we'll wire it.",
-            test_mode=True,
-        )
-    # Phase 2 hook — real implementation will live here.
-    return CheckoutResponse(
-        provider="stripe",
-        url="https://checkout.stripe.com/pay/PLACEHOLDER",
-        test_mode=True,
-    )
+    if not LICENCE_SERVER_MODE:
+        raise HTTPException(400, "This server is not the central licence host (set LICENCE_SERVER_MODE=true on lay-hounds.co.uk)")
+    origin = str(request.base_url).rstrip("/")
+    try:
+        return await create_stripe_checkout_session(db=db, origin_url=origin, email=email)
+    except Exception as e:
+        logger.exception("Stripe checkout create failed")
+        raise HTTPException(502, f"Stripe checkout failed: {type(e).__name__}: {e}")
 
 
-@api_router.post("/payments/paypal/checkout", response_model=CheckoutResponse)
+@api_router.get("/payments/stripe/status/{session_id}")
+async def stripe_status(session_id: str, request: Request):
+    """Polled by the success page until payment_status == 'paid'. Returns licence_key on first paid."""
+    if not LICENCE_SERVER_MODE:
+        raise HTTPException(400, "Not the central licence host")
+    origin = str(request.base_url).rstrip("/")
+    try:
+        return await get_stripe_checkout_status(db=db, session_id=session_id, origin_url=origin)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Stripe status check failed")
+        raise HTTPException(502, f"Stripe status check failed: {type(e).__name__}: {e}")
+
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Header(None)):
+    if not LICENCE_SERVER_MODE:
+        raise HTTPException(404, "No webhook endpoint here")
+    body = await request.body()
+    origin = str(request.base_url).rstrip("/")
+    try:
+        return await handle_stripe_webhook(db=db, body=body, signature=stripe_signature or "", origin_url=origin)
+    except Exception as e:
+        logger.exception("Stripe webhook handling failed")
+        raise HTTPException(400, f"Webhook error: {type(e).__name__}: {e}")
+
+
+@api_router.post("/payments/paypal/checkout")
 async def paypal_checkout():
-    """Create a PayPal subscription order for £19.99/mo Live Unlock.
-
-    Phase 1 stub. Phase 2 wires PayPal REST `/v1/billing/subscriptions`.
-    """
+    """PayPal subscription order — placeholder until you drop your PayPal REST app credentials."""
     paypal_id = os.environ.get("PAYPAL_CLIENT_ID", "")
     if not paypal_id or paypal_id.startswith("PLACEHOLDER"):
-        return CheckoutResponse(
-            provider="paypal",
-            message="PayPal checkout launches Phase 2 — drop your PayPal credentials in backend/.env and we'll wire it.",
-            test_mode=True,
-        )
-    return CheckoutResponse(
-        provider="paypal",
-        url="https://www.paypal.com/checkoutnow?token=PLACEHOLDER",
-        test_mode=True,
-    )
+        return {
+            "provider": "paypal",
+            "message": "PayPal checkout — drop your PayPal REST client_id + client_secret in backend/.env and we'll wire the live flow next.",
+            "test_mode": True,
+        }
+    return {"provider": "paypal", "url": "https://www.paypal.com/checkoutnow?token=PLACEHOLDER", "test_mode": True}
 
 
 class ContactInput(BaseModel):
@@ -757,6 +793,12 @@ async def contact(inp: ContactInput):
 
 app.include_router(api_router)
 
+# Licence routers (always mount the customer one; mount central only on the host with LICENCE_SERVER_MODE=true)
+if LICENCE_SERVER_URL:
+    app.include_router(build_customer_router(db), prefix="/api")
+if LICENCE_SERVER_MODE:
+    app.include_router(build_central_router(db), prefix="/api")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -767,6 +809,15 @@ app.add_middleware(
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+@app.on_event("startup")
+async def startup_tasks():
+    if LICENCE_SERVER_URL:
+        asyncio.create_task(background_revalidate_loop(db))
+        logger.info("Licence revalidate loop scheduled (LICENCE_SERVER_URL=%s)", LICENCE_SERVER_URL)
+    if LICENCE_SERVER_MODE:
+        logger.info("Running in CENTRAL LICENCE SERVER mode — /api/licences/* + /api/webhook/stripe live")
 
 
 @app.on_event("shutdown")

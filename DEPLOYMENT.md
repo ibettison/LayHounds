@@ -123,6 +123,15 @@ CORS_ORIGINS=*
 BETFAIR_APP_KEY=YsAUSaAAUO10jdDw
 BETFAIR_USERNAME=ibettison
 BETFAIR_PASSWORD=0J[A5yG[[BHT18DgZnXQ
+
+# ── Licence server config ─────────────────────────────────────────────
+# CUSTOMER installs (every customer's VPS): point at the central server
+LICENCE_SERVER_URL=https://lay-hounds.co.uk
+
+# CENTRAL install (lay-hounds.co.uk ONLY — also accepts customers):
+#   uncomment the next two lines and drop your live Stripe key
+# LICENCE_SERVER_MODE=true
+# STRIPE_API_KEY=sk_live_xxxxxxxxxx
 EOF
 chmod 600 .env
 ```
