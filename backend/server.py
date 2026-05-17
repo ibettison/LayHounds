@@ -16,6 +16,12 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 from betfair_client import betfair, BetfairError, EVENT_TYPE_GREYHOUND  # noqa: E402,F401
+from race_categories import (  # noqa: E402
+    RaceCategory,
+    random_category,
+    detect_category_from_market_name,
+    winner_weights,
+)
 from licences import (  # noqa: E402
     LICENCE_SERVER_MODE,
     LICENCE_SERVER_URL,
@@ -105,6 +111,7 @@ class Race(BaseModel):
     market_id: Optional[str] = None
     market_start_time: Optional[str] = None
     betfair_bet_ids: List[str] = Field(default_factory=list)
+    category: Optional[RaceCategory] = None
 
 
 class RecoveryChain(BaseModel):
@@ -130,9 +137,10 @@ class Session(BaseModel):
 
 
 # ---------- Helpers ----------
-def generate_race(race_num: int) -> tuple[List[Greyhound], str]:
+def generate_race(race_num: int) -> tuple[List[Greyhound], str, RaceCategory]:
     venues = ["Romford", "Hove", "Nottingham", "Sheffield", "Crayford", "Towcester", "Newcastle", "Sunderland"]
     venue = random.choice(venues)
+    category = random_category()
     names = random.sample(UK_GREYHOUND_NAMES, 6)
     raw_odds = []
     # Generate spread of odds: one strong fav (~1.8-3), then progressively longer
@@ -151,16 +159,26 @@ def generate_race(race_num: int) -> tuple[List[Greyhound], str]:
         Greyhound(trap=r["trap"], name=r["name"], odds=r["odds"], favourite_rank=rank_by_trap[r["trap"]])
         for r in runners_unsorted
     ]
-    return runners, venue
+    return runners, venue, category
 
 
-def pick_winner(runners: List[Greyhound]) -> int:
-    """Weighted random: weight = 1/odds (favourite wins more often)."""
-    weights = [1.0 / r.odds for r in runners]
-    total = sum(weights)
-    norm = [w / total for w in weights]
+def pick_winner(runners: List[Greyhound], category: Optional[RaceCategory] = None) -> int:
+    """Pick the winning trap.
+
+    If a `category` is supplied, weights blend the category's published favourite
+    win-rates with a small odds jitter (calibrated long-run distribution).
+    If `category` is None, falls back to pure implied-odds (1/odds) weighting
+    so legacy callers (preview-cap Monte-Carlo) keep their original behaviour.
+    """
+    if category is not None:
+        rs = [{"favourite_rank": r.favourite_rank, "odds": r.odds} for r in runners]
+        norm = winner_weights(rs, category)
+    else:
+        weights = [1.0 / r.odds for r in runners]
+        total = sum(weights)
+        norm = [w / total for w in weights]
     pick = random.random()
-    cum = 0
+    cum = 0.0
     for r, w in zip(runners, norm):
         cum += w
         if pick <= cum:
@@ -223,12 +241,16 @@ async def fetch_live_race() -> Dict[str, Any]:
         ]
         # Also return selection_id mapping so live bets can target correct runner
         sel_by_rank = {rank_by_sel[p["selection_id"]]: p["selection_id"] for p in priced}
+        market_name = m.get("marketName") or ""
+        event_name = (m.get("event") or {}).get("name") or ""
+        category = detect_category_from_market_name(market_name, event_name)
         return {
             "runners": runners,
             "venue": m.get("event", {}).get("venue") or m.get("event", {}).get("name", "Live"),
             "market_id": market_id,
             "market_start_time": m.get("marketStartTime"),
             "selection_by_rank": sel_by_rank,
+            "category": category,
         }
     raise HTTPException(400, "No markets with live prices available")
 
@@ -334,7 +356,7 @@ async def next_race(session_id: str):
     betfair_bet_ids: List[str] = []
 
     if mode == "simulator":
-        runners, venue = generate_race(session.races_played + 1)
+        runners, venue, category = generate_race(session.races_played + 1)
     else:
         live = await fetch_live_race()
         runners = live["runners"]
@@ -342,6 +364,7 @@ async def next_race(session_id: str):
         market_id = live["market_id"]
         market_start_time = live["market_start_time"]
         selection_by_rank = live["selection_by_rank"]
+        category = live["category"]
 
     # Place lay bets for each favourite slot
     overrun_mode = session.races_played >= session.config.max_races
@@ -398,15 +421,15 @@ async def next_race(session_id: str):
             race_num=session.races_played + 1, venue=venue, runners=runners,
             bets=bets, winning_trap=0, pnl_change=0.0, bank_after=session.bank,
             source=mode, market_id=market_id, market_start_time=market_start_time,
-            betfair_bet_ids=betfair_bet_ids,
+            betfair_bet_ids=betfair_bet_ids, category=category,
         )
         session.races_played += 1
         session.races.append(race)
         await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
         return session
 
-    # Simulator + paper_live: simulate outcome
-    winning_trap = pick_winner(runners)
+    # Simulator + paper_live: simulate outcome (blended category win-rates)
+    winning_trap = pick_winner(runners, category)
 
     pnl_change = 0.0
     total_staked = 0.0
@@ -450,7 +473,7 @@ async def next_race(session_id: str):
         race_num=session.races_played, venue=venue, runners=runners, bets=bets,
         winning_trap=winning_trap, pnl_change=round(pnl_change, 4),
         bank_after=session.bank, source=mode, market_id=market_id,
-        market_start_time=market_start_time,
+        market_start_time=market_start_time, category=category,
     )
     session.races.append(race)
 
@@ -581,7 +604,7 @@ async def preview_cap(inp: CapPreviewInput):
         races = 0
         # Loop races until chain resets to L0 via a win, or busts.
         for _ in range(10):
-            runners, _v = generate_race(1)
+            runners, _v, category = generate_race(1)
             runner = get_runner_by_rank(runners, 1)  # treat as rank-1 surrogate
             odds = runner.odds
             if odds < inp.odds_min or odds > inp.odds_max:
@@ -590,7 +613,7 @@ async def preview_cap(inp: CapPreviewInput):
             if inp.max_liability_cap > 0 and liability > inp.max_liability_cap:
                 return {"bust_level": level, "chain_pnl": -accum_loss, "races": races}
             races += 1
-            winner = pick_winner(runners)
+            winner = pick_winner(runners, category)
             if winner == runner.trap:
                 # lay loses
                 chain_pnl -= liability

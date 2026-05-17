@@ -35,6 +35,19 @@ export const RaceCard = ({ race, layedRanks }) => {
         <div>
           <div className="label-xs">Race #{race.race_num}</div>
           <div className="font-display text-2xl uppercase tracking-tight">{race.venue}</div>
+          {race.category && (
+            <div className="flex items-center gap-1.5 mt-1.5" data-testid="race-category">
+              <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-pink-500/15 text-pink-300 border border-pink-500/30">
+                {race.category.grade}
+              </span>
+              <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-zinc-700/40 text-zinc-300 border border-zinc-600/40">
+                {race.category.distance_m}m
+              </span>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
+                {race.category.distance_band_label}
+              </span>
+            </div>
+          )}
         </div>
         <div className="text-right">
           <div className="label-xs">P&amp;L Change</div>

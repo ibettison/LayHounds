@@ -139,8 +139,10 @@ def test_recovery_chain_transitions(client, cleanup_sessions):
             prev = prev_chains[rank_str]
 
             if bet is None:
-                # busted, no bet placed
-                assert prev["busted"] is True
+                # No bet this race — either the chain was already busted last race,
+                # or the liability cap just busted it this race.
+                assert prev["busted"] is True or new_chain["busted"] is True
+                prev_chains[rank_str] = new_chain
                 continue
 
             # bet stake should equal prev pending_stake
