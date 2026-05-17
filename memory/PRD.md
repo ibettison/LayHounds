@@ -77,6 +77,17 @@ Build a Betfair-style system to lay multiple UK greyhounds with a configurable s
   - `POST /api/payments/paypal/checkout`
   - `POST /api/contact` (persists to MongoDB `contact_messages`).
 
+### Race categories + win-rate calibration (May 2026, iter 7)
+- **`race_categories.py`** — new module with industry-published favourite-win rates by:
+  - **UK Grades**: A1-A11, OR (Open Race), H1-H3 (Hurdles).
+  - **Distance bands**: Sprint (≤320m), Standard (321-499m), Stayer (500-619m), Marathon (620m+).
+- Every race now carries a `RaceCategory` (grade + distance_m + distance_band) — auto-detected per race:
+  - **Simulator**: weighted-random grade + distance from realistic UK card distribution.
+  - **Paper-Live / Live**: parsed from the Betfair `marketName` via regex (e.g. "Romford 19:24 R3 480m A4" → grade=A4, distance=480m, band=Standard).
+- **Blended winner picking**: `pick_winner(runners, category)` now uses `target_rate[rank] * (1/odds)^0.15`. Long-run distribution calibrated to ~32% / 22% / 17% / 13% / 10% / 7% by favourite rank (±1% on a 20k-race Monte-Carlo) while odds still drive within-race variance.
+- **Frontend**: `RaceCard` shows pink **grade** + grey **distance** + band-label badges below the venue. `RaceHistory` adds a compact `R# VENUE A4 · 480m` line for each historical race.
+- **Tests**: `test_race_categories.py` adds 29 new tests — grade/band tables sum to 1.0, regex detection covers OR + hurdles + marathon, long-run-distribution test asserts every rank within ±2% of target over 20k races, integration test against `/api/sessions/{id}/next-race` confirms category is persisted on the Race document.
+
 ### Central licensing system (May 2026, iter 5–6) — Phase 2 SHIPPED
 - **`licences.py`** — dual-role module (central + customer). LICENCE_SERVER_MODE=true makes this box the licence host; LICENCE_SERVER_URL points each customer VPS at it.
 - **Central role** (lay-hounds.co.uk): `POST /api/licences/{activate,release,validate}` — UUID install_id binding, 409 on cross-install reuse, 30-day current_period_end.

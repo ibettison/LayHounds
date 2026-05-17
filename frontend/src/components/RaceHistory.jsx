@@ -25,6 +25,11 @@ export const RaceHistory = ({ races }) => {
                 <div className="flex items-center gap-2">
                   <span className="label-xs">R{race.race_num}</span>
                   <span className="text-xs text-zinc-400 font-display uppercase">{race.venue}</span>
+                  {race.category && (
+                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-pink-300/80">
+                      {race.category.grade} · {race.category.distance_m}m
+                    </span>
+                  )}
                 </div>
                 <div
                   className={`font-mono font-bold ${
