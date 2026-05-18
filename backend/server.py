@@ -76,6 +76,7 @@ class SessionConfig(BaseModel):
     odds_max: float = Field(default=1000.0, ge=1.01, le=1000.0)  # and <=
     max_recovery_level: int = Field(default=3, ge=1, le=5)  # configurable depth of recovery staircase
     auto_place: bool = False  # live mode: auto-fire bet 60s before next race start
+    small_bet_mode: bool = False  # live mode: use sub-£1 "parking" technique for testing
 
 
 class Greyhound(BaseModel):
@@ -404,13 +405,22 @@ async def next_race(session_id: str):
                 sel_id = selection_by_rank[rank]
                 # Idempotent ref: session + race + rank → unique per attempt
                 cor = f"layhounds-{session.id[:8]}-{session.races_played + 1}-{rank}"
-                result = await betfair.place_lay_bet(
-                    market_id, sel_id, runner.odds, stake,
-                    customer_order_ref=cor,
-                )
-                for rep in result.get("instructionReports", []):
-                    if rep.get("betId"):
-                        betfair_bet_ids.append(rep["betId"])
+                if session.config.small_bet_mode and stake < 1.0:
+                    # Sub-£1 test bet via the parking technique.
+                    small = await betfair.place_small_lay_bet(
+                        market_id, sel_id, runner.odds, stake,
+                        customer_order_ref=cor,
+                    )
+                    if small.get("final_bet_id"):
+                        betfair_bet_ids.append(small["final_bet_id"])
+                else:
+                    result = await betfair.place_lay_bet(
+                        market_id, sel_id, runner.odds, stake,
+                        customer_order_ref=cor,
+                    )
+                    for rep in result.get("instructionReports", []):
+                        if rep.get("betId"):
+                            betfair_bet_ids.append(rep["betId"])
             except BetfairError as e:
                 # Surface the precise Betfair error so the user knows WHY it failed.
                 raise HTTPException(502, f"Betfair bet placement failed: {e}")

@@ -45,6 +45,7 @@ export const NewSessionDialog = ({ onCreated }) => {
     odds_max: 10.0,
     max_recovery_level: 3,
     auto_place: false,
+    small_bet_mode: false,
   });
 
   useEffect(() => {
@@ -337,6 +338,28 @@ export const NewSessionDialog = ({ onCreated }) => {
                 checked={form.auto_place}
                 onCheckedChange={(v) => update("auto_place", !!v)}
                 className="data-[state=checked]:bg-pink-500"
+              />
+            </div>
+
+            {/* Small-bet test mode — places sub-£1 lays via the Betfair parking technique */}
+            <div className="bg-amber-500/5 border border-amber-500/30 px-3 py-2 flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <div className="text-xs font-display uppercase tracking-wider text-amber-300 font-bold flex items-center gap-1.5">
+                  Sub-£1 Test Mode
+                  <span className="text-[9px] font-mono bg-amber-500/20 text-amber-200 px-1.5 py-0.5 border border-amber-500/40">RECOMMENDED FOR FIRST LIVE TEST</span>
+                </div>
+                <div className="text-[11px] text-zinc-400 leading-relaxed mt-1 max-w-md">
+                  Bypass Betfair's <span className="text-amber-300 font-bold">£1 minimum</span> stake using the
+                  "parking" technique — places £2 at price 1000 (unmatchable),
+                  size-reduces to your real stake (e.g. £0.05), then replaces at the live price.
+                  Letting you validate live placement end-to-end without risking real bankroll.
+                </div>
+              </div>
+              <Switch
+                data-testid="small-bet-mode-switch"
+                checked={form.small_bet_mode}
+                onCheckedChange={(v) => update("small_bet_mode", !!v)}
+                className="data-[state=checked]:bg-amber-500"
               />
             </div>
           </div>

@@ -77,6 +77,18 @@ Build a Betfair-style system to lay multiple UK greyhounds with a configurable s
   - `POST /api/payments/paypal/checkout`
   - `POST /api/contact` (persists to MongoDB `contact_messages`).
 
+### Sub-£1 "Small Bet" test mode (May 2026, iter 9)
+- **`betfair_client.place_small_lay_bet()`** — orchestrates the well-known Betfair sub-£1 LAY "parking" technique:
+  1. `placeOrders` £2 at price 1000.0 (above the ladder, unmatchable) → order sits on the book.
+  2. `cancelOrders` with `sizeReduction = 2 - target_size` → remaining sub-£1 size left unmatched (Betfair allows size reductions below £1).
+  3. `replaceOrders` to the realistic target price → the sub-£1 size now matches like any normal lay.
+- Failure at any step automatically cancels the parked order so no residue is left on Betfair.
+- **`SessionConfig.small_bet_mode: bool = False`** — opt-in per session, only used in live mode.
+- **`NewSessionDialog`** — amber-themed "Sub-£1 Test Mode" toggle inside the Live block, recommended for the user's first live test.
+- **Simulator header config panel** — surfaces "Test mode · Sub-£1 (parking)" when active so the user always sees they're in test mode.
+- **Live-mode bet placement** — if `small_bet_mode` is on AND stake < £1, uses `place_small_lay_bet` instead of the standard placement.
+- **Tests**: `tests/test_small_bet.py` adds 12 tests (mocked `_rpc`) verifying 3-step orchestration, exact sizeReduction math, tick snapping, input-validation guards, and clean-up of the parked order on every failure path.
+
 ### Bulletproof update.sh + auto-swap (May 2026, iter 8) — fixes "I had to reimage the VPS"
 Root cause of the recurring reimage: small VPSs (Fasthosts £5/mo, 1-2 GB RAM, **no swap**) get OOM-killed by `yarn build` (the React 19 + framer-motion + recharts bundle peaks at ~1.8 GB). The OOM-killer takes Mongo + Nginx down with it → user thinks the box is bricked.
 
