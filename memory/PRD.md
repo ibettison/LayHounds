@@ -77,6 +77,23 @@ Build a Betfair-style system to lay multiple UK greyhounds with a configurable s
   - `POST /api/payments/paypal/checkout`
   - `POST /api/contact` (persists to MongoDB `contact_messages`).
 
+### Bulletproof update.sh + auto-swap (May 2026, iter 8) — fixes "I had to reimage the VPS"
+Root cause of the recurring reimage: small VPSs (Fasthosts £5/mo, 1-2 GB RAM, **no swap**) get OOM-killed by `yarn build` (the React 19 + framer-motion + recharts bundle peaks at ~1.8 GB). The OOM-killer takes Mongo + Nginx down with it → user thinks the box is bricked.
+
+Fixes shipped:
+- **`update.sh` v2** — full rewrite (~280 lines, was ~150):
+  - Auto-creates a 2 GB `/swapfile` if total RAM+swap headroom < 1.8 GB (persists in `/etc/fstab`). Skip with `SKIP_SWAP=1`.
+  - Caps Node heap at 1 GB via `NODE_OPTIONS=--max-old-space-size=1024`.
+  - **Snapshot** of `git SHA + frontend/build/ + .env` files into `$APP_DIR/.update-snapshot/` before any mutation.
+  - **trap-based auto-rollback** on ANY failure (pip install crash, yarn build OOM, nginx config invalid, API not 200 within 30 s, atomic-swap mv fails) — restores commit + build + `.env` + restarts PM2.
+  - **`flock` single-run lock** at `/var/lock/layhounds-update.lock` prevents two updates racing.
+  - `.env` files explicitly stashed + restored around the `git reset --hard` so credentials are never lost.
+  - Post-reload health check: polls `/api/` for up to 30 s; if not 200, automatic rollback.
+  - Pre-flight prints `free -h` + `df -h` so the operator sees the box state before mutation.
+- **`deploy.sh`** — same auto-swap on first install, same `NODE_OPTIONS=--max-old-space-size=1024` on the first `yarn build`.
+- **`DEPLOYMENT.md`** — full rewrite of the "Updating the app later" section documenting the new safety features + new env vars (`SKIP_SWAP`, `SKIP_HEALTH`).
+- Bash syntax-checked; rollback path sandbox-tested with a fake APP_DIR.
+
 ### Race categories + win-rate calibration (May 2026, iter 7)
 - **`race_categories.py`** — new module with industry-published favourite-win rates by:
   - **UK Grades**: A1-A11, OR (Open Race), H1-H3 (Hurdles).
