@@ -635,7 +635,7 @@ const FAQ = () => (
   </Section>
 );
 
-cont SimulatorInfo = () => (
+const SimulatorInfo = () => (
     <section className="w-full py-16 px-6 bg-zinc-950 text-white">
       <div className="max-w-5xl mx-auto">
         <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 md:p-12 shadow-2xl">
