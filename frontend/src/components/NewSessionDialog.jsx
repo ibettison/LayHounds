@@ -45,7 +45,6 @@ export const NewSessionDialog = ({ onCreated }) => {
     odds_max: 10.0,
     max_recovery_level: 3,
     auto_place: false,
-    small_bet_mode: false,
   });
 
   useEffect(() => {
@@ -341,26 +340,17 @@ export const NewSessionDialog = ({ onCreated }) => {
               />
             </div>
 
-            {/* Small-bet test mode — places sub-£1 lays via the Betfair parking technique */}
-            <div className="bg-amber-500/5 border border-amber-500/30 px-3 py-2 flex items-start justify-between gap-3">
-              <div className="flex-1">
-                <div className="text-xs font-display uppercase tracking-wider text-amber-300 font-bold flex items-center gap-1.5">
-                  Sub-£1 Test Mode
-                  <span className="text-[9px] font-mono bg-amber-500/20 text-amber-200 px-1.5 py-0.5 border border-amber-500/40">RECOMMENDED FOR FIRST LIVE TEST</span>
-                </div>
-                <div className="text-[11px] text-zinc-400 leading-relaxed mt-1 max-w-md">
-                  Bypass Betfair's <span className="text-amber-300 font-bold">£1 minimum</span> stake using the
-                  "parking" technique — places £2 at price 1000 (unmatchable),
-                  size-reduces to your real stake (e.g. £0.05), then replaces at the live price.
-                  Letting you validate live placement end-to-end without risking real bankroll.
-                </div>
+            {/* Small-bet info — sub-£1 lays automatically use the Betfair parking technique */}
+            <div className="bg-amber-500/5 border border-amber-500/30 px-3 py-2">
+              <div className="text-xs font-display uppercase tracking-wider text-amber-300 font-bold">
+                Sub-£1 lay support
               </div>
-              <Switch
-                data-testid="small-bet-mode-switch"
-                checked={form.small_bet_mode}
-                onCheckedChange={(v) => update("small_bet_mode", !!v)}
-                className="data-[state=checked]:bg-amber-500"
-              />
+              <div className="text-[11px] text-zinc-400 leading-relaxed mt-1 max-w-xl">
+                Stakes below Betfair's £1 minimum (e.g. <span className="text-amber-300 font-bold">£0.05 or £0.50</span>) are
+                placed automatically via the "parking" technique — a £2 unmatchable order is parked at price 1000,
+                size-reduced to your real stake, then replaced at the live price.
+                <span className="text-amber-300"> Works transparently for every L0–L5 bet.</span>
+              </div>
             </div>
           </div>
         )}

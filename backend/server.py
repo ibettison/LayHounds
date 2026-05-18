@@ -76,7 +76,6 @@ class SessionConfig(BaseModel):
     odds_max: float = Field(default=1000.0, ge=1.01, le=1000.0)  # and <=
     max_recovery_level: int = Field(default=3, ge=1, le=5)  # configurable depth of recovery staircase
     auto_place: bool = False  # live mode: auto-fire bet 60s before next race start
-    small_bet_mode: bool = False  # live mode: use sub-£1 "parking" technique for testing
 
 
 class Greyhound(BaseModel):
@@ -405,8 +404,10 @@ async def next_race(session_id: str):
                 sel_id = selection_by_rank[rank]
                 # Idempotent ref: session + race + rank → unique per attempt
                 cor = f"layhounds-{session.id[:8]}-{session.races_played + 1}-{rank}"
-                if session.config.small_bet_mode and stake < 1.0:
-                    # Sub-£1 test bet via the parking technique.
+                if stake < 1.0:
+                    # Sub-£1 lay: use the Betfair "parking" technique
+                    # (place £2 unmatchable → size-reduce → replace at real price)
+                    # so any stake from £0.01 to £0.99 is fully supported in live mode.
                     small = await betfair.place_small_lay_bet(
                         market_id, sel_id, runner.odds, stake,
                         customer_order_ref=cor,

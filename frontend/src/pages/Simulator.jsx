@@ -334,8 +334,8 @@ export default function Simulator() {
                 {current.config.mode === "live" && (
                   <ConfRow l="Auto-place" v={current.config.auto_place ? "ON · T-60s" : "off"} />
                 )}
-                {current.config.mode === "live" && current.config.small_bet_mode && (
-                  <ConfRow l="Test mode" v="Sub-£1 (parking)" />
+                {current.config.mode === "live" && current.config.stake < 1.0 && (
+                  <ConfRow l="Sub-£1 placement" v="Auto-parking" />
                 )}
                 <ConfRow l="# Favs" v={current.config.num_favourites} />
                 <ConfRow l="Stop Win" v={`£${current.config.stop_win.toFixed(2)}`} />
