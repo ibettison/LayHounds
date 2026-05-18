@@ -263,11 +263,38 @@ If all four pass — you're live.
 ## 10. Updating the app later
 
 When you push new commits from Emergent to GitHub, just run the bundled
-**`update.sh`** on the VPS:
+**`update.sh`** on the VPS.
 
+### Layout: where does the repo live?
+
+`update.sh` supports two layouts and auto-detects which one you're using:
+
+**Two-stage (recommended)** — keep your git clone in your home directory, the
+runtime in `/opt/layhounds`:
+```bash
+~/layhounds/    ← git clone (owned by your user)
+/opt/layhounds/ ← runtime (owned by 'layhounds' user; venv/build/node_modules/.env live here)
+```
+Run it like this:
+```bash
+cd ~/layhounds && sudo ./update.sh
+```
+The script will `git pull` in `~/layhounds`, then `rsync` the source into
+`/opt/layhounds` — explicitly EXCLUDING `.env`, `frontend/build`, `backend/venv`,
+and `node_modules` so the runtime stays self-consistent.
+
+**Single-stage** — repo and runtime are the same dir:
 ```bash
 cd /opt/layhounds && sudo ./update.sh
 ```
+The script auto-detects this layout (REPO_DIR == APP_DIR) and skips the rsync step.
+
+Override either path explicitly:
+```bash
+sudo REPO_DIR=/home/me/code/lay-hounds APP_DIR=/srv/lh ./update.sh
+```
+
+### Safety features
 
 The script (v2, hardened May 2026):
 
@@ -283,8 +310,9 @@ The script (v2, hardened May 2026):
   OOM-killed? Nginx config invalid? API doesn't answer 200 within 30 s? The
   script restores the previous commit + previous build + previous `.env` and
   restarts PM2, leaving you at the version you were on before.
+- **`.env` files NEVER overwritten** — the rsync step explicitly excludes them,
+  so credentials in `/opt/layhounds/backend/.env` survive every update.
 - **Single-run lock** (`flock`) prevents two updates from racing each other.
-- **`.env` always survives `git reset`** — explicitly stashed and restored.
 - Pulls the latest commit, detects which paths changed, only reinstalls Python
   deps if `requirements.txt` moved, only rebuilds the React bundle if anything
   under `frontend/` changed — and builds into `build.new/` first, then

@@ -77,7 +77,25 @@ Build a Betfair-style system to lay multiple UK greyhounds with a configurable s
   - `POST /api/payments/paypal/checkout`
   - `POST /api/contact` (persists to MongoDB `contact_messages`).
 
+### Two-stage repo→runtime layout for update.sh (May 2026, iter 11)
+- **`update.sh` v3** — supports a clean two-stage layout (the user's actual setup):
+  - `REPO_DIR = ~/layhounds` — git clone, owned by the invoking user (script auto-detects REPO_OWNER via `stat -c %U`)
+  - `APP_DIR = /opt/layhounds` — runtime, owned by `APP_USER` (`layhounds`)
+  - Auto-detected: if `realpath(REPO_DIR) == realpath(APP_DIR)`, runs single-stage; otherwise runs two-stage.
+- **Flow**: `git pull` in REPO_DIR (as REPO_OWNER) → `rsync REPO_DIR/ APP_DIR/` with explicit `--exclude` of `.env`, `frontend/build/`, `frontend/node_modules/`, `backend/venv/`, `backend/__pycache__`, `**/__pycache__`, `.update-snapshot/`, `/swapfile`. Re-chowns APP_DIR to APP_USER then re-tightens `.env` perms to 600.
+- Rollback handler now also re-syncs source files from the rolled-back REPO_DIR to APP_DIR so the runtime stays in lock-step with the repo.
+- `DEPLOYMENT.md` §10 rewritten with a "Layout" subsection documenting both two-stage and single-stage usage + env-var overrides.
+- Sandbox-tested: confirmed `.env`, `frontend/build/`, `backend/venv/`, `node_modules/` all survive the rsync intact while new source files copy across.
+
 ### Sub-£1 lay support — automatic in live mode (May 2026, iter 9–10)
+- **`update.sh` v3** — supports a clean two-stage layout (the user's actual setup):
+  - `REPO_DIR = ~/layhounds` — git clone, owned by the user (script auto-detects REPO_OWNER via `stat -c %U`)
+  - `APP_DIR = /opt/layhounds` — runtime, owned by `APP_USER` (`layhounds`)
+  - Auto-detected: if `realpath(REPO_DIR) == realpath(APP_DIR)`, runs single-stage; otherwise runs two-stage.
+- **Flow**: `git pull` in REPO_DIR (as REPO_OWNER) → `rsync REPO_DIR/ APP_DIR/` with explicit `--exclude` of `.env`, `frontend/build/`, `frontend/node_modules/`, `backend/venv/`, `backend/__pycache__`, `**/__pycache__`, `.update-snapshot/`, `/swapfile`. Re-chowns APP_DIR to APP_USER then re-tightens `.env` perms to 600.
+- Rollback handler now also re-syncs source files from the rolled-back REPO_DIR to APP_DIR so the runtime stays in lock-step with the repo.
+- `DEPLOYMENT.md` §10 rewritten with a clear "Layout" subsection documenting both two-stage and single-stage usage + env-var overrides.
+- Sandbox-tested: confirmed `.env`, `frontend/build/`, `backend/venv/`, `node_modules/` all survive the rsync intact while new source files copy across.
 - **`betfair_client.place_small_lay_bet()`** — orchestrates the well-known Betfair sub-£1 LAY "parking" technique:
   1. `placeOrders` £2 at price 1000.0 (above the ladder, unmatchable) → order sits on the book.
   2. `cancelOrders` with `sizeReduction = 2 - target_size` → remaining sub-£1 size left unmatched (Betfair allows size reductions below £1).
