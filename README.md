@@ -87,4 +87,4 @@ this file. Deployment hosts get their own `.env` created manually — see
 
 ## License
 
-Private — for ibettison's personal use.
+Private — proprietary, all rights reserved.

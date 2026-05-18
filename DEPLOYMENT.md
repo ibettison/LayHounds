@@ -16,7 +16,7 @@ Betfair API integration works end-to-end (Paper-Live and Live modes).
 | UK/EU VPS | Hetzner CX11 (Falkenstein, EU) — ~£4/mo | Any UK/EU provider works: OVH, Scaleway, Linode London, DigitalOcean London, AWS eu-west-2, Azure UK South, Contabo UK, IONOS UK. |
 | OS | Ubuntu 24.04 LTS (recommended) or 22.04 LTS | The bundled `deploy.sh` auto-detects which one you're on and installs the matching Python (3.12 / 3.11) and MongoDB (8.0 / 7.0). |
 | Domain | any registrar (~£8/yr) | Optional but required for HTTPS. Free sub-domains via DuckDNS also work. |
-| Betfair credentials | App Key + username + password | Already in `backend/.env`. A delayed-data App Key is enough for paper-live. |
+| Betfair credentials | App Key + username + password | Created by you at developer.betfair.com — **never paste them into any tracked file**. A delayed-data App Key is enough for paper-live. |
 | RAM / CPU | 2 GB / 1 vCPU | Enough for a single user. MongoDB is the heaviest component. |
 
 ---
@@ -112,7 +112,15 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Create the env file **manually on the server** (never commit it):
+Create the env file **manually on the server** (never commit it — `.env` is
+already in `.gitignore`):
+
+> **SECURITY WARNING**: Never paste your real Betfair App Key, username, or
+> password into this document, the README, or any file that could be committed
+> to git. Treat them like a credit-card number. If you ever accidentally commit
+> them, **rotate them immediately** at
+> [developer.betfair.com](https://developer.betfair.com) (regenerate App Key)
+> and change your Betfair account password.
 
 ```bash
 cat > .env <<'EOF'
@@ -120,9 +128,11 @@ MONGO_URL=mongodb://127.0.0.1:27017
 DB_NAME=layhounds
 CORS_ORIGINS=*
 
-BETFAIR_APP_KEY=YsAUSaAAUO10jdDw
-BETFAIR_USERNAME=ibettison
-BETFAIR_PASSWORD=0J[A5yG[[BHT18DgZnXQ
+# Replace the placeholders below with YOUR credentials.
+# Generate the App Key at https://developer.betfair.com/visualisers/api-accounts-operations/
+BETFAIR_APP_KEY=<your-betfair-app-key>
+BETFAIR_USERNAME=<your-betfair-username>
+BETFAIR_PASSWORD=<your-betfair-password>
 
 # ── Licence server config ─────────────────────────────────────────────
 # CUSTOMER installs (every customer's VPS): point at the central server
@@ -317,6 +327,7 @@ Wire it to a cron / GitHub webhook later if you want auto-deploys.
 
 | Concern | Fix |
 |---|---|
+| **Credentials in tracked files** | **NEVER paste real Betfair App Key, username, password, Stripe keys, or any secret into `DEPLOYMENT.md`, `README.md`, or anywhere else that gets pushed to git. They live in `backend/.env` (which is already in `.gitignore`) and nowhere else. If you ever notice a real secret in a tracked file: (1) rotate it at the provider IMMEDIATELY (regenerate Betfair App Key at developer.betfair.com; change Betfair password; revoke + recreate Stripe key); (2) `git rm` the offending content and `git commit --amend` if the leaking commit is the last one, or `git filter-repo` / BFG if it's deeper in history. |
 | Anyone can hit `/api/*` | Add Nginx `basic_auth` or an API token header; the app is single-user. |
 | MongoDB exposed | Default `mongod.conf` binds to `127.0.0.1` only — verify with `ss -lntp`. |
 | `.env` permissions | `chmod 600 backend/.env`. |
@@ -352,4 +363,4 @@ developer fee from Betfair.
 
 ---
 
-_Last updated: 2026-02-06_
+_Last updated: 2026-05-18_
