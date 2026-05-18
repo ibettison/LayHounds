@@ -259,17 +259,30 @@ When you push new commits from Emergent to GitHub, just run the bundled
 cd /opt/layhounds && sudo ./update.sh
 ```
 
-The script:
+The script (v2, hardened May 2026):
 
-- pulls the latest commit
-- detects which paths changed (`backend/`, `frontend/`, `requirements.txt`)
-- only reinstalls Python deps if `requirements.txt` moved
-- only rebuilds the React bundle if anything under `frontend/` changed — and
-  builds into `build.new/` first, then **atomically swaps** so Nginx never
-  serves a half-built bundle
-- rolls the API with `pm2 reload` (graceful, zero-downtime — in-flight requests
-  finish on the old workers before the new ones take over)
-- reloads Nginx and verifies `/api/` returns 200 + prints the Betfair status
+- **OOM-proofs the box** — if your VPS has < 1.8 GB of total RAM+swap headroom, it
+  auto-creates a 2 GB `/swapfile` before doing anything risky. This is the **#1
+  cause of "I had to reimage my VPS"** — small Fasthosts/Linode/OVH plans (1-2 GB
+  RAM, no swap) get killed by `yarn build` and take Mongo + Nginx down with them.
+- **Caps Node heap** at 1 GB (`NODE_OPTIONS=--max-old-space-size=1024`) so even a
+  runaway build can't eat the whole machine.
+- **Snapshots before mutating** — saves the current git SHA, the current
+  `frontend/build/`, and both `.env` files into `$APP_DIR/.update-snapshot/`.
+- **Auto-rollback on ANY failure** — `pip install` blows up? `yarn build`
+  OOM-killed? Nginx config invalid? API doesn't answer 200 within 30 s? The
+  script restores the previous commit + previous build + previous `.env` and
+  restarts PM2, leaving you at the version you were on before.
+- **Single-run lock** (`flock`) prevents two updates from racing each other.
+- **`.env` always survives `git reset`** — explicitly stashed and restored.
+- Pulls the latest commit, detects which paths changed, only reinstalls Python
+  deps if `requirements.txt` moved, only rebuilds the React bundle if anything
+  under `frontend/` changed — and builds into `build.new/` first, then
+  **atomically swaps** so Nginx never serves a half-built bundle.
+- Rolls the API with `pm2 reload` (graceful, zero-downtime — in-flight requests
+  finish on the old workers before the new ones take over).
+- Reloads Nginx, then **polls `/api/` for up to 30 s** — if it doesn't return
+  200, the script rolls back automatically.
 
 Force a full rebuild even when nothing changed:
 
@@ -281,6 +294,19 @@ Switch branch on the way:
 
 ```bash
 sudo BRANCH=staging ./update.sh
+```
+
+Skip the health-check at the end (e.g. if the domain isn't yet pointed at this
+box):
+
+```bash
+sudo SKIP_HEALTH=1 ./update.sh
+```
+
+Skip the auto-swap creation (you've already added your own):
+
+```bash
+sudo SKIP_SWAP=1 ./update.sh
 ```
 
 Wire it to a cron / GitHub webhook later if you want auto-deploys.

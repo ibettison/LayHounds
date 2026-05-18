@@ -114,6 +114,23 @@ apt-get update -y
 apt-get install -y "$PY_PKG" "${PY_PKG}-venv" python3-pip \
                    nginx git curl gnupg ufw ca-certificates lsb-release rsync
 
+# ── OOM protection: tiny VPSs (≤2 GB RAM, no swap) get killed by `yarn build`.
+# Auto-create a 2 GB swap file if we have < 1.8 GB of total memory headroom.
+if [ "${SKIP_SWAP:-0}" != "1" ]; then
+  MEM_TOTAL_MB=$(awk '/^MemTotal:/ {print int($2/1024)}' /proc/meminfo)
+  SWAP_TOTAL_MB=$(awk '/^SwapTotal:/ {print int($2/1024)}' /proc/meminfo)
+  if [ $((MEM_TOTAL_MB + SWAP_TOTAL_MB)) -lt 1800 ] && [ ! -f /swapfile ]; then
+    log "Memory headroom is ${MEM_TOTAL_MB}MB RAM + ${SWAP_TOTAL_MB}MB swap — creating /swapfile (2 GB) to survive yarn build."
+    if fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048; then
+      chmod 600 /swapfile
+      mkswap /swapfile >/dev/null
+      swapon /swapfile
+      grep -q "^/swapfile" /etc/fstab || echo "/swapfile none swap sw 0 0" >> /etc/fstab
+      log "Swap online."
+    fi
+  fi
+fi
+
 # Node 20 + yarn + pm2
 if ! command -v node >/dev/null || [ "$(node -v | cut -c2-3)" != "20" ]; then
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
@@ -208,7 +225,7 @@ step "5/8  Frontend build"
 echo "REACT_APP_BACKEND_URL=${PUBLIC_URL}" > "$APP_DIR/frontend/.env"
 chown "$APP_USER:$APP_USER" "$APP_DIR/frontend/.env"
 
-sudo -u "$APP_USER" bash <<EOF
+sudo -u "$APP_USER" env NODE_OPTIONS="--max-old-space-size=1024" bash <<EOF
 set -e
 cd "$APP_DIR/frontend"
 yarn install --frozen-lockfile
