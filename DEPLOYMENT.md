@@ -120,9 +120,9 @@ MONGO_URL=mongodb://127.0.0.1:27017
 DB_NAME=layhounds
 CORS_ORIGINS=*
 
-BETFAIR_APP_KEY=YsAUSaAAUO10jdDw
-BETFAIR_USERNAME=ibettison
-BETFAIR_PASSWORD=0J[A5yG[[BHT18DgZnXQ
+BETFAIR_APP_KEY=<Add these to your .env file>
+BETFAIR_USERNAME=<Add these to your .env file>
+BETFAIR_PASSWORD=<Add these to your .env file>
 
 # ── Licence server config ─────────────────────────────────────────────
 # CUSTOMER installs (every customer's VPS): point at the central server
