@@ -2,9 +2,20 @@
 # ==============================================================================
 #  Lay-Hounds — safe zero-downtime updater
 # ------------------------------------------------------------------------------
-#  Pulls latest code, reinstalls deps if needed, rebuilds the React bundle, and
-#  rolls the API under PM2 — without dropping requests, AND with automatic
-#  rollback on failure so a botched update can't brick the VPS.
+#  Pulls latest code into REPO_DIR (your git clone, e.g. ~/layhounds),
+#  syncs it to APP_DIR (the runtime, e.g. /opt/layhounds), reinstalls deps if
+#  needed, rebuilds the React bundle, and rolls the API under PM2 — without
+#  dropping requests, AND with automatic rollback on failure so a botched
+#  update can't brick the VPS.
+#
+#  Two-stage layout (recommended):
+#    REPO_DIR  = ~/layhounds          (your git clone, owned by your user)
+#    APP_DIR   = /opt/layhounds       (runtime, owned by APP_USER = layhounds)
+#  The script auto-detects this and runs git operations as REPO_OWNER, then
+#  rsyncs source files to APP_DIR (NEVER touching .env, build, venv, node_modules).
+#
+#  Single-stage layout (also supported):
+#    REPO_DIR  = APP_DIR              (one location for both, e.g. /opt/layhounds)
 #
 #  Hard-learnt safety features:
 #   • OOM-proof:  caps Node memory + auto-creates a 2 GB swap file if the box
@@ -16,17 +27,20 @@
 #   • Single-run: flock prevents two updates fighting each other.
 #   • Health-checked: the API must answer 200 within 30 s post-reload, else
 #                 we roll back automatically.
-#   • .env safe:  always stashed + restored even on `git reset`.
+#   • .env safe:  NEVER overwritten — rsync explicitly excludes them.
 #
-#  Usage  (on the VPS, as root or sudo):
-#    cd /opt/layhounds && sudo ./update.sh
+#  Usage  (on the VPS, as root or sudo, from your repo):
+#    cd ~/layhounds && sudo ./update.sh                     # two-stage (recommended)
+#    cd /opt/layhounds && sudo ./update.sh                  # single-stage
 #
 #  Env vars:
-#    APP_DIR    install path     (default: /opt/layhounds)
-#    APP_USER   file owner       (default: layhounds)
-#    BRANCH     git branch       (default: current)
+#    REPO_DIR   git-clone location  (default: dir containing this script)
+#    APP_DIR    runtime install     (default: /opt/layhounds)
+#    APP_USER   APP_DIR file owner  (default: layhounds)
+#    REPO_OWNER REPO_DIR file owner (default: auto-detected from stat)
+#    BRANCH     git branch          (default: current)
 #    FORCE=1    rebuild even if no changes
-#    SKIP_SWAP=1   skip the auto-swap creation (you've already added one)
+#    SKIP_SWAP=1   skip the auto-swap creation
 #    SKIP_HEALTH=1 skip the post-reload curl health-check
 # ==============================================================================
 
@@ -43,16 +57,42 @@ die() { err "$*"; exit 1; }
 
 [ "${EUID:-$(id -u)}" -eq 0 ] || die "Run as root (or via sudo)."
 
+# REPO_DIR = where this script lives (typically ~/layhounds, the git clone).
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+REPO_DIR="${REPO_DIR:-$SCRIPT_DIR}"
 APP_DIR="${APP_DIR:-/opt/layhounds}"
 APP_USER="${APP_USER:-layhounds}"
 FORCE="${FORCE:-0}"
 SKIP_SWAP="${SKIP_SWAP:-0}"
 SKIP_HEALTH="${SKIP_HEALTH:-0}"
 
-[ -d "$APP_DIR/.git" ]    || die "$APP_DIR is not a git repo."
-[ -d "$APP_DIR/backend" ] || die "$APP_DIR/backend missing."
-[ -d "$APP_DIR/frontend" ]|| die "$APP_DIR/frontend missing."
+# Auto-detect who owns the repo (for `sudo -u` on git commands).
+if [ -z "${REPO_OWNER:-}" ]; then
+  REPO_OWNER="$(stat -c '%U' "$REPO_DIR" 2>/dev/null || echo root)"
+fi
+# If sudo'd, fall back to the invoking user
+if [ "$REPO_OWNER" = "root" ] && [ -n "${SUDO_USER:-}" ]; then
+  REPO_OWNER="$SUDO_USER"
+fi
+
+# Are repo and runtime the same dir? Then we're in single-stage mode.
+if [ "$(readlink -f "$REPO_DIR")" = "$(readlink -f "$APP_DIR")" ]; then
+  TWO_STAGE=0
+else
+  TWO_STAGE=1
+fi
+
+[ -d "$REPO_DIR/.git" ]    || die "$REPO_DIR is not a git repo."
+[ -d "$REPO_DIR/backend" ] || die "$REPO_DIR/backend missing."
+[ -d "$REPO_DIR/frontend" ]|| die "$REPO_DIR/frontend missing."
+[ -d "$APP_DIR/backend" ]  || die "$APP_DIR/backend missing — run deploy.sh first to create the runtime."
+[ -d "$APP_DIR/frontend" ] || die "$APP_DIR/frontend missing — run deploy.sh first."
 id -u "$APP_USER" >/dev/null 2>&1 || die "User $APP_USER does not exist."
+id -u "$REPO_OWNER" >/dev/null 2>&1 || die "Repo owner '$REPO_OWNER' does not exist."
+
+log "REPO_DIR:    $REPO_DIR   (owner: $REPO_OWNER)"
+log "APP_DIR:     $APP_DIR    (owner: $APP_USER)"
+log "Mode:        $([ "$TWO_STAGE" = 1 ] && echo two-stage 'repo→runtime' || echo single-stage)"
 
 cd "$APP_DIR"
 
@@ -113,7 +153,7 @@ log "NODE_OPTIONS=$NODE_OPTIONS"
 # ==============================================================================
 step "1/6  Snapshot — record rollback state"
 # ==============================================================================
-OLD_SHA="$(sudo -u "$APP_USER" git -C "$APP_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+OLD_SHA="$(sudo -u "$REPO_OWNER" git -C "$REPO_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
 log "Old git SHA:  ${OLD_SHA:0:7}"
 
 # Snapshot frontend build (cheap — small dir)
@@ -135,9 +175,13 @@ ROLLBACK_NEEDED=0
 # Rollback handler — restores everything we snapshotted.
 rollback() {
   err "Update failed — rolling back to ${OLD_SHA:0:7}…"
-  # 1. git
+  # 1. git — in REPO_DIR
   if [ "${OLD_SHA:-unknown}" != "unknown" ]; then
-    sudo -u "$APP_USER" git -C "$APP_DIR" reset --hard "$OLD_SHA" >/dev/null 2>&1 || true
+    sudo -u "$REPO_OWNER" git -C "$REPO_DIR" reset --hard "$OLD_SHA" >/dev/null 2>&1 || true
+    # Re-sync the rolled-back source into APP_DIR (best-effort)
+    if [ "$TWO_STAGE" = "1" ]; then
+      sync_repo_to_app_dir >/dev/null 2>&1 || true
+    fi
   fi
   # 2. frontend build
   if [ -d "$SNAP_DIR/build" ]; then
@@ -185,33 +229,80 @@ restore_envs() {
   chown "$APP_USER:$APP_USER" "$APP_DIR/frontend/.env" 2>/dev/null || true
 }
 
+# rsync source files from REPO_DIR to APP_DIR.
+# NEVER touches the runtime artifacts (.env, build, venv, node_modules) — those
+# are protected by --exclude so the runtime stays self-consistent even if the
+# repo just got a fresh `git reset --hard`.
+sync_repo_to_app_dir() {
+  rsync -a --delete \
+    --exclude='.git/' \
+    --exclude='node_modules/' \
+    --exclude='frontend/node_modules/' \
+    --exclude='frontend/build/' \
+    --exclude='frontend/.env' \
+    --exclude='frontend/.env.*' \
+    --exclude='backend/venv/' \
+    --exclude='backend/.env' \
+    --exclude='backend/.env.*' \
+    --exclude='backend/__pycache__/' \
+    --exclude='**/__pycache__/' \
+    --exclude='*.pyc' \
+    --exclude='.update-snapshot/' \
+    --exclude='/swapfile' \
+    "$REPO_DIR"/ "$APP_DIR"/
+  chown -R "$APP_USER:$APP_USER" "$APP_DIR" 2>/dev/null || true
+  # Re-tighten .env perms after the chown sweep
+  [ -f "$APP_DIR/backend/.env" ]  && chmod 600 "$APP_DIR/backend/.env"  || true
+  [ -f "$APP_DIR/frontend/.env" ] && chmod 600 "$APP_DIR/frontend/.env" || true
+}
+
 # ==============================================================================
-step "2/6  git pull"
+step "2/6  git pull (in REPO_DIR) + sync to APP_DIR"
 # ==============================================================================
 stash_envs
-sudo -u "$APP_USER" git -C "$APP_DIR" fetch --all --prune || { err "git fetch failed (network?)"; exit 1; }
 
-CURRENT_BRANCH="$(sudo -u "$APP_USER" git -C "$APP_DIR" rev-parse --abbrev-ref HEAD)"
+# Pull in REPO_DIR (owned by REPO_OWNER, NOT APP_USER).
+if ! sudo -u "$REPO_OWNER" git -C "$REPO_DIR" fetch --all --prune; then
+  err "git fetch failed (network?)"
+  exit 1
+fi
+
+CURRENT_BRANCH="$(sudo -u "$REPO_OWNER" git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD)"
 BRANCH="${BRANCH:-$CURRENT_BRANCH}"
 
 # Soft checkout + fast-forward (never rewrites local commits violently)
-sudo -u "$APP_USER" git -C "$APP_DIR" checkout "$BRANCH" >/dev/null 2>&1 || true
-if ! sudo -u "$APP_USER" git -C "$APP_DIR" reset --hard "origin/$BRANCH"; then
+sudo -u "$REPO_OWNER" git -C "$REPO_DIR" checkout "$BRANCH" >/dev/null 2>&1 || true
+if ! sudo -u "$REPO_OWNER" git -C "$REPO_DIR" reset --hard "origin/$BRANCH"; then
   err "git reset --hard origin/$BRANCH failed"
   restore_envs
   ROLLBACK_NEEDED=1
   exit 1
 fi
-restore_envs
-NEW_SHA="$(sudo -u "$APP_USER" git -C "$APP_DIR" rev-parse HEAD)"
+NEW_SHA="$(sudo -u "$REPO_OWNER" git -C "$REPO_DIR" rev-parse HEAD)"
 
 if [ "$OLD_SHA" = "$NEW_SHA" ] && [ "$FORCE" != "1" ]; then
   log "Already up to date ($NEW_SHA). Use FORCE=1 to rebuild anyway."
+  restore_envs
   trap - EXIT INT TERM
+  rm -rf "$SNAP_DIR"
   exit 0
 fi
 
-CHANGED="$(git -C "$APP_DIR" diff --name-only "$OLD_SHA" "$NEW_SHA" 2>/dev/null || echo ALL)"
+# Two-stage layout: rsync the freshly-pulled source from REPO_DIR → APP_DIR.
+if [ "$TWO_STAGE" = "1" ]; then
+  log "Syncing $REPO_DIR → $APP_DIR (excluding .env, build, venv, node_modules)…"
+  if ! sync_repo_to_app_dir; then
+    err "rsync repo→app failed"
+    restore_envs
+    ROLLBACK_NEEDED=1
+    exit 1
+  fi
+fi
+
+# Re-apply env files just in case rsync somehow touched them (it shouldn't).
+restore_envs
+
+CHANGED="$(sudo -u "$REPO_OWNER" git -C "$REPO_DIR" diff --name-only "$OLD_SHA" "$NEW_SHA" 2>/dev/null || echo ALL)"
 log "Changed files (first 40):"
 echo "$CHANGED" | head -40
 
