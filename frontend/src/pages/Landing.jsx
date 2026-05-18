@@ -635,6 +635,84 @@ const FAQ = () => (
   </Section>
 );
 
+cont SimulatorInfo = () => (
+    <section className="w-full py-16 px-6 bg-zinc-950 text-white">
+      <div className="max-w-5xl mx-auto">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 md:p-12 shadow-2xl">
+          
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-6">
+            <span>●</span>
+            Realistic Demo Simulation
+          </div>
+
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
+            Built Using Real Racing Statistics
+          </h2>
+
+          <p className="text-zinc-300 text-lg leading-relaxed mb-8">
+            Our demo racing simulator has been carefully engineered using
+            legitimate industry favourite-performance statistics and realistic
+            UK race modelling data to create an experience that feels as close
+            to live racing as possible.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+            <div className="bg-zinc-800/60 rounded-2xl p-5 border border-zinc-700">
+              <h3 className="font-semibold text-lg mb-2">
+                Race Intelligence
+              </h3>
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                Simulations are weighted using race grades, distance bands,
+                track categories, and historical favourite-performance data.
+              </p>
+            </div>
+
+            <div className="bg-zinc-800/60 rounded-2xl p-5 border border-zinc-700">
+              <h3 className="font-semibold text-lg mb-2">
+                Realistic Market Behaviour
+              </h3>
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                The simulator uses realistic market-style odds distribution to
+                recreate believable race outcomes and betting behaviour.
+              </p>
+            </div>
+
+            <div className="bg-zinc-800/60 rounded-2xl p-5 border border-zinc-700">
+              <h3 className="font-semibold text-lg mb-2">
+                Balanced Randomisation
+              </h3>
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                While favourites statistically perform better over time, each
+                race still includes natural variance to maintain excitement and
+                unpredictability.
+              </p>
+            </div>
+
+            <div className="bg-zinc-800/60 rounded-2xl p-5 border border-zinc-700">
+              <h3 className="font-semibold text-lg mb-2">
+                Real-World Limitations
+              </h3>
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                Like any simulator, certain live-racing events such as blocking,
+                barging, and split-second track incidents cannot be perfectly
+                replicated.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6">
+            <p className="text-zinc-200 leading-relaxed">
+              Over thousands of internal test simulations, the system has
+              consistently produced results closely aligned with genuine UK
+              industry averages — helping ensure races feel fair, believable,
+              and authentic.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+);
+
 const VPSReferral = () => (
   <Section id="hosting">
     <motion.div {...fadeUp} className="max-w-6xl mx-auto">
@@ -864,6 +942,7 @@ export default function Landing() {
       <Testimonials />
       <Pricing />
       <FAQ />
+      <SimulatorInfo />
       <VPSReferral />
       <Contact />
     </MarketingLayout>
