@@ -239,6 +239,145 @@ class BetfairClient:
     async def cancel_all(self, market_id: str) -> Dict[str, Any]:
         return await self._rpc("cancelOrders", {"marketId": market_id})
 
+    async def place_small_lay_bet(self, market_id: str, selection_id: int,
+                                  target_price: float, target_size: float,
+                                  *, customer_order_ref: Optional[str] = None,
+                                  park_price: float = 1000.0, park_size: float = 2.00,
+                                  ) -> Dict[str, Any]:
+        """Lay bet UNDER the £1 Betfair minimum, using the well-known "parking"
+        technique. The sub-£1 final stake never matches at >= £1, so this is
+        safe for live-mode testing without risking large liability.
+
+        Flow (Betfair compliant):
+          1. placeOrders  — full park_size=£2.00 at park_price=1000.0 (lay).
+             Sits UNMATCHED on the book because no one backs at 1000.0.
+          2. cancelOrders — partial cancel with sizeReduction = (park_size − target_size).
+             The £1 minimum does NOT apply to size reductions, so the remaining
+             unmatched size can be as low as £0.01.
+          3. replaceOrders — change price to the realistic `target_price`.
+             The remaining sub-£1 size now sits at a matchable price and will
+             match like any normal lay.
+
+        Returns dict with: place_report, cancel_report, replace_report, final_bet_id.
+        Raises BetfairError if any step fails — and TRIES to clean up the parked
+        order before bubbling the error up, so we never leave residue.
+        """
+        if target_price < 1.01:
+            raise BetfairError("Target price must be >= 1.01")
+        if target_size < 0.01:
+            raise BetfairError("Target size must be >= £0.01")
+        if target_size >= 1.0:
+            raise BetfairError(
+                f"Target size £{target_size:.2f} is >= £1.00 — use place_lay_bet() instead."
+            )
+        if park_size < 1.0:
+            raise BetfairError("park_size must be >= £1.00 (Betfair minimum)")
+        if park_size <= target_size:
+            raise BetfairError("park_size must be strictly greater than target_size")
+
+        target_price_snapped = self._snap_to_tick(target_price)
+        size_reduction = round(park_size - target_size, 2)
+
+        # ---- Step 1: park unmatched at an extreme price ----------------------
+        park_instruction: Dict[str, Any] = {
+            "orderType": "LIMIT",
+            "selectionId": selection_id,
+            "handicap": 0,
+            "side": "LAY",
+            "limitOrder": {
+                "size": round(park_size, 2),
+                "price": park_price,
+                "persistenceType": "LAPSE",
+            },
+        }
+        if customer_order_ref:
+            park_instruction["customerOrderRef"] = (customer_order_ref + "-park")[:32]
+
+        place_report = await self._rpc("placeOrders", {
+            "marketId": market_id,
+            "instructions": [park_instruction],
+        })
+
+        top = (place_report or {}).get("status")
+        if top not in ("SUCCESS", None):
+            raise BetfairError(
+                f"Small-lay park failed: {top} ({place_report.get('errorCode', '?')})"
+            )
+        reports = (place_report or {}).get("instructionReports", []) or []
+        if not reports or reports[0].get("status") != "SUCCESS":
+            err = (reports[0] if reports else {}).get("errorCode", "UNKNOWN_ERROR")
+            raise BetfairError(f"Small-lay park rejected: {err}")
+        bet_id = reports[0].get("betId")
+        if not bet_id:
+            raise BetfairError("Small-lay park returned no betId")
+
+        async def _try_clean_up(reason: str):
+            try:
+                await self._rpc("cancelOrders", {
+                    "marketId": market_id,
+                    "instructions": [{"betId": bet_id}],
+                })
+                logger.warning("Cancelled parked order %s after failure: %s", bet_id, reason)
+            except Exception as e:
+                logger.error("FAILED to clean up parked bet %s: %s (you may have a stray £%s order at %s)",
+                             bet_id, e, park_size, park_price)
+
+        # ---- Step 2: size-reduce down to target_size -------------------------
+        try:
+            cancel_report = await self._rpc("cancelOrders", {
+                "marketId": market_id,
+                "instructions": [{
+                    "betId": bet_id,
+                    "sizeReduction": size_reduction,
+                }],
+            })
+        except Exception as e:
+            await _try_clean_up(f"cancel/sizeReduce raised {type(e).__name__}: {e}")
+            raise BetfairError(f"Small-lay size-reduce failed: {e}")
+
+        if (cancel_report or {}).get("status") not in ("SUCCESS", None):
+            await _try_clean_up(f"cancel/sizeReduce status={cancel_report.get('status')}")
+            raise BetfairError(
+                f"Small-lay size-reduce failed: {cancel_report.get('status')} "
+                f"({cancel_report.get('errorCode', '?')})"
+            )
+
+        # ---- Step 3: replace to the real price -------------------------------
+        try:
+            replace_report = await self._rpc("replaceOrders", {
+                "marketId": market_id,
+                "instructions": [{
+                    "betId": bet_id,
+                    "newPrice": target_price_snapped,
+                }],
+            })
+        except Exception as e:
+            await _try_clean_up(f"replaceOrders raised {type(e).__name__}: {e}")
+            raise BetfairError(f"Small-lay price-replace failed: {e}")
+
+        if (replace_report or {}).get("status") not in ("SUCCESS", None):
+            await _try_clean_up(f"replace status={replace_report.get('status')}")
+            raise BetfairError(
+                f"Small-lay price-replace failed: {replace_report.get('status')} "
+                f"({replace_report.get('errorCode', '?')})"
+            )
+        rep_reports = (replace_report or {}).get("instructionReports", []) or []
+        new_bet_id = bet_id
+        if rep_reports:
+            rep0 = rep_reports[0]
+            place_inside = rep0.get("placeInstructionReport") or {}
+            new_bet_id = place_inside.get("betId") or bet_id
+
+        return {
+            "place_report": place_report,
+            "cancel_report": cancel_report,
+            "replace_report": replace_report,
+            "final_bet_id": new_bet_id,
+            "parked_at_price": park_price,
+            "matched_at_price": target_price_snapped,
+            "matched_size": round(target_size, 2),
+        }
+
     async def get_account_funds(self) -> Dict[str, Any]:
         """Returns Betfair account funds. Keys: availableToBetBalance, exposure,
         exposureLimit, retainedCommission, discountRate, pointsBalance, wallet."""

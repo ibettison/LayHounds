@@ -339,6 +339,19 @@ export const NewSessionDialog = ({ onCreated }) => {
                 className="data-[state=checked]:bg-pink-500"
               />
             </div>
+
+            {/* Small-bet info — sub-£1 lays automatically use the Betfair parking technique */}
+            <div className="bg-amber-500/5 border border-amber-500/30 px-3 py-2">
+              <div className="text-xs font-display uppercase tracking-wider text-amber-300 font-bold">
+                Sub-£1 lay support
+              </div>
+              <div className="text-[11px] text-zinc-400 leading-relaxed mt-1 max-w-xl">
+                Stakes below Betfair's £1 minimum (e.g. <span className="text-amber-300 font-bold">£0.05 or £0.50</span>) are
+                placed automatically via the "parking" technique — a £2 unmatchable order is parked at price 1000,
+                size-reduced to your real stake, then replaced at the live price.
+                <span className="text-amber-300"> Works transparently for every L0–L5 bet.</span>
+              </div>
+            </div>
           </div>
         )}
 
