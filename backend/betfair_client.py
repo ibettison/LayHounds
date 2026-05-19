@@ -188,14 +188,19 @@ class BetfairClient:
         snapped = self._snap_to_tick(price)
         # SMALL LAY BETS (< £1)
         # -----------------------------
+        # Convert intended lay stake into liability
+        liability = round((snapped - 1) * size, 2)
         if size < 1.0:
             limit_order = {
                 "price": snapped,
                 "persistenceType": "LAPSE",
-                "betTargetType": "BACKERS_PROFIT",
-                "betTargetSize": round(size, 2),
+            
+                # Use payout/liability targeting
+                "betTargetType": "PAYOUT",
+                "betTargetSize": liability,
             }
-
+        
+           
         # -----------------------------
         # NORMAL LAY BETS (>= £1)
         # -----------------------------
