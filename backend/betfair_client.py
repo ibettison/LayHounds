@@ -174,68 +174,93 @@ class BetfairClient:
                 return min(snapped, hi - step) if snapped >= hi else snapped
         return round(price, 2)
 
-    async def place_lay_bet(self, market_id: str, selection_id: int, price: float, size: float,
-                            *, customer_order_ref: Optional[str] = None) -> Dict[str, Any]:
-        """Place a single LAY bet on a market.
+    async def place_lay_bet(
+            self,
+    market_id: str,
+    selection_id: int,
+    price: float,
+    size: float,
+    *,
+    customer_order_ref: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Place a LAY bet.
 
-        Raises BetfairError if Betfair rejects the placement at any level —
-        top-level status, individual instruction status, or zero size matched at FOK.
-        Returns the raw PlaceExecutionReport on success.
-        """
-        if price < 1.01:
-            raise BetfairError("Odds must be >= 1.01")
-        if size < 1.0:
-            return await self.place_sub_minimum_lay(
-            market_id=market_id,
-            selection_id=selection_id,
-            price=price,
-            size=size,
-            customer_order_ref=customer_order_ref,
-            )
+    Supports BOTH:
+      - normal lay bets >= £1
+      - small lay bets using Betfair BACKERS_PROFIT targeting
+    """
+    
+    if price < 1.01:
+        raise BetfairError("Odds must be >= 1.01")
 
-    #if size < 1.0:
-            # Betfair UK minimum lay stake is £1 unless using the "small bet" allowance.
-            # Bubble this up clearly so the user understands why the bet was rejected.
-            #raise BetfairError(
-             #   f"Lay stake ({size:.2f}) below Betfair UK £1.00 minimum. "
-              #  "Increase your stake or your recovery target."
-           # )
-        snapped = self._snap_to_tick(price)
-        instruction = {
-            "orderType": "LIMIT",
-            "selectionId": selection_id,
-            "handicap": 0,
-            "side": "LAY",
-            "limitOrder": {"size": round(size, 2), "price": snapped, "persistenceType": "LAPSE"},
+    snapped = self._snap_to_tick(price)
+    # SMALL LAY BETS (< £1)
+    # -----------------------------
+    if size < 1.0:
+        limit_order = {
+            "price": snapped,
+            "persistenceType": "LAPSE",
+            "betTargetType": "BACKERS_PROFIT",
+            "betTargetSize": round(size, 2),
         }
-        if customer_order_ref:
-            # Betfair allows a-zA-Z0-9_-.+:; up to 32 chars
-            instruction["customerOrderRef"] = customer_order_ref[:32]
 
-        result = await self._rpc("placeOrders", {
+    # -----------------------------
+    # NORMAL LAY BETS (>= £1)
+    # -----------------------------
+    else:
+        limit_order = {
+            "size": round(size, 2),
+            "price": snapped,
+            "persistenceType": "LAPSE",
+        }
+
+    instruction = {
+        "orderType": "LIMIT",
+        "selectionId": selection_id,
+        "handicap": 0,
+        "side": "LAY",
+        "limitOrder": limit_order,
+    }
+
+    if customer_order_ref:
+        instruction["customerOrderRef"] = customer_order_ref[:32]
+
+    result = await self._rpc(
+        "placeOrders",
+        {
             "marketId": market_id,
             "instructions": [instruction],
-        })
+        },
+    )
 
-        # The PlaceExecutionReport top-level can be SUCCESS / FAILURE / PROCESSED_WITH_ERRORS.
-        top_status = (result or {}).get("status")
-        if top_status not in ("SUCCESS", None):
-            err_code = result.get("errorCode") or "UNKNOWN"
-            raise BetfairError(f"Betfair rejected order: {top_status} ({err_code})")
+    top_status = (result or {}).get("status")
 
-        reports = (result or {}).get("instructionReports", []) or []
-        if not reports:
-            raise BetfairError("Betfair returned no instruction report — bet not placed")
+    if top_status not in ("SUCCESS", None):
+        err_code = result.get("errorCode") or "UNKNOWN"
+        raise BetfairError(
+            f"Betfair rejected order: {top_status} ({err_code})"
+        )
 
-        rep = reports[0]
-        if rep.get("status") != "SUCCESS":
-            err_code = rep.get("errorCode") or "UNKNOWN_ERROR"
-            raise BetfairError(
-                f"Betfair rejected lay bet: {err_code} "
-                f"(market={market_id}, sel={selection_id}, price={snapped}, size={size})"
-            )
-        return result
+    reports = (result or {}).get("instructionReports", []) or []
 
+    if not reports:
+        raise BetfairError(
+            "Betfair returned no instruction report"
+        )
+
+    rep = reports[0]
+
+    if rep.get("status") != "SUCCESS":
+        err_code = rep.get("errorCode") or "UNKNOWN_ERROR"
+
+        raise BetfairError(
+            f"Betfair rejected lay bet: {err_code} "
+            f"(market={market_id}, sel={selection_id}, "
+            f"price={snapped}, size={size})"
+        )
+
+    return result
+    
     async def cancel_all(self, market_id: str) -> Dict[str, Any]:
         return await self._rpc("cancelOrders", {"marketId": market_id})
 
