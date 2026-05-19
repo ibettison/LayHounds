@@ -189,12 +189,6 @@ class BetfairClient:
           - normal lay bets >= £1
           - small lay bets using Betfair BACKERS_PROFIT targeting
         """
-        # Extract Betfair bet IDs
-        instruction_reports = result.get("instructionReports", [])
-        
-        for rep in instruction_reports:
-            bet_id = rep.get("betId")
-
     if bet_id:
         betfair_bet_ids.append(str(bet_id))
         if price < 1.01:
