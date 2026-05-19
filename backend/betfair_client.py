@@ -435,76 +435,68 @@ async def replace_lay_order(
 
     return result
 
-async def place_sub_minimum_lay(
-    self, market_id: str, selection_id: int, price: float, size: float, *, customer_order_ref: Optional[str] = None,) -> Dict[str, Any]:
-    """
-    Experimental workaround for sub-£1 lay stakes.
-
-    Flow:
-    1. Place £1 seed lay at 1.2
-    2. Immediately cancel unwanted amount
-    3. Replace odds with target price
-
-    WARNING:
-    Seed order must remain unmatched.
-    """
-
-    # High odds so the order almost never matches instantly
-    seed_price = 1000.0
+    async def place_sub_minimum_lay(
+        self,
+        market_id: str,
+        selection_id: int,
+        price: float,
+        size: float,
+        *,
+        customer_order_ref: Optional[str] = None,
+    ) -> Dict[str, Any]:
     
-    # Minimum valid Betfair stake
-    seed_size = 1.00
-
-    # STEP 1 — PLACE SEED ORDER
-    seed_result = await self.place_lay_bet(
-        market_id=market_id,
-        selection_id=selection_id,
-        price=seed_price,
-        size=seed_size,
-        customer_order_ref=customer_order_ref,
-    )
-
-    reports = seed_result.get("instructionReports", [])
-    if not reports:
-        raise BetfairError("Seed order returned no reports")
-
-    # Give Betfair time to register the unmatched order
-    await asyncio.sleep(0.5)
-    report = reports[0]
-
-    bet_id = report.get("betId")
-    if not bet_id:
-        raise BetfairError("Seed order returned no betId")
-
-    # Verify the order is still fully unmatched
-    current = await self._rpc("listCurrentOrders", {
-        "betIds": [bet_id]
-    })
+        seed_price = 100.0
+        seed_size = 1.00
     
-    current_orders = current.get("currentOrders", [])
+        # STEP 1 — PLACE SEED ORDER
+        seed_result = await self.place_lay_bet(
+            market_id=market_id,
+            selection_id=selection_id,
+            price=seed_price,
+            size=seed_size,
+            customer_order_ref=customer_order_ref,
+        )
     
-    if not current_orders:
-        raise BetfairError("Seed order disappeared before reduction")
+        reports = seed_result.get("instructionReports", [])
+        if not reports:
+            raise BetfairError("Seed order returned no reports")
     
-    order = current_orders[0]
+        report = reports[0]
     
-    matched = float(order.get("sizeMatched", 0))
+        bet_id = report.get("betId")
+        if not bet_id:
+            raise BetfairError("Seed order returned no betId")
     
-    if matched > 0:
-        # Safety cleanup
-        await self._rpc("cancelOrders", {
-            "marketId": market_id,
-            "instructions": [{"betId": bet_id}],
+        # Allow Betfair to register order
+        await asyncio.sleep(0.5)
+    
+        # Verify unmatched
+        current = await self._rpc("listCurrentOrders", {
+            "betIds": [bet_id]
         })
     
-        raise BetfairError(
-            f"Seed order partially matched (£{matched:.2f}) before reduction"
-        )
-
-    # STEP 2 — CANCEL DOWN TO TARGET SIZE
-    cancel_size = round(seed_size - size, 2)
-
-    if cancel_size > 0:
+        current_orders = current.get("currentOrders", [])
+    
+        if not current_orders:
+            raise BetfairError("Seed order disappeared")
+    
+        order = current_orders[0]
+    
+        matched = float(order.get("sizeMatched", 0))
+    
+        if matched > 0:
+            await self._rpc("cancelOrders", {
+                "marketId": market_id,
+                "instructions": [{"betId": bet_id}],
+            })
+    
+            raise BetfairError(
+                f"Seed order matched before reduction (£{matched:.2f})"
+            )
+    
+        # STEP 2 — REDUCE TO TARGET SIZE
+        cancel_size = round(seed_size - size, 2)
+    
         cancel_result = await self._rpc("cancelOrders", {
             "marketId": market_id,
             "instructions": [{
@@ -512,30 +504,19 @@ async def place_sub_minimum_lay(
                 "sizeReduction": cancel_size,
             }],
         })
-
-        cancel_reports = cancel_result.get("instructionReports", [])
-        if not cancel_reports:
-            raise BetfairError("cancelOrders returned no reports")
-
-        cancel_rep = cancel_reports[0]
-
-        if cancel_rep.get("status") != "SUCCESS":
-            raise BetfairError(
-                f"cancelOrders failed: {cancel_rep.get('errorCode')}"
-            )
-
-    # STEP 3 — REPLACE PRICE
-    replace_result = await self.replace_lay_order(
-        market_id=market_id,
-        bet_id=bet_id,
-        new_price=price,
-    )
-
-    return {
-        "seed": seed_result,
-        "replace": replace_result,
-        "betId": bet_id,
-    }
+    
+        # STEP 3 — REPLACE TO REAL ODDS
+        replace_result = await self.replace_lay_order(
+            market_id=market_id,
+            bet_id=bet_id,
+            new_price=price,
+        )
+    
+        return {
+            "seed": seed_result,
+            "replace": replace_result,
+            "betId": bet_id,
+        }
 
 # Singleton
 betfair = BetfairClient()
