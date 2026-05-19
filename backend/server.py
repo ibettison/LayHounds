@@ -404,21 +404,18 @@ async def next_race(session_id: str):
                 sel_id = selection_by_rank[rank]
                 # Idempotent ref: session + race + rank → unique per attempt
                 cor = f"layhounds-{session.id[:8]}-{session.races_played + 1}-{rank}"
-                if stake < 1.0:
-                    # Sub-£1 lay: use the Betfair "parking" technique
-                    # (place £2 unmatchable → size-reduce → replace at real price)
-                    # so any stake from £0.01 to £0.99 is fully supported in live mode.
-                    small = await betfair.place_small_lay_bet(
-                        market_id, sel_id, runner.odds, stake,
-                        customer_order_ref=cor,
-                    )
-                    if small.get("final_bet_id"):
-                        betfair_bet_ids.append(small["final_bet_id"])
-                else:
-                    result = await betfair.place_lay_bet(
-                        market_id, sel_id, runner.odds, stake,
-                        customer_order_ref=cor,
-                    )
+                result = await betfair.place_lay_bet(
+                    market_id,
+                    sel_id,
+                    runner.odds,
+                    stake,
+                    customer_order_ref=cor,
+                )
+                
+                for rep in result.get("instructionReports", []):
+                    bet_id = rep.get("betId")
+                    if bet_id:
+                        betfair_bet_ids.append(bet_id)
                     for rep in result.get("instructionReports", []):
                         if rep.get("betId"):
                             betfair_bet_ids.append(rep["betId"])
