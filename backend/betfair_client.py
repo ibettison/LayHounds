@@ -242,7 +242,7 @@ class BetfairClient:
     
         rep = reports[0]
 
-       if rep.get("status") != "SUCCESS":
+        if rep.get("status") != "SUCCESS":
             err_code = rep.get("errorCode") or "UNKNOWN_ERROR"
     
             raise BetfairError(
