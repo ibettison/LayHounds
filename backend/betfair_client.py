@@ -243,15 +243,14 @@ class BetfairClient:
         rep = reports[0]
 
        if rep.get("status") != "SUCCESS":
-        err_code = rep.get("errorCode") or "UNKNOWN_ERROR"
+            err_code = rep.get("errorCode") or "UNKNOWN_ERROR"
     
-        raise BetfairError(
-            f"Betfair rejected lay bet: {err_code} "
-            f"(market={market_id}, sel={selection_id}, "
-            f"price={snapped}, size={size})"
-        )
-
-    return result
+            raise BetfairError(
+                f"Betfair rejected lay bet: {err_code} "
+                f"(market={market_id}, sel={selection_id}, "
+                f"price={snapped}, size={size})"
+            )
+        return result
     
     async def cancel_all(self, market_id: str) -> Dict[str, Any]:
         return await self._rpc("cancelOrders", {"marketId": market_id})
