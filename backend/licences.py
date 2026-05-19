@@ -461,6 +461,19 @@ async def _call_central(endpoint: str, payload: dict) -> dict:
             detail = resp.json().get("detail")
         except Exception:
             detail = resp.text
+        # Tailored diagnostic for the most common misconfig: the central host is
+        # reachable but LICENCE_SERVER_MODE=true isn't set there, so the
+        # /api/licences/* router was never mounted → FastAPI returns the
+        # default {"detail":"Not Found"}.
+        if resp.status_code == 404 and (detail or "").lower() in ("not found", "not-found"):
+            raise HTTPException(
+                404,
+                f"Licence server at {LICENCE_SERVER_URL} is reachable but the "
+                f"/api/licences/{endpoint} endpoint is NOT mounted. "
+                f"Fix: set LICENCE_SERVER_MODE=true in backend/.env on that host "
+                f"and restart the API (sudo -u layhounds pm2 restart layhounds-api). "
+                f"Confirm with: curl {LICENCE_SERVER_URL}/api/licence/diag"
+            )
         raise HTTPException(resp.status_code, f"Licence server: {detail}")
     return resp.json()
 
