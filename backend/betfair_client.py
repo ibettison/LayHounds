@@ -250,7 +250,7 @@ class BetfairClient:
 
         Flow (Betfair compliant):
           1. placeOrders  — full park_size=£1.00 at park_price=20.0 (lay).
-             Sits UNMATCHED on the book because no one backs at 1000.0.
+             Sits UNMATCHED on the book because no one backs a favourite at 20.0.
           2. cancelOrders — partial cancel with sizeReduction = (park_size − target_size).
              The £1 minimum does NOT apply to size reductions, so the remaining
              unmatched size can be as low as £0.01.
