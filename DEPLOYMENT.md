@@ -164,7 +164,32 @@ Smoke-test:
 curl -s http://127.0.0.1:8001/api/ | head
 curl -s http://127.0.0.1:8001/api/betfair/status
 # expected: {"configured":true,"logged_in":true,...}   <-- no GEO_BLOCKED!
+
+curl -s http://127.0.0.1:8001/api/licence/diag | python3 -m json.tool
+# Shows: install_id, config snapshot, # of licences seeded in this DB,
+# and whether LICENCE_SERVER_URL is reachable. The single best place to
+# look first when "Licence server: not found" or activation issues show up.
 ```
+
+### Issuing your own test licence (no Stripe needed)
+
+For first-run testing of the Paper-Live / Live gate WITHOUT going through the
+real Stripe checkout flow, seed a test licence into your local MongoDB:
+
+```bash
+cd /opt/layhounds/backend
+source venv/bin/activate
+python seed_test_licence.py                     # default: LH-TEST-AAAA-BBBB-CCCC, 30 days
+python seed_test_licence.py --reset             # unbind it after testing for re-activation
+python seed_test_licence.py --key LH-MINE-1234-5678-9999 --days 365 --email me@example.com
+```
+
+The key is then immediately usable: open the simulator UI on your domain,
+paste it into the "Live Unlock Licence" panel and click Activate. Paper-Live
+and Live modes will unlock for as long as `current_period_end` is in the future.
+
+> Requires `LICENCE_SERVER_MODE=true` in `backend/.env` so the API exposes the
+> central `/api/licences/activate` endpoint that the customer flow calls.
 
 ---
 
@@ -369,6 +394,9 @@ Wire it to a cron / GitHub webhook later if you want auto-deploys.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
+| `Licence server: Licence key not found` | The licence key you typed doesn't exist in the central server's MongoDB. The test key `LH-TEST-AAAA-BBBB-CCCC` only exists in the dev preview pod — your VPS has its own MongoDB. | Run `cd /opt/layhounds/backend && source venv/bin/activate && python seed_test_licence.py` to inject a fresh test key, or pay through the real Stripe checkout to get a real key. Confirm via `curl http://127.0.0.1:8001/api/licence/diag`. |
+| `Could not reach licence server` | `LICENCE_SERVER_URL` is wrong, the central host is down, or a firewall is in the way. | Check `curl http://127.0.0.1:8001/api/licence/diag` — the `connectivity` block tells you exactly which URL was tried and the error. |
+| `Live Unlock required` (HTTP 402 on session create) | Paper-Live/Live mode requires an active licence. | Either activate a key (see seed_test_licence.py) or use Simulator mode for free testing. |
 | `GEO_BLOCKED` still showing | VPS is in a non-UK/EU region; some AWS edges also blocked | Pick a confirmed-UK/EU region: Hetzner FSN1/NBG1, OVH UK, Linode London, AWS eu-west-2. |
 | `502 Bad Gateway` | Backend not running or wrong port | `pm2 status`, `pm2 logs layhounds-api`. |
 | Betfair login 401 | Password contains shell-special chars in `.env` not quoted | Wrap the value in single quotes or escape `$`, `[`, `]`. |

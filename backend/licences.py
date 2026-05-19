@@ -541,6 +541,61 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
         })
         return await status()
 
+    @r.get("/diag")
+    async def diag():
+        """Diagnostic endpoint — shows EXACTLY what the licence subsystem sees.
+
+        Returns config, the install_id this box uses, count of licences in the
+        local DB (if this box is also the central host), and a connectivity
+        check to LICENCE_SERVER_URL. Drop this in to the URL bar when activation
+        fails — it'll tell you which piece is wrong.
+        """
+        install_id = await _get_or_create_install_id(db)
+        diag_info: dict = {
+            "install_id": install_id,
+            "config": {
+                "LICENCE_SERVER_URL": LICENCE_SERVER_URL or "(not set)",
+                "LICENCE_SERVER_MODE": LICENCE_SERVER_MODE,
+                "LICENCE_PRICE_GBP": LICENCE_PRICE_GBP,
+                "LICENCE_CACHE_DAYS": LICENCE_CACHE_DAYS,
+                "LICENCE_REVALIDATE_HOURS": LICENCE_REVALIDATE_HOURS,
+            },
+            "is_central_host": LICENCE_SERVER_MODE,
+            "licences_in_local_db": None,
+            "connectivity": None,
+        }
+        if LICENCE_SERVER_MODE:
+            # We host the central DB — show how many keys are seeded
+            count = await db.licences.count_documents({})
+            sample = await db.licences.find({}, {"_id": 0, "licence_key": 1, "status": 1,
+                                                  "bound_install_id": 1, "current_period_end": 1}
+                                            ).limit(10).to_list(length=10)
+            diag_info["licences_in_local_db"] = {
+                "total": count,
+                "first_10": [{"key": _mask(d.get("licence_key", "")),
+                              "status": d.get("status"),
+                              "bound": bool(d.get("bound_install_id")),
+                              "expires": d.get("current_period_end")} for d in sample],
+            }
+        # Try a connectivity test to LICENCE_SERVER_URL/api/ — just to confirm reachability
+        if LICENCE_SERVER_URL:
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    resp = await client.get(f"{LICENCE_SERVER_URL}/api/")
+                diag_info["connectivity"] = {
+                    "url": f"{LICENCE_SERVER_URL}/api/",
+                    "http_status": resp.status_code,
+                    "ok": resp.status_code == 200,
+                }
+            except Exception as e:
+                diag_info["connectivity"] = {
+                    "url": f"{LICENCE_SERVER_URL}/api/",
+                    "http_status": None,
+                    "ok": False,
+                    "error": f"{type(e).__name__}: {e}",
+                }
+        return diag_info
+
     return r
 
 
