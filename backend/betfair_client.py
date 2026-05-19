@@ -242,15 +242,15 @@ class BetfairClient:
     async def place_small_lay_bet(self, market_id: str, selection_id: int,
                                   target_price: float, target_size: float,
                                   *, customer_order_ref: Optional[str] = None,
-                                  park_price: float = 30.0, park_size: float = 1.00,
+                                  park_price: float = 25.0, park_size: float = 1.00,
                                   ) -> Dict[str, Any]:
         """Lay bet UNDER the £1 Betfair minimum, using the well-known "parking"
         technique. The sub-£1 final stake never matches at >= £1, so this is
         safe for live-mode testing without risking large liability.
 
         Flow (Betfair compliant):
-          1. placeOrders  — full park_size=£1.00 at park_price=30.0 (lay).
-             Sits UNMATCHED on the book because BETFAIR will not place a bet at 30.0.
+          1. placeOrders  — full park_size=£1.00 at park_price=25.0 (lay).
+             Sits UNMATCHED on the book because BETFAIR will not place a bet at 25.0.
           2. cancelOrders — partial cancel with sizeReduction = (park_size − target_size).
              The £1 minimum does NOT apply to size reductions, so the remaining
              unmatched size can be as low as £0.01.
