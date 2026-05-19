@@ -250,14 +250,14 @@ class BetfairClient:
 
     rep = reports[0]
 
-    if rep.get("status") != "SUCCESS":
-        err_code = rep.get("errorCode") or "UNKNOWN_ERROR"
+   if rep.get("status") != "SUCCESS":
+    err_code = rep.get("errorCode") or "UNKNOWN_ERROR"
 
-        raise BetfairError(
-            f"Betfair rejected lay bet: {err_code} "
-            f"(market={market_id}, sel={selection_id}, "
-            f"price={snapped}, size={size})"
-        )
+    raise BetfairError(
+        f"Betfair rejected lay bet: {err_code} "
+        f"(market={market_id}, sel={selection_id}, "
+        f"price={snapped}, size={size})"
+    )
 
     return result
     
