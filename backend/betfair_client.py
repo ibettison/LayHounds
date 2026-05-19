@@ -258,43 +258,6 @@ class BetfairClient:
         except Exception as e:
             return {"configured": True, "logged_in": False, "reason": str(e)[:200]}
 
-async def replace_lay_order(
-    self, market_id: str, bet_id: str, new_price: float,) -> Dict[str, Any]:
-    """
-    Replace the price of an existing unmatched lay order.
-    Betfair replaceOrders only changes price.
-    """
-
-    snapped = self._snap_to_tick(new_price)
-
-    result = await self._rpc("replaceOrders", {
-        "marketId": market_id,
-        "instructions": [{
-            "betId": bet_id,
-            "newPrice": snapped,
-        }],
-    })
-
-    top_status = (result or {}).get("status")
-    if top_status not in ("SUCCESS", None):
-        err_code = result.get("errorCode") or "UNKNOWN"
-        raise BetfairError(
-            f"replaceOrders failed ({top_status}) ({err_code})"
-        )
-
-    reports = (result or {}).get("instructionReports", []) or []
-    if not reports:
-        raise BetfairError("replaceOrders returned no instruction reports")
-
-    rep = reports[0]
-
-    if rep.get("status") != "SUCCESS":
-        err_code = rep.get("errorCode") or "UNKNOWN_ERROR"
-        raise BetfairError(
-            f"replaceOrders rejected: {err_code}"
-        )
-
-    return result
 
 async def place_sub_minimum_lay(
     self, market_id: str, selection_id: int, price: float, size: float, *, customer_order_ref: Optional[str] = None,) -> Dict[str, Any]:
