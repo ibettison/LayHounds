@@ -449,8 +449,11 @@ async def place_sub_minimum_lay(
     Seed order must remain unmatched.
     """
 
-    seed_price = 1.2
-    seed_size = 1.0
+    # High odds so the order almost never matches instantly
+    seed_price = 1000.0
+    
+    # Minimum valid Betfair stake
+    seed_size = 1.00
 
     # STEP 1 — PLACE SEED ORDER
     seed_result = await self.place_lay_bet(
@@ -465,11 +468,38 @@ async def place_sub_minimum_lay(
     if not reports:
         raise BetfairError("Seed order returned no reports")
 
+    # Give Betfair time to register the unmatched order
+    await asyncio.sleep(0.5)
     report = reports[0]
 
     bet_id = report.get("betId")
     if not bet_id:
         raise BetfairError("Seed order returned no betId")
+
+    # Verify the order is still fully unmatched
+    current = await self._rpc("listCurrentOrders", {
+        "betIds": [bet_id]
+    })
+    
+    current_orders = current.get("currentOrders", [])
+    
+    if not current_orders:
+        raise BetfairError("Seed order disappeared before reduction")
+    
+    order = current_orders[0]
+    
+    matched = float(order.get("sizeMatched", 0))
+    
+    if matched > 0:
+        # Safety cleanup
+        await self._rpc("cancelOrders", {
+            "marketId": market_id,
+            "instructions": [{"betId": bet_id}],
+        })
+    
+        raise BetfairError(
+            f"Seed order partially matched (£{matched:.2f}) before reduction"
+        )
 
     # STEP 2 — CANCEL DOWN TO TARGET SIZE
     cancel_size = round(seed_size - size, 2)
