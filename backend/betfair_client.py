@@ -235,7 +235,14 @@ class BetfairClient:
                 "instructions": [instruction],
             },
         )
-    
+        # Extract Betfair bet IDs
+        instruction_reports = result.get("instructionReports", [])
+
+        for rep in instruction_reports:
+            bet_id = rep.get("betId")
+
+    if bet_id:
+        betfair_bet_ids.append(str(bet_id))
         top_status = (result or {}).get("status")
     
         if top_status not in ("SUCCESS", None):
