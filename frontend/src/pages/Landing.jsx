@@ -188,7 +188,7 @@ const Hero = () => (
               </div>
       
               <img
-                src="/images/leaning-man.png"
+                src="leaningMan.png"
                 alt="Leaning man"
                 className="
                   absolute
