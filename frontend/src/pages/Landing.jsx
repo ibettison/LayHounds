@@ -133,74 +133,52 @@ const Hero = () => (
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         className="lg:col-span-5"
       >
-        <div className="relative w-full max-w-5xl mx-auto">
-
-          <div className="relative z-10 w-[clamp(260px,40vw,500px)] aspect-square">
-          {/* existing square graphic */}
-      
-              <div className="relative">
-                <div className="absolute -inset-4 bg-gradient-to-br from-pink-200 via-pink-50 to-transparent rounded-3xl blur-2xl opacity-60" />
-                <div className="relative rounded-2xl border border-slate-200 bg-slate-900 shadow-2xl overflow-hidden">
-                  <div className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 border-b border-slate-700">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
-                    <span className="ml-3 text-[10px] font-mono text-slate-400 uppercase tracking-widest">
-                      lay-hounds.co.uk/app
-                    </span>
-                  </div>
-                  <div className="aspect-[4/3] bg-[#0A0A0A] grid place-items-center p-6">
-                    <div className="grid grid-cols-3 gap-3 w-full">
-                      {[
-                        { l: "Bank", v: "£1,247.20", c: "text-emerald-400" },
-                        { l: "P&L", v: "+£47.20", c: "text-emerald-400" },
-                        { l: "Races", v: "23/100", c: "text-white" },
-                        { l: "Stake", v: "£0.50", c: "text-white" },
-                        { l: "Recovery", v: "L2", c: "text-amber-400" },
-                        { l: "Win Rate", v: "84%", c: "text-emerald-400" },
-                      ].map((s, i) => (
-                        <div key={i} className="bg-[#141414] border border-[#2A2A2A] p-3">
-                          <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-500">
-                            {s.l}
-                          </div>
-                          <div className={`font-mono font-bold text-sm sm:text-base mt-1 ${s.c}`}>
-                            {s.v}
-                          </div>
-                        </div>
-                      ))}
-                      <div className="col-span-3 bg-[#141414] border border-[#2A2A2A] p-3 mt-1">
-                        <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-500 mb-2">
-                          Daily P&L
-                        </div>
-                        <div className="flex items-end gap-1 h-12">
-                          {[20, 35, 50, 30, 45, 65, 80, 75, 90, 70].map((h, i) => (
-                            <div
-                              key={i}
-                              className="flex-1 bg-gradient-to-t from-pink-500 to-pink-400 rounded-sm"
-                              style={{ height: `${h}%` }}
-                            />
-                          ))}
-                        </div>
-                      </div>
+        <div className="relative">
+          <div className="absolute -inset-4 bg-gradient-to-br from-pink-200 via-pink-50 to-transparent rounded-3xl blur-2xl opacity-60" />
+          <div className="relative rounded-2xl border border-slate-200 bg-slate-900 shadow-2xl overflow-hidden">
+            <div className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 border-b border-slate-700">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
+              <span className="ml-3 text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+                lay-hounds.co.uk/app
+              </span>
+            </div>
+            <div className="aspect-[4/3] bg-[#0A0A0A] grid place-items-center p-6">
+              <div className="grid grid-cols-3 gap-3 w-full">
+                {[
+                  { l: "Bank", v: "£1,247.20", c: "text-emerald-400" },
+                  { l: "P&L", v: "+£47.20", c: "text-emerald-400" },
+                  { l: "Races", v: "23/100", c: "text-white" },
+                  { l: "Stake", v: "£0.50", c: "text-white" },
+                  { l: "Recovery", v: "L2", c: "text-amber-400" },
+                  { l: "Win Rate", v: "84%", c: "text-emerald-400" },
+                ].map((s, i) => (
+                  <div key={i} className="bg-[#141414] border border-[#2A2A2A] p-3">
+                    <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-500">
+                      {s.l}
                     </div>
+                    <div className={`font-mono font-bold text-sm sm:text-base mt-1 ${s.c}`}>
+                      {s.v}
+                    </div>
+                  </div>
+                ))}
+                <div className="col-span-3 bg-[#141414] border border-[#2A2A2A] p-3 mt-1">
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-500 mb-2">
+                    Daily P&L
+                  </div>
+                  <div className="flex items-end gap-1 h-12">
+                    {[20, 35, 50, 30, 45, 65, 80, 75, 90, 70].map((h, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 bg-gradient-to-t from-pink-500 to-pink-400 rounded-sm"
+                        style={{ height: `${h}%` }}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
-      
-              <img
-                src="leaningMan.png"
-                alt="Leaning man"
-                className="
-                  absolute
-                  z-20
-                  w-[clamp(180px,28vw,420px)]
-                  right-[-12%]
-                  bottom-[-2%]
-                  rotate-[-2deg]
-                  pointer-events-none
-                "
-              />
-            
+            </div>
           </div>
         </div>
       </motion.div>
