@@ -33,6 +33,12 @@ from licences import (  # noqa: E402
     is_licence_active,
     background_revalidate_loop,
 )
+from session_events import (  # noqa: E402
+    publish as sse_publish,
+    subscribe as sse_subscribe,
+    format_sse,
+    clear_session as sse_clear_session,
+)
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -329,13 +335,18 @@ async def delete_session(session_id: str):
     res = await db.sessions.delete_one({"id": session_id})
     if res.deleted_count == 0:
         raise HTTPException(404, "Session not found")
+    sse_clear_session(session_id)
     return {"deleted": True}
 
 
 @api_router.delete("/sessions")
 async def reset_all_sessions():
     """Wipe every saved session — full reset. Bank carryover restarts from scratch."""
+    # Snapshot ids first so we can clear SSE state for each.
+    ids = await db.sessions.distinct("id")
     res = await db.sessions.delete_many({})
+    for sid in ids:
+        sse_clear_session(sid)
     return {"deleted": res.deleted_count}
 
 
@@ -404,24 +415,15 @@ async def next_race(session_id: str):
                 sel_id = selection_by_rank[rank]
                 # Idempotent ref: session + race + rank → unique per attempt
                 cor = f"layhounds-{session.id[:8]}-{session.races_played + 1}-{rank}"
-                if stake < 1.0:
-                    # Sub-£1 lay: use the Betfair "parking" technique
-                    # (place £2 unmatchable → size-reduce → replace at real price)
-                    # so any stake from £0.01 to £0.99 is fully supported in live mode.
-                    small = await betfair.place_small_lay_bet(
-                        market_id, sel_id, runner.odds, stake,
-                        customer_order_ref=cor,
-                    )
-                    if small.get("final_bet_id"):
-                        betfair_bet_ids.append(small["final_bet_id"])
-                else:
-                    result = await betfair.place_lay_bet(
-                        market_id, sel_id, runner.odds, stake,
-                        customer_order_ref=cor,
-                    )
-                    for rep in result.get("instructionReports", []):
-                        if rep.get("betId"):
-                            betfair_bet_ids.append(rep["betId"])
+                # betfair_client.place_lay_bet handles BOTH normal lays (>=£1) and
+                # sub-£1 lays (via betTargetType=BACKERS_PROFIT) — single call.
+                result = await betfair.place_lay_bet(
+                    market_id, sel_id, runner.odds, stake,
+                    customer_order_ref=cor,
+                )
+                for rep in result.get("instructionReports", []):
+                    if rep.get("betId"):
+                        betfair_bet_ids.append(rep["betId"])
             except BetfairError as e:
                 # Surface the precise Betfair error so the user knows WHY it failed.
                 raise HTTPException(502, f"Betfair bet placement failed: {e}")
@@ -437,6 +439,25 @@ async def next_race(session_id: str):
         session.races_played += 1
         session.races.append(race)
         await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
+        # ---- SSE: push the placed bet to any connected listeners ----
+        await sse_publish(session_id, "bet_placed", {
+            "race_num": race.race_num,
+            "venue": venue,
+            "market_id": market_id,
+            "market_start_time": market_start_time,
+            "category": category.model_dump() if category else None,
+            "bets": [{
+                "rank": b.favourite_rank, "trap": b.dog_trap, "name": b.dog_name,
+                "odds": b.odds, "stake": b.stake, "liability": b.liability,
+                "recovery_level": b.recovery_level,
+            } for b in bets],
+            "betfair_bet_ids": betfair_bet_ids,
+            "total_stake": round(sum(b.stake for b in bets), 4),
+            "total_liability": round(sum(b.liability for b in bets), 4),
+        })
+        # Kick off background settlement polling so the user gets a UI update
+        # the moment Betfair returns the cleared-order P&L for this race.
+        asyncio.create_task(poll_live_settlement(session_id, race.race_id, market_id, betfair_bet_ids))
         return session
 
     # Simulator + paper_live: simulate outcome (blended category win-rates)
@@ -504,12 +525,265 @@ async def next_race(session_id: str):
             session.status = "stopped_max"
 
     await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
+
+    # ---- SSE: push race-resolved + bank update so the UI animates ----
+    if mode in ("simulator", "paper_live"):
+        winner_dog = next((r for r in runners if r.trap == winning_trap), None)
+        await sse_publish(session_id, "race_resulted", {
+            "race_num": race.race_num,
+            "venue": venue,
+            "winning_trap": winning_trap,
+            "winner_name": winner_dog.name if winner_dog else None,
+            "winner_odds": winner_dog.odds if winner_dog else None,
+            "pnl_change": round(pnl_change, 4),
+            "bank_after": session.bank,
+            "category": category.model_dump() if category else None,
+            "bets": [{
+                "rank": b.favourite_rank, "trap": b.dog_trap, "name": b.dog_name,
+                "pnl": b.pnl, "result": b.result, "recovery_level": b.recovery_level,
+            } for b in bets],
+        })
+        await sse_publish(session_id, "bank_updated", {
+            "bank": session.bank, "starting_bank": session.config.starting_bank,
+            "total_pnl": session.total_pnl,
+        })
     return session
 
 
 @api_router.get("/betfair/status")
 async def betfair_status():
     return await betfair.status()
+
+
+# ============================================================================
+# Live settlement polling + Server-Sent-Events stream
+# ============================================================================
+
+async def poll_live_settlement(session_id: str, race_id: str, market_id: str,
+                                bet_ids: List[str]):
+    """Background task: poll Betfair for settled-order results on a live race.
+
+    Runs for up to ~5 minutes after a live bet is placed. Once Betfair returns
+    SETTLED rows for every bet_id, we close the race in the local session
+    (winning_trap, pnl_change, recovery chain updates) and emit a
+    `race_resulted` SSE so the UI animates. While we're still waiting, emits
+    a heartbeat `poll_status` SSE every poll so the UI shows "Waiting for
+    Betfair settlement…" with a live attempt counter.
+    """
+    if not bet_ids:
+        return
+    POLL_INTERVAL = 5  # seconds
+    MAX_ATTEMPTS = 60  # → 5 minutes
+    attempt = 0
+    try:
+        while attempt < MAX_ATTEMPTS:
+            attempt += 1
+            await asyncio.sleep(POLL_INTERVAL)
+            try:
+                cleared = await betfair.list_cleared_orders(market_id=market_id, bet_ids=bet_ids)
+            except BetfairError as e:
+                logger.warning("Settlement poll error session=%s attempt=%d: %s", session_id[:8], attempt, e)
+                await sse_publish(session_id, "poll_status", {
+                    "race_id": race_id, "attempt": attempt, "max_attempts": MAX_ATTEMPTS,
+                    "market_status": f"poll_error: {e}",
+                })
+                continue
+
+            rows = (cleared or {}).get("clearedOrders") or []
+            settled_ids = {r.get("betId") for r in rows if r.get("betId")}
+            remaining = [b for b in bet_ids if b not in settled_ids]
+
+            await sse_publish(session_id, "poll_status", {
+                "race_id": race_id, "attempt": attempt, "max_attempts": MAX_ATTEMPTS,
+                "settled": len(settled_ids), "remaining": len(remaining),
+                "market_status": "awaiting_settlement" if remaining else "settled",
+            })
+
+            if remaining:
+                continue
+
+            # All bets settled — fold P&L back into the session.
+            await _close_live_race(session_id, race_id, rows)
+            return
+        # Timed out — let the UI know
+        await sse_publish(session_id, "poll_status", {
+            "race_id": race_id, "attempt": attempt, "max_attempts": MAX_ATTEMPTS,
+            "market_status": "timeout",
+        })
+        await sse_publish(session_id, "error", {
+            "message": "Settlement polling timed out (5 min) — refresh manually.",
+            "context": {"race_id": race_id, "market_id": market_id},
+        })
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:
+        logger.exception("poll_live_settlement crashed: %s", e)
+        await sse_publish(session_id, "error", {
+            "message": f"Settlement poller crashed: {type(e).__name__}: {e}",
+            "context": {"race_id": race_id},
+        })
+
+
+async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dict[str, Any]]):
+    """Update the Race + Session with realised P&L from Betfair's cleared orders.
+
+    `cleared_rows` is the raw `clearedOrders` array from listClearedOrders —
+    each row has `betId`, `priceMatched`, `sizeMatched`, `profit` (signed).
+    """
+    doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not doc:
+        return
+    session = doc_to_session(doc)
+    race = next((r for r in session.races if r.race_id == race_id), None)
+    if not race:
+        logger.warning("Settlement received for unknown race_id=%s session=%s", race_id, session_id[:8])
+        return
+
+    # Map bet_id → row for fast lookup
+    by_bet = {r.get("betId"): r for r in cleared_rows if r.get("betId")}
+
+    pnl_change = 0.0
+    losses_by_rank: Dict[int, float] = {}
+    wins_by_rank: Dict[int, float] = {}
+    # Iterate bets in placement order — each bet has a betfair bet_id at the
+    # SAME INDEX in race.betfair_bet_ids (live placement appends in lock-step).
+    for i, bet in enumerate(race.bets):
+        bet_id = race.betfair_bet_ids[i] if i < len(race.betfair_bet_ids) else None
+        row = by_bet.get(bet_id) if bet_id else None
+        if row is None:
+            continue
+        profit = float(row.get("profit") or 0.0)  # signed, gross
+        bet.pnl = round(profit, 4)
+        if profit >= 0:
+            bet.result = "win"
+            wins_by_rank[bet.favourite_rank] = profit
+        else:
+            bet.result = "loss"
+            losses_by_rank[bet.favourite_rank] = profit
+        pnl_change += profit
+
+    # Update recovery chains using same logic as simulator/paper_live
+    for bet in race.bets:
+        chain = session.recovery_chains.get(str(bet.favourite_rank))
+        if not chain:
+            continue
+        if bet.result == "loss":
+            new_accum = chain.accumulated_loss + bet.liability + bet.stake
+            if chain.level >= session.config.max_recovery_level:
+                chain.busted = True
+                chain.level = session.config.max_recovery_level
+                chain.pending_stake = session.config.stake
+                chain.accumulated_loss = new_accum
+            else:
+                chain.level += 1
+                chain.accumulated_loss = new_accum
+                chain.pending_stake = round(bet.liability + bet.stake + session.config.stake, 4)
+        else:
+            chain.level = 0
+            chain.accumulated_loss = 0.0
+            chain.pending_stake = session.config.stake
+
+    # Figure out the actual winning trap from the bet results.
+    losing_bet = next((b for b in race.bets if b.result == "loss"), None)
+    winning_trap = losing_bet.dog_trap if losing_bet else 0
+    race.winning_trap = winning_trap
+    race.pnl_change = round(pnl_change, 4)
+    race.bank_after = round(session.bank + pnl_change, 4)
+
+    session.bank = race.bank_after
+    session.total_pnl = round(session.total_pnl + pnl_change, 4)
+
+    await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
+
+    winner_dog = next((r for r in race.runners if r.trap == winning_trap), None)
+    await sse_publish(session_id, "race_resulted", {
+        "race_num": race.race_num,
+        "venue": race.venue,
+        "winning_trap": winning_trap,
+        "winner_name": winner_dog.name if winner_dog else None,
+        "winner_odds": winner_dog.odds if winner_dog else None,
+        "pnl_change": race.pnl_change,
+        "bank_after": race.bank_after,
+        "category": race.category.model_dump() if race.category else None,
+        "bets": [{
+            "rank": b.favourite_rank, "trap": b.dog_trap, "name": b.dog_name,
+            "pnl": b.pnl, "result": b.result, "recovery_level": b.recovery_level,
+        } for b in race.bets],
+        "source": "live_settled",
+    })
+    await sse_publish(session_id, "bank_updated", {
+        "bank": session.bank, "starting_bank": session.config.starting_bank,
+        "total_pnl": session.total_pnl,
+    })
+
+
+@api_router.get("/sessions/{session_id}/events")
+async def session_event_stream(session_id: str, request: Request):
+    """Server-Sent-Events stream for a single session.
+
+    The browser opens `new EventSource('/api/sessions/{id}/events')` and
+    receives bet_placed / race_resulted / bank_updated / poll_status events
+    in real time.
+    """
+    from fastapi.responses import StreamingResponse
+    doc = await db.sessions.find_one({"id": session_id}, {"_id": 0, "id": 1})
+    if not doc:
+        raise HTTPException(404, "Session not found")
+
+    async def event_generator():
+        # Send an initial "ready" frame so the client knows the channel is open.
+        yield format_sse({"event": "ready", "data": {"session_id": session_id}})
+        try:
+            async for ev in sse_subscribe(session_id):
+                if await request.is_disconnected():
+                    break
+                yield format_sse(ev)
+        except asyncio.CancelledError:
+            return
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # disable nginx buffering for true streaming
+        },
+    )
+
+
+@api_router.post("/sessions/{session_id}/refresh-live-settlement")
+async def refresh_live_settlement(session_id: str, race_id: Optional[str] = None):
+    """Manually trigger a one-shot settlement check (no polling loop) for the
+    most recent live race, or a specific race_id. Useful when the user
+    suspects Betfair has finally settled but the auto-poller hasn't caught it.
+    """
+    doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Session not found")
+    session = doc_to_session(doc)
+    races = [r for r in session.races if r.source == "live" and r.betfair_bet_ids]
+    if race_id:
+        race = next((r for r in races if r.race_id == race_id), None)
+    else:
+        race = races[-1] if races else None
+    if not race:
+        raise HTTPException(404, "No live race with placed bets found")
+
+    try:
+        cleared = await betfair.list_cleared_orders(
+            market_id=race.market_id, bet_ids=race.betfair_bet_ids
+        )
+    except BetfairError as e:
+        raise HTTPException(502, f"Betfair listClearedOrders failed: {e}")
+
+    rows = (cleared or {}).get("clearedOrders") or []
+    settled_ids = {r.get("betId") for r in rows if r.get("betId")}
+    remaining = [b for b in race.betfair_bet_ids if b not in settled_ids]
+    if remaining:
+        return {"settled": False, "settled_count": len(settled_ids), "remaining": remaining}
+    await _close_live_race(session_id, race.race_id, rows)
+    return {"settled": True, "settled_count": len(settled_ids)}
 
 
 @api_router.get("/betfair/funds")

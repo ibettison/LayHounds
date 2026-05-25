@@ -635,6 +635,102 @@ const FAQ = () => (
   </Section>
 );
 
+const SimulatorInfo = () => (
+  <Section id="simulator-info">
+    <motion.div {...fadeUp} className="max-w-5xl mx-auto">
+      <div className="bg-zinc-950 border border-zinc-800 p-8 md:p-12">
+        <Overline className="text-emerald-400">Realistic Demo Simulation</Overline>
+        <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-white leading-tight mt-3">
+          Built Using Real Racing Statistics
+        </h2>
+        <p className="text-zinc-300 mt-5 leading-relaxed text-lg">
+          Our simulator has been carefully engineered using legitimate industry
+          favourite-performance statistics and realistic UK race modelling data
+          to create an experience that feels as close to live racing as possible.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-10">
+          {[
+            ["Race Intelligence", "Weighted using race grades, distance bands, track categories, and historical favourite-performance data."],
+            ["Realistic Market Behaviour", "Market-style odds distribution to recreate believable race outcomes and betting behaviour."],
+            ["Balanced Randomisation", "Favourites perform better long-term, but each race includes natural variance — keeps it realistic."],
+            ["Real-World Limitations", "Live-racing micro-events like blocking, barging and split-second incidents cannot be perfectly replicated."],
+          ].map(([title, body]) => (
+            <div key={title} className="bg-zinc-900/60 border border-zinc-800 p-5">
+              <h3 className="font-semibold text-lg text-white mb-2">{title}</h3>
+              <p className="text-zinc-400 text-sm leading-relaxed">{body}</p>
+            </div>
+          ))}
+        </div>
+        <div className="bg-emerald-500/10 border border-emerald-500/30 p-6 mt-8">
+          <p className="text-zinc-200 leading-relaxed">
+            Over thousands of internal test simulations, the system has
+            consistently produced results closely aligned with genuine UK
+            industry averages — helping ensure races feel fair, believable,
+            and authentic.
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  </Section>
+);
+
+const VPSReferral = () => (
+  <Section id="hosting">
+    <motion.div {...fadeUp} className="max-w-6xl mx-auto">
+      <div className="relative overflow-hidden border border-zinc-800 bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-8 md:p-12">
+        <div className="absolute top-0 right-0 opacity-5 text-[180px] font-black leading-none select-none text-white">VPS</div>
+        <div className="relative z-10 grid md:grid-cols-2 gap-10 items-center">
+          <div>
+            <Overline className="text-pink-400">Recommended Hosting</Overline>
+            <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-white leading-tight mt-3">
+              Run LayHounds on a Fast UK VPS
+            </h2>
+            <p className="text-zinc-300 mt-5 leading-relaxed text-lg">
+              For the best Betfair connectivity and reliable 24/7 uptime, we
+              recommend a UK-based VPS provider.
+            </p>
+            <div className="mt-8 space-y-3">
+              {["UK-based infrastructure",
+                "Ideal for Betfair API access",
+                "Perfect for live-betting uptime",
+                "Works great with Ubuntu + Nginx"].map((item) => (
+                <div key={item} className="flex items-center gap-3 text-zinc-200">
+                  <div className="w-2 h-2 rounded-full bg-pink-400" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+            <a
+              href="https://www.fasthosts.co.uk/referral?referral=37u6fp7gtbgc9n"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 mt-8 bg-pink-600 hover:bg-pink-500 text-white px-7 py-4 font-bold transition-all hover:scale-[1.02] shadow-lg"
+              data-testid="fasthosts-referral-cta"
+            >
+              Launch Your VPS →
+            </a>
+          </div>
+          <div className="bg-black/70 border border-zinc-800 p-8 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white font-display font-bold text-2xl">Recommended Setup</h3>
+              <span className="bg-emerald-500/20 text-emerald-400 px-3 py-1 text-xs font-bold uppercase tracking-wider border border-emerald-500/30">Optimised</span>
+            </div>
+            <div className="space-y-4">
+              {[["OS", "Ubuntu 22.04 / 24.04"], ["RAM", "2 GB+"], ["CPU", "1 vCPU+"],
+                ["Region", "UK / EU"], ["Best For", "Betfair Trading"]].map(([k, v]) => (
+                <div key={k} className="flex justify-between border-b border-zinc-800 pb-3">
+                  <span className="text-zinc-400">{k}</span>
+                  <span className="text-white font-semibold">{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  </Section>
+);
+
 const Contact = () => {
   const [form, setForm] = useState({ email: "", message: "" });
   const [sending, setSending] = useState(false);
@@ -772,6 +868,8 @@ export default function Landing() {
       <Testimonials />
       <Pricing />
       <FAQ />
+      <SimulatorInfo />
+      <VPSReferral />
       <Contact />
     </MarketingLayout>
   );

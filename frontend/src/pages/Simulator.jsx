@@ -27,6 +27,7 @@ import { BetfairStatusBadge } from "../components/BetfairStatusBadge";
 import { DailyChart } from "../components/DailyChart";
 import { LiveCountdown } from "../components/LiveCountdown";
 import { LicencePanel } from "../components/LicencePanel";
+import { useSessionEvents } from "../hooks/useSessionEvents";
 
 export default function Simulator() {
   const [sessions, setSessions] = useState([]);
@@ -74,6 +75,21 @@ export default function Simulator() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Subscribe to live SSE events for the active session: bet placed, settlement
+  // polling, race resolved, bank updates. The hook surfaces toasts for each
+  // event and calls onSessionUpdate so the simulator refetches state.
+  useSessionEvents(current?.id, {
+    enabled: !!current,
+    onSessionUpdate: useCallback(async () => {
+      if (!current?.id) return;
+      try {
+        const fresh = await api.getSession(current.id);
+        setCurrent(fresh);
+        await refreshList();
+      } catch (e) { /* swallow — next user action will recover */ }
+    }, [current?.id, refreshList]),
+  });
 
   const onCreated = async (session) => {
     setCurrent(session);
