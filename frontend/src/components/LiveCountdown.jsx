@@ -110,7 +110,10 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
         ) : nextMarket ? (
           <div className="flex items-baseline gap-2 mt-0.5">
             <span className="font-display font-bold text-white text-base truncate">
-              {nextMarket.event?.name || "Unknown Track"}
+              {nextMarket.event?.name || nextMarket.venue || "Unknown track"}
+            </span>
+            <span className="text-xs text-zinc-400 truncate">
+              {nextMarket.marketName || "Race"}
             </span>
           
             <span className="text-xs text-zinc-400 truncate">

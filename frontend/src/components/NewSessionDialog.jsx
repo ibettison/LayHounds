@@ -346,10 +346,9 @@ export const NewSessionDialog = ({ onCreated }) => {
                 Sub-£1 lay support
               </div>
               <div className="text-[11px] text-zinc-400 leading-relaxed mt-1 max-w-xl">
-                Stakes below Betfair's £1 minimum (e.g. <span className="text-amber-300 font-bold">£0.05 or £0.50</span>) are
-                placed automatically via the "parking" technique — a £1 unmatchable order is parked at price 25.0,
-                size-reduced to your real stake, then replaced at the live price.
-                <span className="text-amber-300"> Works transparently for every L0–L5 bet.</span>
+                Stakes below Betfair's £1 minimum (e.g. <span className="text-amber-300 font-bold">£0.05 or £0.50</span>)
+                are placed automatically using Betfair's <span className="text-amber-300">BACKERS_PROFIT</span> liability
+                targeting. <span className="text-amber-300">Works transparently for every L0–L5 bet — no parked orders, no residue.</span>
               </div>
             </div>
           </div>

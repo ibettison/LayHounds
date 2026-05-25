@@ -174,37 +174,39 @@ class BetfairClient:
                 return min(snapped, hi - step) if snapped >= hi else snapped
         return round(price, 2)
 
-    async def place_lay_bet(self, market_id: str, selection_id: int, price: float, size: float, *, customer_order_ref: Optional[str] = None, ) -> Dict[str, Any]:
-        """Place a LAY bet.
-    
+    async def place_lay_bet(self, market_id: str, selection_id: int, price: float, size: float,
+                            *, customer_order_ref: Optional[str] = None) -> Dict[str, Any]:
+        """Place a single LAY bet on a market.
+
         Supports BOTH:
-          - normal lay bets >= £1
-          - small lay bets using Betfair BACKERS_PROFIT targeting
+          • Standard lays (size >= £1) — uses {"size": size, "price": price}.
+          • Sub-£1 lays (0 < size < £1) — uses Betfair's `betTargetType=BACKERS_PROFIT`
+            with a liability-derived target. This works because Betfair only enforces
+            the £1 minimum on the legacy `size` field, not on `betTargetType`-driven
+            orders, and BACKERS_PROFIT for a LAY equates to your lay stake.
+
+        Raises BetfairError if Betfair rejects the placement at any level —
+        top-level status, individual instruction status, or unparseable response.
+        Returns the raw PlaceExecutionReport on success.
         """
     
         if price < 1.01:
             raise BetfairError("Odds must be >= 1.01")
-    
+        if size <= 0:
+            raise BetfairError("Lay stake must be > 0")
+
         snapped = self._snap_to_tick(price)
-        # SMALL LAY BETS (< £1)
-        # -----------------------------
-        # Convert intended lay stake into liability
-        liability = round((snapped - 1) * size, 2)
         if size < 1.0:
+            # Sub-£1 lay — use Betfair betTargetType targeting.
+            # For a LAY, BACKERS_PROFIT == backer's profit == your lay stake.
             limit_order = {
                 "price": snapped,
                 "persistenceType": "LAPSE",
-            
-                # Use payout/liability targeting
-                "betTargetType": "PAYOUT",
-                "betTargetSize": liability,
+                "betTargetType": "BACKERS_PROFIT",
+                "betTargetSize": round(size, 2),
             }
-        
-           
-        # -----------------------------
-        # NORMAL LAY BETS (>= £1)
-        # -----------------------------
         else:
+            # Standard lay
             limit_order = {
                 "size": round(size, 2),
                 "price": snapped,
@@ -259,6 +261,35 @@ class BetfairClient:
     
     async def cancel_all(self, market_id: str) -> Dict[str, Any]:
         return await self._rpc("cancelOrders", {"marketId": market_id})
+
+    async def list_cleared_orders(self, *, market_id: Optional[str] = None,
+                                  bet_ids: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Return CLEARED (settled) orders, with realised P&L per bet.
+
+        Used after a live race goes off so we can detect when Betfair has
+        settled the market and push the result to the UI.
+        """
+        params: Dict[str, Any] = {
+            "betStatus": "SETTLED",
+            "fromRecordSize": 0,
+            "recordCount": 100,
+        }
+        if market_id:
+            params["marketIds"] = [market_id]
+        if bet_ids:
+            params["betIds"] = list(bet_ids)
+        return await self._rpc("listClearedOrders", params) or {}
+
+    async def list_current_orders(self, *, market_id: Optional[str] = None,
+                                  bet_ids: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Return CURRENT (open/unsettled) orders. Used to confirm a placed
+        bet is actually showing on Betfair before the market goes in-play."""
+        params: Dict[str, Any] = {}
+        if market_id:
+            params["marketIds"] = [market_id]
+        if bet_ids:
+            params["betIds"] = list(bet_ids)
+        return await self._rpc("listCurrentOrders", params) or {}
 
     async def get_account_funds(self) -> Dict[str, Any]:
         """Returns Betfair account funds. Keys: availableToBetBalance, exposure,
