@@ -189,6 +189,7 @@ class BetfairClient:
         top-level status, individual instruction status, or unparseable response.
         Returns the raw PlaceExecutionReport on success.
         """
+    
         if price < 1.01:
             raise BetfairError("Odds must be >= 1.01")
         if size <= 0:
@@ -219,34 +220,45 @@ class BetfairClient:
             "side": "LAY",
             "limitOrder": limit_order,
         }
-        if customer_order_ref:
-            # Betfair allows a-zA-Z0-9_-.+:; up to 32 chars
-            instruction["customerOrderRef"] = customer_order_ref[:32]
 
-        result = await self._rpc("placeOrders", {
+        if customer_order_ref:
+            instruction["customerOrderRef"] = customer_order_ref[:32]
+    
+        result = await self._rpc(
+        "placeOrders",
+        {
             "marketId": market_id,
             "instructions": [instruction],
-        })
+        },
+        )
 
-        # The PlaceExecutionReport top-level can be SUCCESS / FAILURE / PROCESSED_WITH_ERRORS.
         top_status = (result or {}).get("status")
+    
         if top_status not in ("SUCCESS", None):
             err_code = result.get("errorCode") or "UNKNOWN"
-            raise BetfairError(f"Betfair rejected order: {top_status} ({err_code})")
-
+            raise BetfairError(
+                f"Betfair rejected order: {top_status} ({err_code})"
+            )
+    
         reports = (result or {}).get("instructionReports", []) or []
+    
         if not reports:
-            raise BetfairError("Betfair returned no instruction report — bet not placed")
-
+            raise BetfairError(
+                "Betfair returned no instruction report"
+            )
+    
         rep = reports[0]
+
         if rep.get("status") != "SUCCESS":
             err_code = rep.get("errorCode") or "UNKNOWN_ERROR"
+    
             raise BetfairError(
                 f"Betfair rejected lay bet: {err_code} "
-                f"(market={market_id}, sel={selection_id}, price={snapped}, size={size})"
+                f"(market={market_id}, sel={selection_id}, "
+                f"price={snapped}, size={size})"
             )
         return result
-
+    
     async def cancel_all(self, market_id: str) -> Dict[str, Any]:
         return await self._rpc("cancelOrders", {"marketId": market_id})
 
@@ -297,7 +309,6 @@ class BetfairClient:
             }
         except Exception as e:
             return {"configured": True, "logged_in": False, "reason": str(e)[:200]}
-
 
 # Singleton
 betfair = BetfairClient()

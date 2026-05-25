@@ -115,10 +115,19 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
             <span className="text-xs text-zinc-400 truncate">
               {nextMarket.marketName || "Race"}
             </span>
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">
-              {new Date(nextMarket.startMs).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+          
+            <span className="text-xs text-zinc-400 truncate">
+              {nextMarket.marketName || "Race"}
             </span>
-          </div>
+          
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">
+              {new Date(nextMarket.startMs).toLocaleTimeString("en-GB", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>    
+      
         ) : (
           <div className="text-xs text-zinc-500 mt-1">No upcoming UK greyhound markets in the next 60 min.</div>
         )}
