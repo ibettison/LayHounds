@@ -147,6 +147,18 @@ class BetfairClient:
         books = await self._rpc("listMarketBook", params) or []
         return books[0] if books else None
 
+    async def list_market_catalogue(self, *, market_ids: List[str]) -> List[Dict[str, Any]]:
+        """Fetch market catalogue rows (runner names, traps, venue, start time) for
+        a specific set of market IDs. Used by the live-preview endpoint."""
+        if not market_ids:
+            return []
+        params = {
+            "filter": {"marketIds": market_ids},
+            "maxResults": min(len(market_ids), 25),
+            "marketProjection": ["RUNNER_DESCRIPTION", "RUNNER_METADATA", "MARKET_START_TIME", "EVENT"],
+        }
+        return await self._rpc("listMarketCatalogue", params) or []
+
     @staticmethod
     def _snap_to_tick(price: float) -> float:
         """Snap a price to the nearest valid Betfair price tick.

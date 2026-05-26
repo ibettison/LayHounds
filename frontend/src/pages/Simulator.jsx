@@ -26,6 +26,7 @@ import { SessionList } from "../components/SessionList";
 import { BetfairStatusBadge } from "../components/BetfairStatusBadge";
 import { DailyChart } from "../components/DailyChart";
 import { LiveCountdown } from "../components/LiveCountdown";
+import { UpcomingRacePreview } from "../components/UpcomingRacePreview";
 import { LicencePanel } from "../components/LicencePanel";
 import { useSessionEvents } from "../hooks/useSessionEvents";
 
@@ -34,6 +35,7 @@ export default function Simulator() {
   const [current, setCurrent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [batchSize, setBatchSize] = useState(1);
+  const [nextLiveMarket, setNextLiveMarket] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -318,14 +320,16 @@ export default function Simulator() {
         </div>
       </header>
 
-      {/* Live race countdown (live mode only) */}
+      {/* Live race countdown + 5-min runners preview (live mode only) */}
       {current && current.config.mode === "live" && current.status === "active" && (
-        <div className="max-w-[1600px] mx-auto px-6 pt-4">
+        <div className="max-w-[1600px] mx-auto px-6 pt-4 space-y-3">
           <LiveCountdown
             session={current}
             autoPlace={!!current.config.auto_place}
             onAutoFire={onAutoFire}
+            onMarketChange={setNextLiveMarket}
           />
+          <UpcomingRacePreview session={current} nextMarket={nextLiveMarket} />
         </div>
       )}
 
@@ -351,7 +355,7 @@ export default function Simulator() {
                   <ConfRow l="Auto-place" v={current.config.auto_place ? "ON · T-60s" : "off"} />
                 )}
                 {current.config.mode === "live" && current.config.stake < 1.0 && (
-                  <ConfRow l="Sub-£1 placement" v="Auto-parking" />
+                  <ConfRow l="Sub-£1 placement" v="Liability · BACKERS_PROFIT" />
                 )}
                 <ConfRow l="# Favs" v={current.config.num_favourites} />
                 <ConfRow l="Stop Win" v={`£${current.config.stop_win.toFixed(2)}`} />

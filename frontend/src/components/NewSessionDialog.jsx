@@ -340,7 +340,7 @@ export const NewSessionDialog = ({ onCreated }) => {
               />
             </div>
 
-            {/* Small-bet info — sub-£1 lays automatically use the Betfair parking technique */}
+            {/* Small-bet info — sub-£1 lays use Betfair betTargetType=BACKERS_PROFIT */}
             <div className="bg-amber-500/5 border border-amber-500/30 px-3 py-2">
               <div className="text-xs font-display uppercase tracking-wider text-amber-300 font-bold">
                 Sub-£1 lay support
