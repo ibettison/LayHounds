@@ -168,10 +168,6 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
               {nextMarket.marketName || "Race"}
             </span>
           
-            <span className="text-xs text-zinc-400 truncate">
-              {nextMarket.marketName || "Race"}
-            </span>
-          
             <span className="text-[10px] font-mono text-zinc-500 uppercase">
               {new Date(nextMarket.startMs).toLocaleTimeString("en-GB", {
                 hour: "2-digit",
