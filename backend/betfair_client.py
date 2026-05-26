@@ -160,6 +160,7 @@ class BetfairClient:
         return await self._rpc("listMarketCatalogue", params) or []
 
     @staticmethod
+    @staticmethod
     def _snap_to_tick(price: float) -> float:
         """Snap a price to the nearest valid Betfair price tick.
 
@@ -186,6 +187,43 @@ class BetfairClient:
                 return min(snapped, hi - step) if snapped >= hi else snapped
         return round(price, 2)
 
+    @staticmethod
+    def count_ticks(from_price: float, to_price: float) -> int:
+        """Return the SIGNED number of Betfair ticks between two prices.
+
+        Positive = to_price is HIGHER (price drifted out — bad for layer).
+        Negative = to_price is LOWER (price steamed in — good for layer).
+        Returns 0 if either price is invalid.
+
+        Uses the same ladder as `_snap_to_tick`. We walk the ladder one step
+        at a time so cross-band counts (e.g. 1.98 → 2.04) are accurate.
+        """
+        if from_price is None or to_price is None:
+            return 0
+        if from_price <= 0 or to_price <= 0:
+            return 0
+        if abs(to_price - from_price) < 1e-9:
+            return 0
+        bands = [
+            (1.01, 2.0, 0.01), (2.0, 3.0, 0.02), (3.0, 4.0, 0.05),
+            (4.0, 6.0, 0.1), (6.0, 10.0, 0.2), (10.0, 20.0, 0.5),
+            (20.0, 30.0, 1.0), (30.0, 50.0, 2.0), (50.0, 100.0, 5.0),
+            (100.0, 1000.01, 10.0),
+        ]
+        # Walk ladder from min to max, counting steps in the appropriate band.
+        lo_p, hi_p = sorted([from_price, to_price])
+        ticks = 0
+        for lo, hi, step in bands:
+            if hi_p <= lo:
+                break
+            if lo_p >= hi:
+                continue
+            seg_lo = max(lo, lo_p)
+            seg_hi = min(hi, hi_p)
+            if seg_hi > seg_lo:
+                ticks += int(round((seg_hi - seg_lo) / step))
+        return ticks if to_price > from_price else -ticks
+
     async def place_lay_bet(self, market_id: str, selection_id: int, price: float, size: float,
                             *, customer_order_ref: Optional[str] = None) -> Dict[str, Any]:
         """Place a single LAY bet on a market.
@@ -210,12 +248,23 @@ class BetfairClient:
         snapped = self._snap_to_tick(price)
         if size < 1.0:
             # Sub-£1 lay — use Betfair betTargetType targeting.
-            # For a LAY, BACKERS_PROFIT == backer's profit == your lay stake.
+            # For a LAY at price P with stake S:
+            #   liability  = S * (P-1)       (what we risk if backer wins)
+            #   backer's profit if backer wins = liability  (= what we pay them)
+            # Betfair `BACKERS_PROFIT` betTargetSize on a LAY is interpreted as
+            # the backer's POTENTIAL PROFIT = OUR liability. So we send the
+            # computed liability, NOT the stake.  Doing this incorrectly (sending
+            # `size` directly) would result in the actually-matched stake being
+            # `size / (P-1)` — i.e. SMALLER than what the user asked for.
+            liability = round(size * (snapped - 1), 2)
+            # Betfair quotes a minimum betTargetSize of £0.01 — clamp if needed.
+            if liability < 0.01:
+                liability = 0.01
             limit_order = {
                 "price": snapped,
                 "persistenceType": "LAPSE",
                 "betTargetType": "BACKERS_PROFIT",
-                "betTargetSize": round(size, 2),
+                "betTargetSize": liability,
             }
         else:
             # Standard lay
