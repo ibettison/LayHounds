@@ -369,11 +369,14 @@ async def next_race(session_id: str):
     if mode == "simulator":
         runners, venue, category = generate_race(session.races_played + 1)
     else:
-        # LIVE / PAPER_LIVE: refuse to place a new bet if the previous live race
-        # for this session still has unsettled Betfair bets — otherwise the new
-        # bet's stake will be calculated from a stale recovery chain (showing
-        # no loss yet) and any required L1+ recovery will be MISSED.
-        # Do one synchronous settlement check first so the chain catches up.
+        # LIVE / PAPER_LIVE: if a previous live race in this session still has
+        # unsettled bets, opportunistically check Betfair once. If it settled
+        # since our last poll, fold the P&L into recovery_chains BEFORE we
+        # compute the next stake (so recovery applies correctly). If it's
+        # still pending, just continue at the current chain state (typically
+        # L0) — the deferred result will be applied to the race AFTER this one
+        # once the background poller catches up. We never refuse a placement
+        # for a still-pending settlement.
         if mode == "live":
             last_live = next(
                 (r for r in reversed(session.races)
@@ -386,24 +389,25 @@ async def next_race(session_id: str):
                         market_id=last_live.market_id,
                         bet_ids=last_live.betfair_bet_ids,
                     )
+                    rows = (cleared or {}).get("clearedOrders") or []
+                    settled_ids = {r.get("betId") for r in rows if r.get("betId")}
+                    remaining = [b for b in last_live.betfair_bet_ids if b not in settled_ids]
+                    if not remaining:
+                        # Newly settled — apply result NOW so recovery is correct.
+                        await _close_live_race(session_id, last_live.race_id, rows)
+                        doc2 = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+                        if doc2:
+                            session = doc_to_session(doc2)
+                    else:
+                        logger.info(
+                            "Previous live race %s still has %d unsettled bet(s); "
+                            "placing new bet at current chain state (will catch up later).",
+                            last_live.race_num, len(remaining),
+                        )
                 except BetfairError as e:
-                    raise HTTPException(409, f"Cannot place new live bet — previous race still pending settlement and Betfair listClearedOrders failed: {e}")
-                rows = (cleared or {}).get("clearedOrders") or []
-                settled_ids = {r.get("betId") for r in rows if r.get("betId")}
-                remaining = [b for b in last_live.betfair_bet_ids if b not in settled_ids]
-                if remaining:
-                    raise HTTPException(
-                        409,
-                        f"Cannot place new live bet — previous race #{last_live.race_num} ({last_live.venue}) "
-                        f"still has {len(remaining)} unsettled bet(s) on Betfair. Wait for settlement "
-                        f"(usually < 60s after race finishes) or refresh via /api/sessions/{session_id}/refresh-live-settlement."
-                    )
-                # Fold the settled P&L back into the session BEFORE picking next stake
-                await _close_live_race(session_id, last_live.race_id, rows)
-                # Re-fetch the now-updated session so recovery_chains carry the new level
-                doc2 = await db.sessions.find_one({"id": session_id}, {"_id": 0})
-                if doc2:
-                    session = doc_to_session(doc2)
+                    # Betfair unreachable for the cleared-orders check — proceed
+                    # at the current chain state rather than refusing the bet.
+                    logger.warning("listClearedOrders failed during pre-place check: %s — proceeding with current chain.", e)
         live = await fetch_live_race()
         runners = live["runners"]
         venue = live["venue"]
