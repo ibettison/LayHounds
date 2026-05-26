@@ -369,6 +369,41 @@ async def next_race(session_id: str):
     if mode == "simulator":
         runners, venue, category = generate_race(session.races_played + 1)
     else:
+        # LIVE / PAPER_LIVE: refuse to place a new bet if the previous live race
+        # for this session still has unsettled Betfair bets — otherwise the new
+        # bet's stake will be calculated from a stale recovery chain (showing
+        # no loss yet) and any required L1+ recovery will be MISSED.
+        # Do one synchronous settlement check first so the chain catches up.
+        if mode == "live":
+            last_live = next(
+                (r for r in reversed(session.races)
+                 if r.source == "live" and r.betfair_bet_ids and r.winning_trap == 0),
+                None,
+            )
+            if last_live:
+                try:
+                    cleared = await betfair.list_cleared_orders(
+                        market_id=last_live.market_id,
+                        bet_ids=last_live.betfair_bet_ids,
+                    )
+                except BetfairError as e:
+                    raise HTTPException(409, f"Cannot place new live bet — previous race still pending settlement and Betfair listClearedOrders failed: {e}")
+                rows = (cleared or {}).get("clearedOrders") or []
+                settled_ids = {r.get("betId") for r in rows if r.get("betId")}
+                remaining = [b for b in last_live.betfair_bet_ids if b not in settled_ids]
+                if remaining:
+                    raise HTTPException(
+                        409,
+                        f"Cannot place new live bet — previous race #{last_live.race_num} ({last_live.venue}) "
+                        f"still has {len(remaining)} unsettled bet(s) on Betfair. Wait for settlement "
+                        f"(usually < 60s after race finishes) or refresh via /api/sessions/{session_id}/refresh-live-settlement."
+                    )
+                # Fold the settled P&L back into the session BEFORE picking next stake
+                await _close_live_race(session_id, last_live.race_id, rows)
+                # Re-fetch the now-updated session so recovery_chains carry the new level
+                doc2 = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+                if doc2:
+                    session = doc_to_session(doc2)
         live = await fetch_live_race()
         runners = live["runners"]
         venue = live["venue"]
@@ -971,6 +1006,82 @@ async def betfair_races(minutes_ahead: int = 30, max_results: int = 10):
     except BetfairError as e:
         raise HTTPException(502, f"Betfair error: {e}")
     return {"count": len(markets), "markets": markets}
+
+
+@api_router.get("/betfair/market/{market_id}/preview")
+async def betfair_market_preview(market_id: str):
+    """Return the live runners + current lay-side odds for a specific market.
+
+    Used by the frontend "Upcoming Race Preview" panel to show the user the
+    field 5 minutes before the off — with live price updates so the user can
+    see the market shape as the bet approaches.
+
+    Returns:
+        runners: [{trap, name, odds, favourite_rank, selection_id}]
+        market_id, market_name, event_name, start_time, category
+        last_updated: ISO timestamp
+    """
+    try:
+        book = await betfair.get_market_book(market_id)
+    except BetfairError as e:
+        raise HTTPException(502, f"Betfair error: {e}")
+    if not book:
+        raise HTTPException(404, "Market not found or not yet active")
+
+    # Look up the market catalogue for runner names / metadata / venue / name
+    try:
+        cats = await betfair.list_market_catalogue(market_ids=[market_id])
+    except BetfairError:
+        cats = []
+    m = cats[0] if cats else {}
+    runner_meta = {r["selectionId"]: r for r in m.get("runners", [])}
+
+    priced = []
+    for br in book.get("runners", []):
+        if br.get("status") != "ACTIVE":
+            continue
+        ex = br.get("ex", {})
+        lay_prices = ex.get("availableToLay", [])
+        back_prices = ex.get("availableToBack", [])
+        if not lay_prices:
+            continue
+        sel_id = br["selectionId"]
+        meta = runner_meta.get(sel_id, {})
+        priced.append({
+            "selection_id": sel_id,
+            "name": meta.get("runnerName", f"Runner {sel_id}"),
+            "trap": int(meta.get("metadata", {}).get("CLOTH_NUMBER")
+                        or meta.get("metadata", {}).get("TRAP_NUMBER") or 0),
+            "odds": round(float(lay_prices[0]["price"]), 2),
+            "back_odds": round(float(back_prices[0]["price"]), 2) if back_prices else None,
+            "lay_size": round(float(lay_prices[0].get("size") or 0), 2),
+        })
+
+    # Assign traps in order if Betfair didn't supply CLOTH_NUMBER
+    for i, p in enumerate(priced):
+        if not p["trap"]:
+            p["trap"] = i + 1
+
+    sorted_by_odds = sorted(priced, key=lambda r: r["odds"])
+    rank_by_sel = {r["selection_id"]: idx + 1 for idx, r in enumerate(sorted_by_odds)}
+    runners = [
+        {**p, "favourite_rank": rank_by_sel[p["selection_id"]]}
+        for p in priced
+    ]
+
+    market_name = m.get("marketName") or ""
+    event_name = (m.get("event") or {}).get("name") or ""
+    category = detect_category_from_market_name(market_name, event_name)
+
+    return {
+        "market_id": market_id,
+        "market_name": market_name,
+        "event_name": event_name,
+        "start_time": m.get("marketStartTime"),
+        "category": category.model_dump(),
+        "runners": sorted(runners, key=lambda r: r["trap"]),
+        "last_updated": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 @api_router.post("/sessions/{session_id}/run-races", response_model=Session)
