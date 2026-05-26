@@ -108,6 +108,10 @@ class LayBet(BaseModel):
     matched_size: Optional[float] = None        # actual size matched (£)
     matched_price: Optional[float] = None       # weighted average price matched
     placement_status: Optional[str] = None      # 'matched' | 'unmatched' | 'partial' | 'placed' | 'settled'
+    # Signed Betfair-tick delta between the requested odds and the actual matched
+    # price. Positive = price drifted out (BAD for LAY — more liability).
+    # Negative = price steamed in (GOOD for LAY).
+    slippage_ticks: Optional[int] = None
 
 
 class Race(BaseModel):
@@ -486,6 +490,8 @@ async def next_race(session_id: str):
                         new_bet.placement_status = "partial"
                     else:
                         new_bet.placement_status = "matched"
+                    if new_bet.matched_price:
+                        new_bet.slippage_ticks = betfair.count_ticks(new_bet.odds, new_bet.matched_price)
             except BetfairError as e:
                 # Surface the precise Betfair error so the user knows WHY it failed.
                 raise HTTPException(502, f"Betfair bet placement failed: {e}")
@@ -719,6 +725,8 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
         bet.matched_size = float(row.get("sizeSettled") or row.get("sizeMatched") or bet.matched_size or 0.0) or bet.matched_size
         bet.matched_price = float(row.get("priceMatched") or row.get("priceRequested") or bet.matched_price or 0.0) or bet.matched_price
         bet.placement_status = "settled"
+        if bet.matched_price:
+            bet.slippage_ticks = betfair.count_ticks(bet.odds, bet.matched_price)
         if profit >= 0:
             bet.result = "win"
             wins_by_rank[bet.favourite_rank] = profit

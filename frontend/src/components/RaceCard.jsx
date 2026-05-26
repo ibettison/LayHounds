@@ -113,8 +113,23 @@ export const RaceCard = ({ race, layedRanks }) => {
                         liab £{Number(bet.liability || 0).toFixed(2)}
                       </div>
                       {bet.matched_size != null && bet.matched_price != null && (
-                        <div className="text-emerald-400/70 text-[10px] mt-0.5 font-mono">
-                          matched £{Number(bet.matched_size || 0).toFixed(2)} @{Number(bet.matched_price || 0).toFixed(2)}
+                        <div className="text-emerald-400/70 text-[10px] mt-0.5 font-mono flex items-center gap-1.5">
+                          <span>matched £{Number(bet.matched_size || 0).toFixed(2)} @{Number(bet.matched_price || 0).toFixed(2)}</span>
+                          {bet.slippage_ticks != null && bet.slippage_ticks !== 0 && (
+                            <span
+                              data-testid={`slippage-${r.favourite_rank}`}
+                              title={bet.slippage_ticks > 0
+                                ? `Price drifted ${bet.slippage_ticks} tick(s) HIGHER than requested — more liability per matched £`
+                                : `Price steamed ${Math.abs(bet.slippage_ticks)} tick(s) LOWER than requested — better lay than asked`}
+                              className={`px-1 py-0 text-[9px] font-bold uppercase tracking-wider border ${
+                                bet.slippage_ticks > 0
+                                  ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                                  : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                              }`}
+                            >
+                              {bet.slippage_ticks > 0 ? `+${bet.slippage_ticks}T` : `${bet.slippage_ticks}T`}
+                            </span>
+                          )}
                         </div>
                       )}
                       {bet.placement_status === "unmatched" && (
