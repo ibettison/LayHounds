@@ -101,6 +101,13 @@ class LayBet(BaseModel):
     recovery_level: int  # 0 = initial, 1-3 = recovery levels
     result: Optional[Literal["win", "loss"]] = None  # win = lay won (dog lost)
     pnl: Optional[float] = None
+    # Real Betfair-side data, populated immediately after placeOrders and
+    # updated again on settlement so the UI shows actual matched figures
+    # instead of intended ones.
+    betfair_bet_id: Optional[str] = None
+    matched_size: Optional[float] = None        # actual size matched (£)
+    matched_price: Optional[float] = None       # weighted average price matched
+    placement_status: Optional[str] = None      # 'matched' | 'unmatched' | 'partial' | 'placed' | 'settled'
 
 
 class Race(BaseModel):
@@ -443,11 +450,12 @@ async def next_race(session_id: str):
             chain.busted = True
             continue
 
-        bets.append(LayBet(
+        new_bet = LayBet(
             favourite_rank=rank, dog_trap=runner.trap, dog_name=runner.name,
             odds=runner.odds, stake=stake, liability=liability,
             recovery_level=chain.level,
-        ))
+        )
+        bets.append(new_bet)
 
         if mode == "live":
             try:
@@ -460,9 +468,24 @@ async def next_race(session_id: str):
                     market_id, sel_id, runner.odds, stake,
                     customer_order_ref=cor,
                 )
-                for rep in result.get("instructionReports", []):
-                    if rep.get("betId"):
-                        betfair_bet_ids.append(rep["betId"])
+                # Capture the first instruction report so the UI can show the
+                # actual betfair-side matched size + average price immediately.
+                reports = (result.get("instructionReports") or [])
+                if reports:
+                    rep = reports[0]
+                    bet_id = rep.get("betId")
+                    if bet_id:
+                        betfair_bet_ids.append(bet_id)
+                    new_bet.betfair_bet_id = bet_id
+                    new_bet.matched_size = float(rep.get("sizeMatched") or 0.0) or None
+                    new_bet.matched_price = float(rep.get("averagePriceMatched") or 0.0) or None
+                    matched = new_bet.matched_size or 0.0
+                    if matched <= 0:
+                        new_bet.placement_status = "unmatched"
+                    elif matched + 0.005 < new_bet.stake:
+                        new_bet.placement_status = "partial"
+                    else:
+                        new_bet.placement_status = "matched"
             except BetfairError as e:
                 # Surface the precise Betfair error so the user knows WHY it failed.
                 raise HTTPException(502, f"Betfair bet placement failed: {e}")
@@ -693,6 +716,9 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
             continue
         profit = float(row.get("profit") or 0.0)  # signed, gross
         bet.pnl = round(profit, 4)
+        bet.matched_size = float(row.get("sizeSettled") or row.get("sizeMatched") or bet.matched_size or 0.0) or bet.matched_size
+        bet.matched_price = float(row.get("priceMatched") or row.get("priceRequested") or bet.matched_price or 0.0) or bet.matched_price
+        bet.placement_status = "settled"
         if profit >= 0:
             bet.result = "win"
             wins_by_rank[bet.favourite_rank] = profit

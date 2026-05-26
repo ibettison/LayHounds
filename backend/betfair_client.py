@@ -209,12 +209,23 @@ class BetfairClient:
         snapped = self._snap_to_tick(price)
         if size < 1.0:
             # Sub-£1 lay — use Betfair betTargetType targeting.
-            # For a LAY, BACKERS_PROFIT == backer's profit == your lay stake.
+            # For a LAY at price P with stake S:
+            #   liability  = S * (P-1)       (what we risk if backer wins)
+            #   backer's profit if backer wins = liability  (= what we pay them)
+            # Betfair `BACKERS_PROFIT` betTargetSize on a LAY is interpreted as
+            # the backer's POTENTIAL PROFIT = OUR liability. So we send the
+            # computed liability, NOT the stake.  Doing this incorrectly (sending
+            # `size` directly) would result in the actually-matched stake being
+            # `size / (P-1)` — i.e. SMALLER than what the user asked for.
+            liability = round(size * (snapped - 1), 2)
+            # Betfair quotes a minimum betTargetSize of £0.01 — clamp if needed.
+            if liability < 0.01:
+                liability = 0.01
             limit_order = {
                 "price": snapped,
                 "persistenceType": "LAPSE",
                 "betTargetType": "BACKERS_PROFIT",
-                "betTargetSize": round(size, 2),
+                "betTargetSize": liability,
             }
         else:
             # Standard lay

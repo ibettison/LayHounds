@@ -112,6 +112,21 @@ export const RaceCard = ({ race, layedRanks }) => {
                       <div className="text-amber-400/80 text-xs">
                         liab £{Number(bet.liability || 0).toFixed(2)}
                       </div>
+                      {bet.matched_size != null && bet.matched_price != null && (
+                        <div className="text-emerald-400/70 text-[10px] mt-0.5 font-mono">
+                          matched £{Number(bet.matched_size || 0).toFixed(2)} @{Number(bet.matched_price || 0).toFixed(2)}
+                        </div>
+                      )}
+                      {bet.placement_status === "unmatched" && (
+                        <div className="text-zinc-500 text-[10px] mt-0.5 font-mono uppercase tracking-wider">
+                          unmatched
+                        </div>
+                      )}
+                      {bet.placement_status === "partial" && (
+                        <div className="text-amber-400 text-[10px] mt-0.5 font-mono uppercase tracking-wider">
+                          partial
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <span className="text-zinc-600">—</span>
@@ -126,12 +141,19 @@ export const RaceCard = ({ race, layedRanks }) => {
                       >
                         Lay Won +£{Number(bet.pnl || 0).toFixed(2)}
                       </span>
-                    ) : (
+                    ) : bet.result === "loss" ? (
                       <span
                         className="bg-red-500/10 border border-red-500/30 text-red-400 px-2 py-1 text-xs font-bold uppercase"
                         data-testid={`bet-result-${r.favourite_rank}`}
                       >
                         Lay Lost £{Number(bet.pnl || 0).toFixed(2)}
+                      </span>
+                    ) : (
+                      <span
+                        className="bg-zinc-700/20 border border-zinc-600/40 text-zinc-400 px-2 py-1 text-xs font-bold uppercase animate-pulse"
+                        data-testid={`bet-result-${r.favourite_rank}`}
+                      >
+                        Awaiting result
                       </span>
                     )
                   ) : (

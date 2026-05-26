@@ -121,11 +121,11 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
 
   const fmt = (s) => {
     if (s == null) return "—:—";
-    const sign = s < 0 ? "-" : "";
-    const abs = Math.abs(s);
-    const m = Math.floor(abs / 60);
-    const sec = abs % 60;
-    return `${sign}${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+    // Stop counting once the off is reached — don't show negative numbers.
+    if (s <= 0) return "00:00";
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
   };
 
   const urgent = secsToStart != null && secsToStart <= TRIGGER_AT_SECS && secsToStart > 0;
@@ -183,10 +183,10 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
             error ? "text-red-400" : urgent ? "text-pink-300" : past ? "text-zinc-500" : "text-white"
           }`}
         >
-          {fmt(secsToStart)}
+          {past ? "IN-PLAY" : fmt(secsToStart)}
         </div>
         <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-600 mt-1">
-          {past ? "in-play" : "to off"}
+          {past ? "settling" : "to off"}
         </div>
       </div>
     </div>
