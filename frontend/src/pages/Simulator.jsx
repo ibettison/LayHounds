@@ -27,6 +27,7 @@ import { BetfairStatusBadge } from "../components/BetfairStatusBadge";
 import { DailyChart } from "../components/DailyChart";
 import { LiveCountdown } from "../components/LiveCountdown";
 import { UpcomingRacePreview } from "../components/UpcomingRacePreview";
+import { SettlementBanner } from "../components/SettlementBanner";
 import { LicencePanel } from "../components/LicencePanel";
 import { useSessionEvents } from "../hooks/useSessionEvents";
 
@@ -35,7 +36,6 @@ export default function Simulator() {
   const [current, setCurrent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [batchSize, setBatchSize] = useState(1);
-  const [nextLiveMarket, setNextLiveMarket] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -327,11 +327,11 @@ export default function Simulator() {
             session={current}
             autoPlace={!!current.config.auto_place}
             onAutoFire={onAutoFire}
-            onMarketChange={setNextLiveMarket}
           />
-          <UpcomingRacePreview session={current} nextMarket={nextLiveMarket} />
+          <UpcomingRacePreview session={current} />
         </div>
       )}
+      <SettlementBanner />
 
       <main className="max-w-[1600px] mx-auto px-6 py-6 grid grid-cols-12 gap-4">
         {/* Left column */}

@@ -20,7 +20,7 @@ const TICK_MS = 1_000;
  *   • Console-logs every fire / skip decision so the user can audit auto-place
  *     behaviour from the browser devtools.
  */
-export const LiveCountdown = ({ session, autoPlace, onAutoFire, onMarketChange }) => {
+export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
   const [nextMarket, setNextMarket] = useState(null);
   const [error, setError] = useState(null);
   const [secsToStart, setSecsToStart] = useState(null);
@@ -29,13 +29,10 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire, onMarketChange }
   // Latest values so the tick callback always sees them without depending on them.
   const autoPlaceRef = useRef(autoPlace);
   const onAutoFireRef = useRef(onAutoFire);
-  const onMarketChangeRef = useRef(onMarketChange);
   const sessionStatusRef = useRef(session?.status);
   useEffect(() => { autoPlaceRef.current = autoPlace; }, [autoPlace]);
   useEffect(() => { onAutoFireRef.current = onAutoFire; }, [onAutoFire]);
-  useEffect(() => { onMarketChangeRef.current = onMarketChange; }, [onMarketChange]);
   useEffect(() => { sessionStatusRef.current = session?.status; }, [session?.status]);
-  useEffect(() => { onMarketChangeRef.current?.(nextMarket); }, [nextMarket]);
 
   // Adaptive polling cadence — re-arm interval when proximity to next race changes
   useEffect(() => {

@@ -13,7 +13,7 @@ import { CheckoutSuccess, CheckoutCancel } from "@/pages/Checkout";
 export default function App() {
   return (
     <BrowserRouter>
-      <Toaster theme="light" position="top-right" richColors />
+      <Toaster theme="light" position="bottom-right" richColors expand={false} closeButton={false} toastOptions={{ style: { maxWidth: 360 } }} />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/app" element={<Simulator />} />

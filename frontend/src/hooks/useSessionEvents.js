@@ -11,24 +11,15 @@
  * EventSource auto-reconnects on transient drop. We tear it down on
  * sessionId change / unmount.
  */
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { API } from "../lib/api";
 
 export const useSessionEvents = (sessionId, { onSessionUpdate, enabled = true } = {}) => {
-  const lastPollToastId = useRef(null);
-
   useEffect(() => {
     if (!enabled || !sessionId) return undefined;
     const url = `${API}/sessions/${sessionId}/events`;
     const es = new EventSource(url, { withCredentials: false });
-
-    const dismissPoll = () => {
-      if (lastPollToastId.current) {
-        toast.dismiss(lastPollToastId.current);
-        lastPollToastId.current = null;
-      }
-    };
 
     es.addEventListener("bet_placed", (e) => {
       try {
@@ -50,23 +41,17 @@ export const useSessionEvents = (sessionId, { onSessionUpdate, enabled = true } 
     es.addEventListener("poll_status", (e) => {
       try {
         const d = JSON.parse(e.data);
-        if (d.market_status === "settled" || d.market_status === "timeout") {
-          dismissPoll();
-          return;
-        }
-        const id = lastPollToastId.current || `poll-${d.race_id}`;
-        lastPollToastId.current = id;
-        toast.loading(
-          `Awaiting Betfair settlement · attempt ${d.attempt}/${d.max_attempts}`,
-          { id, duration: Infinity }
-        );
+        // Drive the compact SettlementBanner via a window event — far less
+        // intrusive than a full sonner toast.
+        window.dispatchEvent(new CustomEvent("lh:poll_status", { detail: d }));
       } catch (err) { /* ignore */ }
     });
 
     es.addEventListener("race_resulted", (e) => {
       try {
         const d = JSON.parse(e.data);
-        dismissPoll();
+        // Auto-dismiss the bottom-center settlement banner via clearing event
+        window.dispatchEvent(new CustomEvent("lh:poll_status", { detail: { market_status: "settled" } }));
         const tone = d.pnl_change >= 0 ? toast.success : toast.error;
         const prefix = d.source === "live_settled" ? "LIVE SETTLED · " : "";
         tone(
@@ -101,7 +86,6 @@ export const useSessionEvents = (sessionId, { onSessionUpdate, enabled = true } 
     };
 
     return () => {
-      dismissPoll();
       es.close();
     };
   }, [sessionId, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
