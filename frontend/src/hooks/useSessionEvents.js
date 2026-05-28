@@ -43,7 +43,17 @@ export const useSessionEvents = (sessionId, { onSessionUpdate, enabled = true } 
         const d = JSON.parse(e.data);
         // Drive the compact SettlementBanner via a window event — far less
         // intrusive than a full sonner toast.
-        window.dispatchEvent(new CustomEvent("lh:poll_status", { detail: d }));
+        window.dispatchEvent(
+          new CustomEvent("lh:poll_status", {
+            detail: {
+              ...d,
+              display_message:
+                d.market_status === "market_closed_waiting_settlement"
+                  ? "Race finished — waiting for Betfair settlement"
+                  : "Awaiting Betfair settlement",
+            },
+          })
+        );
       } catch (err) { /* ignore */ }
     });
 
@@ -64,6 +74,14 @@ export const useSessionEvents = (sessionId, { onSessionUpdate, enabled = true } 
           }
         );
         if (onSessionUpdate) onSessionUpdate({ reason: "race_resulted" });
+
+        window.dispatchEvent(
+          new CustomEvent("lh:race_resulted", {
+            detail: {
+              race_num: d.race_num,
+            },
+          })
+        );
       } catch (err) { /* ignore */ }
     });
 

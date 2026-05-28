@@ -51,7 +51,10 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
         if (cancelled) return;
         const upcoming = (data.markets || [])
           .map((m) => ({ ...m, startMs: new Date(m.marketStartTime || m.market_start_time).getTime() }))
-          .filter((m) => !isNaN(m.startMs) && m.startMs > Date.now() - 1000)
+          .filter((m) => {
+            if (isNaN(m.startMs)) return false;
+            return m.startMs > Date.now() - 90000;
+          })
           .sort((a, b) => a.startMs - b.startMs);
         setNextMarket((prev) => {
           const next = upcoming[0] || null;
@@ -73,8 +76,16 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
       }
     };
     load();
+
+    const refreshHandler = () => {
+      load();
+    };
+
+    window.addEventListener("lh:race_resulted", refreshHandler);
+
     return () => {
       cancelled = true;
+      window.removeEventListener("lh:race_resulted", refreshHandler);
       if (timeoutId) clearTimeout(timeoutId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,7 +133,8 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
   const fmt = (s) => {
     if (s == null) return "—:—";
     // Stop counting once the off is reached — don't show negative numbers.
-    if (s <= 0) return "00:00";
+    if (s <= -90) return "NEXT";
+    if (s <= 0) return "IN-PLAY";
     const m = Math.floor(s / 60);
     const sec = s % 60;
     return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
@@ -188,10 +200,16 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
             error ? "text-red-400" : urgent ? "text-pink-300" : past ? "text-zinc-500" : "text-white"
           }`}
         >
-          {past ? "IN-PLAY" : fmt(secsToStart)}
+          {fmt(secsToStart)}
         </div>
         <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-600 mt-1">
-          {past ? "settling" : "to off"}
+          {
+                secsToStart <= -90
+                  ? "loading next"
+                  : past
+                    ? "awaiting result"
+                    : "to off"
+              }
         </div>
       </div>
     </div>

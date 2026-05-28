@@ -542,7 +542,12 @@ async def next_race(session_id: str):
             bet.result = "loss"
             bet.pnl = -bet.liability
             pnl_change -= bet.liability
-            new_accum = chain.accumulated_loss + bet.liability + bet.stake
+            new_accum = round(
+                chain.accumulated_loss
+                + bet.liability
+                + session.config.stake,
+                4,
+            )
             if chain.level >= session.config.max_recovery_level:
                 chain.busted = True
                 chain.level = session.config.max_recovery_level
@@ -551,7 +556,7 @@ async def next_race(session_id: str):
             else:
                 chain.level += 1
                 chain.accumulated_loss = new_accum
-                chain.pending_stake = round(bet.liability + bet.stake + session.config.stake, 4)
+                chain.pending_stake = round(new_accum, 4)
         else:
             bet.result = "win"
             gross_win = bet.stake
@@ -664,7 +669,11 @@ async def poll_live_settlement(session_id: str, race_id: str, market_id: str,
             await sse_publish(session_id, "poll_status", {
                 "race_id": race_id, "attempt": attempt, "max_attempts": MAX_ATTEMPTS,
                 "settled": len(settled_ids), "remaining": len(remaining),
-                "market_status": "awaiting_settlement" if remaining else "settled",
+                "market_status": (
+                    "market_closed_waiting_settlement"
+                    if remaining
+                    else "settled"
+                ),
             })
 
             if remaining:
@@ -722,6 +731,9 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
             continue
         profit = float(row.get("profit") or 0.0)  # signed, gross
         bet.pnl = round(profit, 4)
+        bet.settled_profit = round(profit, 4)
+        bet.betfair_status = row.get("betStatus")
+        bet.settled_at = datetime.now(timezone.utc)
         bet.matched_size = float(row.get("sizeSettled") or row.get("sizeMatched") or bet.matched_size or 0.0) or bet.matched_size
         bet.matched_price = float(row.get("priceMatched") or row.get("priceRequested") or bet.matched_price or 0.0) or bet.matched_price
         bet.placement_status = "settled"
@@ -741,7 +753,12 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
         if not chain:
             continue
         if bet.result == "loss":
-            new_accum = chain.accumulated_loss + bet.liability + bet.stake
+            new_accum = round(
+                chain.accumulated_loss
+                + bet.liability
+                + session.config.stake,
+                4,
+            )
             if chain.level >= session.config.max_recovery_level:
                 chain.busted = True
                 chain.level = session.config.max_recovery_level
@@ -750,7 +767,7 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
             else:
                 chain.level += 1
                 chain.accumulated_loss = new_accum
-                chain.pending_stake = round(bet.liability + bet.stake + session.config.stake, 4)
+                chain.pending_stake = round(new_accum, 4)
         else:
             chain.level = 0
             chain.accumulated_loss = 0.0
