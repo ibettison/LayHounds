@@ -7,6 +7,15 @@ const PREVIEW_OPEN_SECS = 300;      // open detailed preview ≥ 5 min before th
 const POLL_NEAR_MS = 6_000;         // refresh runners + prices every 6s when in preview window
 const POLL_FAR_MS = 30_000;         // refresh upcoming-races list every 30s otherwise
 
+const normalizeMarket = (market) => {
+  if (!market) return null;
+  return {
+    ...market,
+    market_id: market.marketId || market.market_id || "",
+    startMs: new Date(market.marketStartTime || market.market_start_time).getTime(),
+  };
+};
+
 /**
  * UpcomingRacePreview — self-sufficient component that:
  *   • Polls /api/betfair/races to find the soonest upcoming UK greyhound market.
@@ -33,14 +42,19 @@ export const UpcomingRacePreview = ({ session }) => {
     let timer = null;
 
     const tick = async () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      let soonest = null;
       try {
         const data = await api.betfairRaces(60);
         if (cancelled) return;
         const upcoming = (data.markets || [])
-          .map((m) => ({ ...m, startMs: new Date(m.marketStartTime || m.market_start_time).getTime() }))
-          .filter((m) => !isNaN(m.startMs) && m.startMs > Date.now() - 5000)
+          .map(normalizeMarket)
+          .filter((m) => m && m.market_id && !isNaN(m.startMs) && m.startMs > Date.now() - 5000)
           .sort((a, b) => a.startMs - b.startMs);
-        const soonest = upcoming[0] || null;
+        soonest = upcoming[0] || null;
         setNextMarket((prev) => (prev && soonest && prev.market_id === soonest.market_id ? prev : soonest));
         setError(null);
       } catch (e) {
@@ -49,7 +63,7 @@ export const UpcomingRacePreview = ({ session }) => {
         setError(detail);
       } finally {
         if (!cancelled) {
-          const remaining = nextMarket ? Math.floor((nextMarket.startMs - Date.now()) / 1000) : 9999;
+          const remaining = soonest ? Math.floor((soonest.startMs - Date.now()) / 1000) : 9999;
           timer = setTimeout(tick, remaining < PREVIEW_OPEN_SECS ? POLL_NEAR_MS : POLL_FAR_MS);
         }
       }

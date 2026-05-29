@@ -8,6 +8,18 @@ const POLL_RACES_MS_NEAR = 8_000;        // when next race is < 5 min away — r
 const NEAR_WINDOW_SECS = 300;            // 5 min — what we consider "near"
 const TICK_MS = 1_000;
 
+const marketIdOf = (market) => market?.marketId || market?.market_id || "";
+
+const normalizeMarket = (market) => {
+  if (!market) return null;
+  const startMs = new Date(market.marketStartTime || market.market_start_time).getTime();
+  return {
+    ...market,
+    market_id: marketIdOf(market),
+    startMs,
+  };
+};
+
 /**
  * LiveCountdown — for live sessions only.
  *
@@ -30,34 +42,48 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
   const autoPlaceRef = useRef(autoPlace);
   const onAutoFireRef = useRef(onAutoFire);
   const sessionStatusRef = useRef(session?.status);
+  const loadNowRef = useRef(null);
   useEffect(() => { autoPlaceRef.current = autoPlace; }, [autoPlace]);
   useEffect(() => { onAutoFireRef.current = onAutoFire; }, [onAutoFire]);
   useEffect(() => { sessionStatusRef.current = session?.status; }, [session?.status]);
+  useEffect(() => {
+    firedRef.current.clear();
+    setNextMarket(null);
+    setSecsToStart(null);
+    setTimeout(() => loadNowRef.current?.(), 0);
+  }, [session?.id]);
 
   // Adaptive polling cadence — re-arm interval when proximity to next race changes
   useEffect(() => {
     let cancelled = false;
     let timeoutId = null;
 
-    const computeNextDelay = () => {
-      if (!nextMarket) return POLL_RACES_MS_FAR;
-      const remaining = Math.floor((nextMarket.startMs - Date.now()) / 1000);
+    const computeNextDelay = (market) => {
+      if (!market) return POLL_RACES_MS_FAR;
+      const remaining = Math.floor((market.startMs - Date.now()) / 1000);
       return remaining <= NEAR_WINDOW_SECS ? POLL_RACES_MS_NEAR : POLL_RACES_MS_FAR;
     };
 
     const load = async () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      let chosen = null;
       try {
         const data = await api.betfairRaces(60);
         if (cancelled) return;
         const upcoming = (data.markets || [])
-          .map((m) => ({ ...m, startMs: new Date(m.marketStartTime || m.market_start_time).getTime() }))
+          .map(normalizeMarket)
           .filter((m) => {
-            if (isNaN(m.startMs)) return false;
-            return m.startMs > Date.now() - 90000;
+            if (!m || !m.market_id || isNaN(m.startMs)) return false;
+            if (firedRef.current.has(m.market_id)) return false;
+            return m.startMs > Date.now();
           })
           .sort((a, b) => a.startMs - b.startMs);
+        chosen = upcoming[0] || null;
         setNextMarket((prev) => {
-          const next = upcoming[0] || null;
+          const next = chosen;
           if (prev && next && prev.market_id === next.market_id) return prev; // identity-stable
           if (!prev && !next) return prev;
           // eslint-disable-next-line no-console
@@ -71,10 +97,11 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
         setError(e.response?.data?.detail || e.message || "Betfair unavailable");
       } finally {
         if (!cancelled) {
-          timeoutId = setTimeout(load, computeNextDelay());
+          timeoutId = setTimeout(load, computeNextDelay(chosen));
         }
       }
     };
+    loadNowRef.current = load;
     load();
 
     const refreshHandler = () => {
@@ -86,6 +113,7 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
     return () => {
       cancelled = true;
       window.removeEventListener("lh:race_resulted", refreshHandler);
+      loadNowRef.current = null;
       if (timeoutId) clearTimeout(timeoutId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -101,25 +129,28 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
       setSecsToStart(remaining);
 
       const ap = autoPlaceRef.current;
-      const fired = firedRef.current.has(nextMarket.market_id);
+      const marketId = marketIdOf(nextMarket);
+      const fired = firedRef.current.has(marketId);
       // Fire conditions: autoPlace on, T-60..T-5 window, session active, not yet fired.
       const inWindow = remaining <= TRIGGER_AT_SECS && remaining > -5;
 
       if (ap && inWindow && !fired && sessionStatusRef.current === "active") {
-        firedRef.current.set(nextMarket.market_id, Date.now());
+        firedRef.current.set(marketId, Date.now());
+        setNextMarket(null);
         // eslint-disable-next-line no-console
         console.info("[LiveCountdown] AUTO-FIRE", {
-          market_id: nextMarket.market_id,
+          market_id: marketId,
           venue: nextMarket.event?.name || nextMarket.venue,
           remaining_secs: remaining,
         });
         try { onAutoFireRef.current?.(nextMarket); }
         catch (e) { console.error("[LiveCountdown] onAutoFire threw:", e); }
+        setTimeout(() => loadNowRef.current?.(), 1500);
       } else if (ap && inWindow && fired && prevRemaining !== remaining && remaining % 15 === 0) {
         // Periodic diagnostic so the user can see it KNOWS it's in-window but
         // refusing to refire (race already auto-placed).
         // eslint-disable-next-line no-console
-        console.debug("[LiveCountdown] skip refire", nextMarket.market_id, "remaining=", remaining);
+        console.debug("[LiveCountdown] skip refire", marketId, "remaining=", remaining);
       }
       prevRemaining = remaining;
     };
@@ -153,7 +184,7 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
   return (
     <div
       data-testid="live-countdown"
-      data-next-market={nextMarket?.market_id || ""}
+      data-next-market={marketIdOf(nextMarket)}
       className={`flex items-center gap-3 px-4 py-3 border ${tone} transition-colors`}
     >
       <div className={`w-9 h-9 grid place-items-center ${urgent ? "bg-pink-500/20 text-pink-300" : "bg-[#0A0A0A] text-zinc-400"}`}>
