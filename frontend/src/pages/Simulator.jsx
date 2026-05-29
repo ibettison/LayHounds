@@ -208,6 +208,13 @@ export default function Simulator() {
     } catch (e) {
       const detail = e.response?.data?.detail || e.message;
       toast.error(`${opts.auto ? "AUTO-place failed · " : ""}${detail}`);
+      if (e.response?.status === 400 && String(detail).startsWith("Session is ") && current?.id) {
+        try {
+          const fresh = await api.getSession(current.id);
+          setCurrent(fresh);
+          await refreshList();
+        } catch (refreshErr) { /* next poll/action will recover */ }
+      }
     } finally {
       setLoading(false);
     }

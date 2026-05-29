@@ -21,6 +21,7 @@ from services.racing import (
 )
 from services.recovery import apply_settled_bet_to_chain
 from services.settlement import reconcile_live_settlements
+from services.session_status import apply_stop_conditions
 from session_events import (
     clear_session as sse_clear_session,
     format_sse,
@@ -30,6 +31,24 @@ from session_events import (
 
 router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
+
+
+def _has_unsettled_live_recovery_bet(session: Session, rank: int) -> bool:
+    """True when a live recovery bet for this rank is still awaiting Betfair settlement."""
+    for race in session.races:
+        if race.source != "live":
+            continue
+        for bet in race.bets:
+            if bet.favourite_rank != rank:
+                continue
+            if bet.recovery_level <= 0:
+                continue
+            if not bet.betfair_bet_id or not bet.matched_size:
+                continue
+            if not bet.settled_at and not bet.result:
+                return True
+    return False
+
 
 @router.get("/")
 async def root():
@@ -137,6 +156,10 @@ async def next_race(session_id: str):
             doc2 = await db.sessions.find_one({"id": session_id}, {"_id": 0})
             if doc2:
                 session = doc_to_session(doc2)
+                apply_stop_conditions(session, allow_recovery_overrun=False)
+                if session.status != "active":
+                    await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
+                    raise HTTPException(400, f"Session is {session.status}")
         live = await fetch_live_race()
         runners = live["runners"]
         venue = live["venue"]
@@ -164,6 +187,14 @@ async def next_race(session_id: str):
     for rank in range(1, session.config.num_favourites + 1):
         chain = session.recovery_chains.get(str(rank), RecoveryChain())
         if chain.busted:
+            continue
+        if mode == "live" and chain.level > 0 and _has_unsettled_live_recovery_bet(session, rank):
+            logger.warning(
+                "Skipping duplicate live recovery placement for session=%s rank=%s level=%s; previous recovery bet still unsettled",
+                session_id[:8],
+                rank,
+                chain.level,
+            )
             continue
         # In overrun mode (past max_races), only bet on chains in active recovery
         if overrun_mode and chain.level == 0:
@@ -256,6 +287,7 @@ async def next_race(session_id: str):
         )
         session.races_played += 1
         session.races.append(race)
+        apply_stop_conditions(session, allow_recovery_overrun=False)
         await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
         # ---- SSE: push the placed bet to any connected listeners ----
         await sse_publish(session_id, "bet_placed", {
@@ -313,20 +345,7 @@ async def next_race(session_id: str):
     )
     session.races.append(race)
 
-    if session.total_pnl >= session.config.stop_win:
-        session.status = "stopped_win"
-    elif session.total_pnl <= -session.config.stop_loss:
-        session.status = "stopped_loss"
-    elif session.races_played >= session.config.max_races:
-        # End-of-day: only stop if no chains are still in active recovery.
-        # Otherwise, keep racing in "overrun" mode until each chain either
-        # wins (resets to L0) or busts.
-        has_recovery = any(
-            (c.level > 0 and not c.busted)
-            for c in session.recovery_chains.values()
-        )
-        if not has_recovery:
-            session.status = "stopped_max"
+    apply_stop_conditions(session)
 
     await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
 

@@ -7,6 +7,7 @@ from db import db
 from models import Session
 from services.racing import doc_to_session, session_to_doc
 from services.recovery import apply_settled_bet_to_chain
+from services.session_status import apply_stop_conditions
 from session_events import publish as sse_publish
 
 logger = logging.getLogger(__name__)
@@ -74,6 +75,7 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
 
     session.bank = race.bank_after
     session.total_pnl = round(session.total_pnl + pnl_change, 4)
+    apply_stop_conditions(session, allow_recovery_overrun=False)
 
     await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
 
@@ -102,6 +104,7 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
         "bank": session.bank,
         "starting_bank": session.config.starting_bank,
         "total_pnl": session.total_pnl,
+        "status": session.status,
     })
 
 
