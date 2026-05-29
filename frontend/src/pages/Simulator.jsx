@@ -288,20 +288,22 @@ export default function Simulator() {
 
       {/* Header */}
       <header className="border-b border-[#2A2A2A] bg-[#0A0A0A]" data-testid="app-header">
-        <div className="max-w-[1600px] mx-auto px-6 py-5 flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-3" data-testid="header-home-link">
-            <div className="w-10 h-10 bg-pink-600 flex items-center justify-center">
+            <div className="w-10 h-10 bg-pink-600 flex items-center justify-center shrink-0">
               <Activity className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <div className="font-display text-3xl font-black uppercase tracking-tighter leading-none">
+            <div className="min-w-0">
+              <div className="font-display text-2xl sm:text-3xl font-black uppercase tracking-tighter leading-none truncate">
                 Lay-Hounds
               </div>
               <div className="label-xs">Greyhound Recovery Simulator</div>
             </div>
           </Link>
-          <div className="flex items-center gap-3">
-            <BetfairStatusBadge />
+          <div className="flex items-center justify-end gap-2 sm:gap-3 flex-wrap">
+            <div className="hidden sm:block">
+              <BetfairStatusBadge />
+            </div>
             {current && current.config.mode === "live" && (
               <Button
                 data-testid="refresh-settlement-btn"
@@ -382,9 +384,9 @@ export default function Simulator() {
       )}
       <SettlementBanner />
 
-      <main className="max-w-[1600px] mx-auto px-6 py-6 grid grid-cols-12 gap-4">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 grid grid-cols-12 gap-4">
         {/* Left column */}
-        <aside className="col-span-12 lg:col-span-3 space-y-4">
+        <aside className="hidden lg:block lg:col-span-3 space-y-4">
           <LicencePanel />
           <SessionList
             sessions={sessions}
@@ -469,6 +471,7 @@ export default function Simulator() {
                     {inOverrun && " (+overrun)"}
                   </div>
                 </div>
+                {current.config.mode === "simulator" && (
                 <div className="flex items-center gap-2">
                   <div className="flex items-center bg-[#0A0A0A] border border-[#2A2A2A]" data-testid="batch-size-selector">
                     {[1, 5, 10, 25, 50].map((n) => (
@@ -507,6 +510,7 @@ export default function Simulator() {
                     Stop
                   </Button>
                 </div>
+                )}
               </div>
 
               {/* Stats grid */}
