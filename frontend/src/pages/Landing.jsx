@@ -242,8 +242,9 @@ const STEPS = [
     n: "02",
     t: "Test in the simulator",
     d: "Run individual races or batch 50 at a time on simulated UK greyhound fields. Bank carries between sessions so you can stress-test over hundreds of days.",
-    img: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=720&h=480&auto=format&fit=crop&q=80",
+    img: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=720&auto=format&q=80",
     alt: "Watching the dashboard run through races",
+    imagePosition: "object-[50%_18%]",
   },
   {
     n: "03",
@@ -259,9 +260,9 @@ const LifestyleBanner = () => (
     <div className="max-w-7xl mx-auto px-6 md:px-12 py-12 md:py-16">
       <div className="relative rounded-3xl overflow-hidden shadow-2xl">
         <img
-          src="https://images.unsplash.com/photo-1521119989659-a83eee488004?w=1600&h=700&auto=format&fit=crop&q=80"
+          src="https://images.unsplash.com/photo-1521119989659-a83eee488004?w=1600&auto=format&q=80"
           alt="Friends celebrating together"
-          className="w-full h-[280px] sm:h-[360px] md:h-[420px] object-cover"
+          className="w-full h-[280px] sm:h-[360px] md:h-[420px] object-cover object-[50%_18%]"
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-tr from-slate-900/80 via-slate-900/40 to-transparent" />
@@ -307,7 +308,7 @@ const HowItWorks = () => (
               src={s.img}
               alt={s.alt}
               loading="lazy"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className={`w-full h-full object-cover ${s.imagePosition || "object-center"} group-hover:scale-105 transition-transform duration-500`}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-white/30 via-transparent to-transparent" />
             <div className="absolute top-3 left-3 bg-white/95 backdrop-blur px-2.5 py-1 rounded-md font-mono font-bold text-pink-600 text-[10px] tracking-widest shadow-sm">
