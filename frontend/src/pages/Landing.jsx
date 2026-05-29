@@ -135,17 +135,6 @@ const Hero = () => (
       >
         <div className="relative">
           <div className="absolute -inset-4 bg-gradient-to-br from-pink-200 via-pink-50 to-transparent rounded-3xl blur-2xl opacity-60" />
-          <div
-            className="absolute -right-20 sm:-right-28 top-8 sm:top-10 z-0 w-40 sm:w-52 pointer-events-none"
-            aria-hidden="true"
-          >
-            <img
-              src="/assets/greyhound-peeking-cutout.png"
-              alt=""
-              loading="eager"
-              className="w-full drop-shadow-2xl"
-            />
-          </div>
           <div className="relative z-10 rounded-2xl border border-slate-200 bg-slate-900 shadow-2xl overflow-hidden">
             <div className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 border-b border-slate-700">
               <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
