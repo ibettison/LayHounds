@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 from betfair_client import betfair, BetfairError
 from race_categories import detect_category_from_market_name
+from services.racing import fill_missing_traps, trap_from_runner_name
 
 router = APIRouter(prefix="/api")
 
@@ -82,20 +83,19 @@ async def betfair_market_preview(market_id: str):
             continue
         sel_id = br["selectionId"]
         meta = runner_meta.get(sel_id, {})
+        name = meta.get("runnerName", f"Runner {sel_id}")
+        trap = int(meta.get("metadata", {}).get("CLOTH_NUMBER")
+                   or meta.get("metadata", {}).get("TRAP_NUMBER") or 0)
         priced.append({
             "selection_id": sel_id,
-            "name": meta.get("runnerName", f"Runner {sel_id}"),
-            "trap": int(meta.get("metadata", {}).get("CLOTH_NUMBER")
-                        or meta.get("metadata", {}).get("TRAP_NUMBER") or 0),
+            "name": name,
+            "trap": trap or trap_from_runner_name(name),
             "odds": round(float(lay_prices[0]["price"]), 2),
             "back_odds": round(float(back_prices[0]["price"]), 2) if back_prices else None,
             "lay_size": round(float(lay_prices[0].get("size") or 0), 2),
         })
 
-    # Assign traps in order if Betfair didn't supply CLOTH_NUMBER
-    for i, p in enumerate(priced):
-        if not p["trap"]:
-            p["trap"] = i + 1
+    fill_missing_traps(priced)
 
     sorted_by_odds = sorted(priced, key=lambda r: r["odds"])
     rank_by_sel = {r["selection_id"]: idx + 1 for idx, r in enumerate(sorted_by_odds)}

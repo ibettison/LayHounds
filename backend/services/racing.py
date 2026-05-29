@@ -1,4 +1,5 @@
 import random
+import re
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException
@@ -11,6 +12,24 @@ from race_categories import (
     random_category,
     winner_weights,
 )
+
+TRAP_FROM_NAME_RE = re.compile(r"^\s*(?:trap|t|no\.?)?\s*([1-6])(?:\D|$)", re.IGNORECASE)
+
+
+def trap_from_runner_name(name: str) -> int:
+    """Return a trap number from Betfair runner names like '1. Dog Name'."""
+    match = TRAP_FROM_NAME_RE.search(name or "")
+    return int(match.group(1)) if match else 0
+
+
+def fill_missing_traps(priced: List[dict]) -> None:
+    """Fill any missing traps without assuming row order for short fields."""
+    used = {p["trap"] for p in priced if p.get("trap")}
+    unused = iter(trap for trap in range(1, 7) if trap not in used)
+    for p in priced:
+        if not p.get("trap"):
+            p["trap"] = next(unused, 0)
+
 
 def generate_race(race_num: int) -> tuple[List[Greyhound], str, RaceCategory]:
     venues = ["Romford", "Hove", "Nottingham", "Sheffield", "Crayford", "Towcester", "Newcastle", "Sunderland"]
@@ -95,18 +114,17 @@ async def fetch_live_race() -> Dict[str, Any]:
             odds = lay_prices[0]["price"]
             sel_id = br["selectionId"]
             meta = runner_meta.get(sel_id, {})
+            name = meta.get("runnerName", f"Runner {sel_id}")
+            trap = int(meta.get("metadata", {}).get("CLOTH_NUMBER") or meta.get("metadata", {}).get("TRAP_NUMBER") or 0)
             priced.append({
                 "selection_id": sel_id,
-                "name": meta.get("runnerName", f"Runner {sel_id}"),
-                "trap": int(meta.get("metadata", {}).get("CLOTH_NUMBER") or meta.get("metadata", {}).get("TRAP_NUMBER") or 0),
+                "name": name,
+                "trap": trap or trap_from_runner_name(name),
                 "odds": float(odds),
             })
         if len(priced) < 2:
             continue
-        # Assign traps if missing (use order from market)
-        for i, p in enumerate(priced):
-            if not p["trap"]:
-                p["trap"] = i + 1
+        fill_missing_traps(priced)
         # Compute favourite rank by ascending odds
         sorted_by_odds = sorted(priced, key=lambda r: r["odds"])
         rank_by_sel = {r["selection_id"]: idx + 1 for idx, r in enumerate(sorted_by_odds)}
