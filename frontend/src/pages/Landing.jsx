@@ -350,33 +350,33 @@ const SimulationSweep = () => (
     <motion.div {...fadeUp} className="text-center max-w-3xl mx-auto mb-12">
       <Overline>Latest simulator sweep</Overline>
       <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-slate-900">
-        The favourable zone was small and disciplined.
+        Stake levels compared.
       </h2>
       <p className="text-slate-600 mt-4 leading-relaxed">
-        We ran 12,150 broad simulated days, then reran 24,000 days on the leading
-        settings. Commission stayed fixed at 5%.
+        We ran 40,500 simulated 20-race days across &pound;0.05, &pound;0.50 and
+        &pound;1.00 stakes, with recovery levels 3-5. Commission stayed fixed at 5%.
       </p>
     </motion.div>
 
     <motion.div {...fadeUp} className="grid md:grid-cols-3 gap-4">
       {[
         {
-          title: "Best balance",
-          config: <>Bank &pound;10-&pound;25 / stake &pound;0.05 / cap &pound;10 / 20 races</>,
-          avg: <>+&pound;0.36 to +&pound;0.41 avg</>,
-          risk: "75% positive days",
+          title: "Small stake",
+          config: <>L5 / 4 favs / stake &pound;0.05 / cap &pound;100</>,
+          avg: <>&pound;7.66 weekly / &pound;30.65 monthly avg</>,
+          risk: "95% positive days / 4% bust",
         },
         {
-          title: "Lower drawdown",
-          config: <>Bank &pound;25-&pound;50 / stake &pound;0.05 / cap &pound;5 / 20 races</>,
-          avg: <>+&pound;0.37 to +&pound;0.38 avg</>,
-          risk: <>&pound;5.42-&pound;5.54 95% drawdown</>,
+          title: "Mid stake",
+          config: <>L5 / 3 favs / stake &pound;0.50 / cap &pound;100</>,
+          avg: <>&pound;44.79 weekly / &pound;179.15 monthly avg</>,
+          risk: "77% positive days / 23% bust",
         },
         {
-          title: "Bigger stake",
-          config: <>Bank &pound;25-&pound;50 / stake &pound;0.10 / cap &pound;10 / 20 races</>,
-          avg: <>+&pound;0.63 to +&pound;0.67 avg</>,
-          risk: <>&pound;11+ 95% drawdown</>,
+          title: "Aggressive",
+          config: <>L3 / 4 favs / stake &pound;1.00 / cap &pound;100</>,
+          avg: <>&pound;99.71 weekly / &pound;398.83 monthly avg</>,
+          risk: <>&pound;116.18 95% drawdown / 65% bust</>,
         },
       ].map(({ title, config, avg, risk }) => (
         <div key={title} className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
