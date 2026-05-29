@@ -48,4 +48,5 @@ export const api = {
   betfairFunds: () => axios.get(`${API}/betfair/funds`).then((r) => r.data),
   betfairRaces: (minutesAhead = 60) => axios.get(`${API}/betfair/races?minutes_ahead=${minutesAhead}`).then((r) => r.data),
   refreshBank: (id) => axios.post(`${API}/sessions/${id}/refresh-bank`).then((r) => r.data),
+  refreshLiveSettlement: (id) => axios.post(`${API}/sessions/${id}/refresh-live-settlement`).then((r) => r.data),
 };

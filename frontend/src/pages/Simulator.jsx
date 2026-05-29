@@ -78,6 +78,35 @@ export default function Simulator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const reconcileLiveSettlement = useCallback(async (sessionId, { quiet = false } = {}) => {
+    try {
+      const result = await api.refreshLiveSettlement(sessionId);
+      if (result.settled > 0) {
+        const fresh = await api.getSession(sessionId);
+        setCurrent(fresh);
+        await refreshList();
+        if (!quiet) toast.success(`Betfair settlement updated · ${result.settled} race${result.settled === 1 ? "" : "s"}`);
+      } else if (!quiet && result.pending > 0) {
+        toast.message("Betfair has not settled that race yet", { duration: 3500 });
+      }
+      return result;
+    } catch (e) {
+      const status = e.response?.status;
+      if (status !== 404 && !quiet) {
+        toast.error(`Settlement check failed: ${e.response?.data?.detail || e.message}`);
+      }
+      return null;
+    }
+  }, [refreshList]);
+
+  useEffect(() => {
+    if (current?.config?.mode !== "live") return;
+    const hasPendingLive = (current.races || []).some(
+      (r) => r.source === "live" && r.betfair_bet_ids?.length > 0 && !r.winning_trap
+    );
+    if (hasPendingLive) reconcileLiveSettlement(current.id, { quiet: true });
+  }, [current?.id, current?.config?.mode, reconcileLiveSettlement]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Subscribe to live SSE events for the active session: bet placed, settlement
   // polling, race resolved, bank updates. The hook surfaces toasts for each
   // event and calls onSessionUpdate so the simulator refetches state.
@@ -147,6 +176,9 @@ export default function Simulator() {
     const auto = opts.auto === true;
     setLoading(true);
     try {
+      if (current.config.mode === "live") {
+        await reconcileLiveSettlement(current.id, { quiet: true });
+      }
       const updated = batchSize === 1
         ? await api.nextRace(current.id)
         : await api.runRaces(current.id, batchSize);
@@ -270,6 +302,17 @@ export default function Simulator() {
           </Link>
           <div className="flex items-center gap-3">
             <BetfairStatusBadge />
+            {current && current.config.mode === "live" && (
+              <Button
+                data-testid="refresh-settlement-btn"
+                variant="ghost"
+                onClick={() => reconcileLiveSettlement(current.id)}
+                className="rounded-none border border-[#2A2A2A] text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/40 font-bold uppercase tracking-wider text-xs"
+                title="Check Betfair settled bet history and update race results"
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Settle
+              </Button>
+            )}
             {current && current.config.mode === "live" && (
               <Button
                 data-testid="refresh-bank-btn"

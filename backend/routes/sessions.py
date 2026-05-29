@@ -19,7 +19,7 @@ from services.racing import (
     pick_winner,
     session_to_doc,
 )
-from services.settlement import _close_live_race, poll_live_settlement
+from services.settlement import reconcile_live_settlements
 from session_events import (
     clear_session as sse_clear_session,
     format_sse,
@@ -128,45 +128,14 @@ async def next_race(session_id: str):
     if mode == "simulator":
         runners, venue, category = generate_race(session.races_played + 1)
     else:
-        # LIVE / PAPER_LIVE: if a previous live race in this session still has
-        # unsettled bets, opportunistically check Betfair once. If it settled
-        # since our last poll, fold the P&L into recovery_chains BEFORE we
-        # compute the next stake (so recovery applies correctly). If it's
-        # still pending, just continue at the current chain state (typically
-        # L0) — the deferred result will be applied to the race AFTER this one
-        # once the background poller catches up. We never refuse a placement
-        # for a still-pending settlement.
         if mode == "live":
-            last_live = next(
-                (r for r in reversed(session.races)
-                 if r.source == "live" and r.betfair_bet_ids and r.winning_trap == 0),
-                None,
-            )
-            if last_live:
-                try:
-                    cleared = await betfair.list_cleared_orders(
-                        market_id=last_live.market_id,
-                        bet_ids=last_live.betfair_bet_ids,
-                    )
-                    rows = (cleared or {}).get("clearedOrders") or []
-                    settled_ids = {r.get("betId") for r in rows if r.get("betId")}
-                    remaining = [b for b in last_live.betfair_bet_ids if b not in settled_ids]
-                    if not remaining:
-                        # Newly settled — apply result NOW so recovery is correct.
-                        await _close_live_race(session_id, last_live.race_id, rows)
-                        doc2 = await db.sessions.find_one({"id": session_id}, {"_id": 0})
-                        if doc2:
-                            session = doc_to_session(doc2)
-                    else:
-                        logger.info(
-                            "Previous live race %s still has %d unsettled bet(s); "
-                            "placing new bet at current chain state (will catch up later).",
-                            last_live.race_num, len(remaining),
-                        )
-                except BetfairError as e:
-                    # Betfair unreachable for the cleared-orders check — proceed
-                    # at the current chain state rather than refusing the bet.
-                    logger.warning("listClearedOrders failed during pre-place check: %s — proceeding with current chain.", e)
+            try:
+                await reconcile_live_settlements(session_id)
+            except BetfairError as e:
+                raise HTTPException(502, f"Could not check Betfair settlement history: {e}")
+            doc2 = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+            if doc2:
+                session = doc_to_session(doc2)
         live = await fetch_live_race()
         runners = live["runners"]
         venue = live["venue"]
@@ -303,9 +272,6 @@ async def next_race(session_id: str):
             "total_stake": round(sum(b.stake for b in bets), 4),
             "total_liability": round(sum(b.liability for b in bets), 4),
         })
-        # Kick off background settlement polling so the user gets a UI update
-        # the moment Betfair returns the cleared-order P&L for this race.
-        asyncio.create_task(poll_live_settlement(session_id, race.race_id, market_id, betfair_bet_ids))
         return session
 
     # Simulator + paper_live: simulate outcome (blended category win-rates)
@@ -433,33 +399,17 @@ async def session_event_stream(session_id: str, request: Request):
 
 @router.post("/sessions/{session_id}/refresh-live-settlement")
 async def refresh_live_settlement(session_id: str, race_id: Optional[str] = None):
-    """Manually trigger a one-shot settlement check for live races."""
+    """Reconcile live races from actual Betfair settled-order history."""
     doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Session not found")
-    session = doc_to_session(doc)
-    races = [r for r in session.races if r.source == "live" and r.betfair_bet_ids]
-    if race_id:
-        race = next((r for r in races if r.race_id == race_id), None)
-    else:
-        race = races[-1] if races else None
-    if not race:
-        raise HTTPException(404, "No live race with placed bets found")
-
     try:
-        cleared = await betfair.list_cleared_orders(
-            market_id=race.market_id, bet_ids=race.betfair_bet_ids
-        )
+        result = await reconcile_live_settlements(session_id, race_id=race_id)
     except BetfairError as e:
         raise HTTPException(502, f"Betfair listClearedOrders failed: {e}")
-
-    rows = (cleared or {}).get("clearedOrders") or []
-    settled_ids = {r.get("betId") for r in rows if r.get("betId")}
-    remaining = [b for b in race.betfair_bet_ids if b not in settled_ids]
-    if remaining:
-        return {"settled": False, "settled_count": len(settled_ids), "remaining": remaining}
-    await _close_live_race(session_id, race.race_id, rows)
-    return {"settled": True, "settled_count": len(settled_ids)}
+    if not result["found"]:
+        raise HTTPException(404, "No live race with placed bets found")
+    return result
 
 
 @router.post("/sessions/{session_id}/refresh-bank", response_model=Session)
