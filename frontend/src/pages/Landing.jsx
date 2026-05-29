@@ -135,6 +135,19 @@ const Hero = () => (
       >
         <div className="relative">
           <div className="absolute -inset-4 bg-gradient-to-br from-pink-200 via-pink-50 to-transparent rounded-3xl blur-2xl opacity-60" />
+          <div
+            className="absolute -right-3 sm:-right-8 -top-10 sm:-top-14 z-20 w-32 sm:w-44 rotate-3"
+            aria-hidden="true"
+          >
+            <div className="overflow-hidden rounded-2xl border-4 border-white bg-white shadow-2xl shadow-slate-900/20">
+              <img
+                src="https://unsplash.com/photos/2B6b5tyWDWk/download?force=true&w=520"
+                alt=""
+                loading="eager"
+                className="h-36 sm:h-48 w-full object-cover object-[45%_34%]"
+              />
+            </div>
+          </div>
           <div className="relative rounded-2xl border border-slate-200 bg-slate-900 shadow-2xl overflow-hidden">
             <div className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 border-b border-slate-700">
               <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
