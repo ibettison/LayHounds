@@ -345,6 +345,51 @@ const Demo = () => (
   </Section>
 );
 
+const SimulationSweep = () => (
+  <Section id="simulation-sweep" className="bg-white">
+    <motion.div {...fadeUp} className="text-center max-w-3xl mx-auto mb-12">
+      <Overline>Latest simulator sweep</Overline>
+      <h2 className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-slate-900">
+        The favourable zone was small and disciplined.
+      </h2>
+      <p className="text-slate-600 mt-4 leading-relaxed">
+        We ran 12,150 broad simulated days, then reran 24,000 days on the leading
+        settings. Commission stayed fixed at 5%.
+      </p>
+    </motion.div>
+
+    <motion.div {...fadeUp} className="grid md:grid-cols-3 gap-4">
+      {[
+        {
+          title: "Best balance",
+          config: <>Bank &pound;10-&pound;25 / stake &pound;0.05 / cap &pound;10 / 20 races</>,
+          avg: <>+&pound;0.36 to +&pound;0.41 avg</>,
+          risk: "75% positive days",
+        },
+        {
+          title: "Lower drawdown",
+          config: <>Bank &pound;25-&pound;50 / stake &pound;0.05 / cap &pound;5 / 20 races</>,
+          avg: <>+&pound;0.37 to +&pound;0.38 avg</>,
+          risk: <>&pound;5.42-&pound;5.54 95% drawdown</>,
+        },
+        {
+          title: "Bigger stake",
+          config: <>Bank &pound;25-&pound;50 / stake &pound;0.10 / cap &pound;10 / 20 races</>,
+          avg: <>+&pound;0.63 to +&pound;0.67 avg</>,
+          risk: <>&pound;11+ 95% drawdown</>,
+        },
+      ].map(({ title, config, avg, risk }) => (
+        <div key={title} className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+          <div className="text-xs font-mono uppercase tracking-widest text-pink-600 font-bold mb-3">{title}</div>
+          <div className="text-sm text-slate-600 leading-relaxed mb-4">{config}</div>
+          <div className="font-mono text-lg font-bold text-emerald-600">{avg}</div>
+          <div className="font-mono text-xs text-slate-500 mt-1">{risk}</div>
+        </div>
+      ))}
+    </motion.div>
+  </Section>
+);
+
 const TESTIMONIALS = [
   {
     photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&auto=format&fit=crop&q=80",
@@ -865,6 +910,7 @@ export default function Landing() {
       <LifestyleBanner />
       <HowItWorks />
       <Demo />
+      <SimulationSweep />
       <Testimonials />
       <Pricing />
       <FAQ />

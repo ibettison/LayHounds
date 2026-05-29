@@ -25,6 +25,7 @@ import { RaceHistory } from "../components/RaceHistory";
 import { SessionList } from "../components/SessionList";
 import { BetfairStatusBadge } from "../components/BetfairStatusBadge";
 import { DailyChart } from "../components/DailyChart";
+import { SimulationFindings } from "../components/SimulationFindings";
 import { LiveCountdown } from "../components/LiveCountdown";
 import { UpcomingRacePreview } from "../components/UpcomingRacePreview";
 import { SettlementBanner } from "../components/SettlementBanner";
@@ -562,6 +563,7 @@ export default function Simulator() {
 
               {/* Daily trading journal / cross-session P&L */}
               <DailyChart refreshKey={current.races_played + "_" + current.status} />
+              <SimulationFindings />
             </>
           )}
         </section>
