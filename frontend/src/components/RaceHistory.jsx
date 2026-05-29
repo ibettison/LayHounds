@@ -24,7 +24,10 @@ export const RaceHistory = ({ races }) => {
         )}
         {[...uniqueRaces].reverse().map((race) => {
           const winner = race.runners.find((r) => r.trap === race.winning_trap);
-          const livePending = race.source === "live" && !race.winning_trap;
+          const liveSettled = race.source === "live" && (race.bets || []).some(
+            (bet) => bet.result || bet.settled_at || bet.placement_status === "settled" || bet.pnl != null
+          );
+          const livePending = race.source === "live" && !liveSettled;
           return (
             <div
               key={race.race_id}
@@ -54,9 +57,13 @@ export const RaceHistory = ({ races }) => {
                   {winner?.trap ?? "—"}
                 </span>
                 <span className="text-white truncate flex-1">
-                  {winner?.name || (livePending ? "Awaiting Betfair settlement" : "(not resolved)")}
+                  {winner?.name || (livePending ? "Awaiting Betfair settlement" : "Settled")}
                 </span>
-                <span className="text-zinc-500 font-mono text-xs">@{Number(winner?.odds || 0).toFixed(2)}</span>
+                {winner ? (
+                  <span className="text-zinc-500 font-mono text-xs">@{Number(winner.odds || 0).toFixed(2)}</span>
+                ) : (
+                  <span className="text-zinc-600 font-mono text-xs">Betfair P&L</span>
+                )}
               </div>
               {race.source === "live" && race.bets?.length > 0 && (
                 <div className="mt-2 space-y-1">
