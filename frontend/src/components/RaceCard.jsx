@@ -10,6 +10,14 @@ const TrapBadge = ({ trap }) => (
   </div>
 );
 
+const formatRaceTime = (race) => {
+  const raw = race?.market_start_time || race?.timestamp;
+  if (!raw) return null;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+};
+
 export const RaceCard = ({ race, layedRanks }) => {
   if (!race) {
     return (
@@ -28,13 +36,21 @@ export const RaceCard = ({ race, layedRanks }) => {
   const sorted = [...race.runners].sort((a, b) => a.favourite_rank - b.favourite_rank);
   const betsByRank = {};
   for (const b of race.bets) betsByRank[b.favourite_rank] = b;
+  const raceTime = formatRaceTime(race);
 
   return (
     <div className="bg-[#141414] border border-[#2A2A2A]" data-testid="race-card">
       <div className="flex items-center justify-between bg-[#0A0A0A] border-b border-[#2A2A2A] p-4">
         <div>
           <div className="label-xs">Race #{race.race_num}</div>
-          <div className="font-display text-2xl uppercase tracking-tight">{race.venue}</div>
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="font-display text-2xl uppercase tracking-tight truncate">{race.venue}</span>
+            {raceTime && (
+              <span className="font-display text-2xl uppercase tracking-tight text-zinc-500 shrink-0">
+                {raceTime}
+              </span>
+            )}
+          </div>
           {race.category && (
             <div className="flex items-center gap-1.5 mt-1.5" data-testid="race-category">
               <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-pink-500/15 text-pink-300 border border-pink-500/30">

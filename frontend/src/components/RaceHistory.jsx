@@ -1,5 +1,13 @@
 import React from "react";
 
+const formatRaceTime = (race) => {
+  const raw = race?.market_start_time || race?.timestamp;
+  if (!raw) return null;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+};
+
 export const RaceHistory = ({ races }) => {
   const uniqueRaces = [];
   const seen = new Set();
@@ -24,6 +32,7 @@ export const RaceHistory = ({ races }) => {
         )}
         {[...uniqueRaces].reverse().map((race) => {
           const winner = race.runners.find((r) => r.trap === race.winning_trap);
+          const raceTime = formatRaceTime(race);
           const liveSettled = race.source === "live" && (race.bets || []).some(
             (bet) => bet.result || bet.settled_at || bet.placement_status === "settled" || bet.pnl != null
           );
@@ -37,6 +46,9 @@ export const RaceHistory = ({ races }) => {
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="label-xs">R{race.race_num}</span>
+                  {raceTime && (
+                    <span className="text-xs text-zinc-500 font-display uppercase">{raceTime}</span>
+                  )}
                   <span className="text-xs text-zinc-400 font-display uppercase">{race.venue}</span>
                   {race.category && (
                     <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-pink-300/80">
