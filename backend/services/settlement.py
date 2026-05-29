@@ -6,16 +6,14 @@ from betfair_client import betfair, BetfairError
 from db import db
 from models import Session
 from services.racing import doc_to_session, session_to_doc
+from services.recovery import apply_settled_bet_to_chain
 from session_events import publish as sse_publish
 
 logger = logging.getLogger(__name__)
 
-async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dict[str, Any]]):
-    """Update the Race + Session with realised P&L from Betfair's cleared orders.
 
-    `cleared_rows` is the raw `clearedOrders` array from listClearedOrders —
-    each row has `betId`, `priceMatched`, `sizeMatched`, `profit` (signed).
-    """
+async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dict[str, Any]]):
+    """Update a live race/session from Betfair cleared orders."""
     doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
     if not doc:
         return
@@ -24,74 +22,54 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
     if not race:
         logger.warning("Settlement received for unknown race_id=%s session=%s", race_id, session_id[:8])
         return
-    if race.winning_trap:
-        return
 
-    # Map bet_id → row for fast lookup
     by_bet = {r.get("betId"): r for r in cleared_rows if r.get("betId")}
 
     pnl_change = 0.0
-    losses_by_rank: Dict[int, float] = {}
-    wins_by_rank: Dict[int, float] = {}
+    newly_settled = []
     for bet in race.bets:
+        if bet.settled_at or bet.result:
+            continue
         bet_id = bet.betfair_bet_id
         row = by_bet.get(bet_id) if bet_id else None
         if row is None:
             continue
-        profit = float(row.get("profit") or 0.0)  # signed, gross
+
+        profit = float(row.get("profit") or 0.0)
         bet.pnl = round(profit, 4)
         bet.settled_profit = round(profit, 4)
         bet.betfair_status = row.get("betStatus")
         bet.settled_at = datetime.now(timezone.utc).isoformat()
-        bet.matched_size = float(row.get("sizeSettled") or row.get("sizeMatched") or bet.matched_size or 0.0) or bet.matched_size
-        bet.matched_price = float(row.get("priceMatched") or row.get("priceRequested") or bet.matched_price or 0.0) or bet.matched_price
+        bet.matched_size = (
+            float(row.get("sizeSettled") or row.get("sizeMatched") or bet.matched_size or 0.0)
+            or bet.matched_size
+        )
+        bet.matched_price = (
+            float(row.get("priceMatched") or row.get("priceRequested") or bet.matched_price or 0.0)
+            or bet.matched_price
+        )
         bet.placement_status = "settled"
         if bet.matched_price:
             bet.slippage_ticks = betfair.count_ticks(bet.odds, bet.matched_price)
         if profit >= 0:
             bet.result = "win"
-            wins_by_rank[bet.favourite_rank] = profit
         else:
             bet.result = "loss"
-            losses_by_rank[bet.favourite_rank] = profit
         pnl_change += profit
+        newly_settled.append(bet)
 
-    # Update recovery chains using same logic as simulator/paper_live
-    for bet in race.bets:
+    for bet in newly_settled:
         chain = session.recovery_chains.get(str(bet.favourite_rank))
-        if not chain:
-            continue
-        if bet.result == "loss":
-            base_level = max(chain.level, bet.recovery_level)
-            new_accum = round(
-                chain.accumulated_loss
-                + bet.liability
-                + session.config.stake,
-                4,
-            )
-            if base_level >= session.config.max_recovery_level:
-                chain.busted = True
-                chain.level = session.config.max_recovery_level
-                chain.pending_stake = session.config.stake
-                chain.accumulated_loss = new_accum
-            else:
-                chain.level = base_level + 1
-                chain.accumulated_loss = new_accum
-                chain.pending_stake = round(new_accum, 4)
-        else:
-            # A later base-level bet can settle before/after an earlier race.
-            # Only clear recovery if this bet represented the current recovery
-            # level. A stale L0 win must not wipe losses that arrived meanwhile.
-            if bet.recovery_level >= chain.level or chain.accumulated_loss <= 0:
-                chain.level = 0
-                chain.accumulated_loss = 0.0
-                chain.pending_stake = session.config.stake
+        if chain:
+            apply_settled_bet_to_chain(chain, bet, session.config, bet.pnl or 0.0)
 
-    # Figure out the actual winning trap from the bet results.
     losing_bet = next((b for b in race.bets if b.result == "loss"), None)
     winning_trap = losing_bet.dog_trap if losing_bet else 0
-    race.winning_trap = winning_trap
-    race.pnl_change = round(pnl_change, 4)
+    race_settled = all((not b.betfair_bet_id) or b.settled_at or b.result for b in race.bets)
+    if race_settled:
+        race.winning_trap = winning_trap
+
+    race.pnl_change = round(race.pnl_change + pnl_change, 4)
     race.bank_after = round(session.bank + pnl_change, 4)
 
     session.bank = race.bank_after
@@ -103,30 +81,35 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
     await sse_publish(session_id, "race_resulted", {
         "race_num": race.race_num,
         "venue": race.venue,
-        "winning_trap": winning_trap,
+        "winning_trap": race.winning_trap,
         "winner_name": winner_dog.name if winner_dog else None,
         "winner_odds": winner_dog.odds if winner_dog else None,
         "pnl_change": race.pnl_change,
         "bank_after": race.bank_after,
         "category": race.category.model_dump() if race.category else None,
         "bets": [{
-            "rank": b.favourite_rank, "trap": b.dog_trap, "name": b.dog_name,
-            "pnl": b.pnl, "result": b.result, "recovery_level": b.recovery_level,
+            "rank": b.favourite_rank,
+            "trap": b.dog_trap,
+            "name": b.dog_name,
+            "pnl": b.pnl,
+            "result": b.result,
+            "recovery_level": b.recovery_level,
         } for b in race.bets],
         "source": "live_settled",
+        "fully_settled": race_settled,
     })
     await sse_publish(session_id, "bank_updated", {
-        "bank": session.bank, "starting_bank": session.config.starting_bank,
+        "bank": session.bank,
+        "starting_bank": session.config.starting_bank,
         "total_pnl": session.total_pnl,
     })
 
 
 async def reconcile_live_settlements(session_id: str, race_id: Optional[str] = None) -> Dict[str, Any]:
-    """Check Betfair cleared-order history for unresolved live races.
+    """Check Betfair cleared-order history for unresolved live bets.
 
-    This is the authoritative settlement path: no simulated winner, no guesswork.
-    It checks actual Betfair cleared orders and closes local races only when every
-    matched bet for that race appears in settled history.
+    Recovery is applied as soon as each individual Betfair bet is settled, so a
+    losing selection can affect the next race even if its paired bet is pending.
     """
     doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
     if not doc:
@@ -136,8 +119,8 @@ async def reconcile_live_settlements(session_id: str, race_id: Optional[str] = N
     candidates = [
         r for r in session.races
         if r.source == "live"
-        and not r.winning_trap
         and r.betfair_bet_ids
+        and any(b.betfair_bet_id and not b.settled_at and not b.result for b in r.bets)
         and (race_id is None or r.race_id == race_id)
     ]
 
@@ -153,7 +136,12 @@ async def reconcile_live_settlements(session_id: str, race_id: Optional[str] = N
         rows = (cleared or {}).get("clearedOrders") or []
         settled_ids = {r.get("betId") for r in rows if r.get("betId")}
         remaining = [b for b in race.betfair_bet_ids if b not in settled_ids]
-        if remaining:
+        newly_available = [
+            b.betfair_bet_id for b in race.bets
+            if b.betfair_bet_id in settled_ids and not b.settled_at and not b.result
+        ]
+
+        if not newly_available:
             pending_count += 1
             results.append({
                 "race_id": race.race_id,
@@ -166,14 +154,17 @@ async def reconcile_live_settlements(session_id: str, race_id: Optional[str] = N
             continue
 
         await _close_live_race(session_id, race.race_id, rows)
-        settled_count += 1
+        if remaining:
+            pending_count += 1
+        else:
+            settled_count += 1
         results.append({
             "race_id": race.race_id,
             "race_num": race.race_num,
             "market_id": race.market_id,
-            "settled": True,
+            "settled": not remaining,
             "settled_count": len(settled_ids),
-            "remaining": [],
+            "remaining": remaining,
         })
 
     return {
@@ -182,4 +173,3 @@ async def reconcile_live_settlements(session_id: str, race_id: Optional[str] = N
         "pending": pending_count,
         "races": results,
     }
-

@@ -19,6 +19,7 @@ from services.racing import (
     pick_winner,
     session_to_doc,
 )
+from services.recovery import apply_settled_bet_to_chain
 from services.settlement import reconcile_live_settlements
 from session_events import (
     clear_session as sse_clear_session,
@@ -288,21 +289,7 @@ async def next_race(session_id: str):
             bet.result = "loss"
             bet.pnl = -bet.liability
             pnl_change -= bet.liability
-            new_accum = round(
-                chain.accumulated_loss
-                + bet.liability
-                + session.config.stake,
-                4,
-            )
-            if chain.level >= session.config.max_recovery_level:
-                chain.busted = True
-                chain.level = session.config.max_recovery_level
-                chain.pending_stake = session.config.stake
-                chain.accumulated_loss = new_accum
-            else:
-                chain.level += 1
-                chain.accumulated_loss = new_accum
-                chain.pending_stake = round(new_accum, 4)
+            apply_settled_bet_to_chain(chain, bet, session.config, bet.pnl)
         else:
             bet.result = "win"
             gross_win = bet.stake
@@ -310,9 +297,7 @@ async def next_race(session_id: str):
             net_win = round(gross_win - commission, 4)
             bet.pnl = net_win
             pnl_change += net_win
-            chain.level = 0
-            chain.accumulated_loss = 0.0
-            chain.pending_stake = session.config.stake
+            apply_settled_bet_to_chain(chain, bet, session.config, bet.pnl)
 
     session.bank = round(session.bank + pnl_change, 4)
     session.total_pnl = round(session.total_pnl + pnl_change, 4)
@@ -508,11 +493,12 @@ async def preview_cap(inp: CapPreviewInput):
             if winner == runner.trap:
                 # lay loses
                 chain_pnl -= liability
-                accum_loss += liability + pending
+                target = inp.stake * (1 - inp.commission_rate)
+                accum_loss += liability + target
                 if level >= inp.max_recovery_level:
                     return {"bust_level": inp.max_recovery_level, "chain_pnl": chain_pnl, "races": races}
                 level += 1
-                pending = liability + pending + inp.stake
+                pending = (accum_loss + target) / max(1 - inp.commission_rate, 0.0001)
             else:
                 gross = pending
                 commission = gross * inp.commission_rate
