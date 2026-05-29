@@ -160,7 +160,6 @@ class BetfairClient:
         return await self._rpc("listMarketCatalogue", params) or []
 
     @staticmethod
-    @staticmethod
     def _snap_to_tick(price: float) -> float:
         """Snap a price to the nearest valid Betfair price tick.
 
@@ -186,6 +185,21 @@ class BetfairClient:
                 snapped = round(lo + ticks * step, 2)
                 return min(snapped, hi - step) if snapped >= hi else snapped
         return round(price, 2)
+
+    @staticmethod
+    def _next_tick(price: float) -> float:
+        """Return the next valid Betfair tick above `price`."""
+        snapped = BetfairClient._snap_to_tick(price)
+        bands = [
+            (1.01, 2.0, 0.01), (2.0, 3.0, 0.02), (3.0, 4.0, 0.05),
+            (4.0, 6.0, 0.1), (6.0, 10.0, 0.2), (10.0, 20.0, 0.5),
+            (20.0, 30.0, 1.0), (30.0, 50.0, 2.0), (50.0, 100.0, 5.0),
+            (100.0, 1000.01, 10.0),
+        ]
+        for lo, hi, step in bands:
+            if lo <= snapped < hi:
+                return min(1000.0, round(snapped + step, 2))
+        return 1000.0
 
     @staticmethod
     def count_ticks(from_price: float, to_price: float) -> int:
@@ -319,6 +333,103 @@ class BetfairClient:
                 f"price={snapped}, size={size})"
             )
         return result
+
+    async def cancel_order(self, market_id: str, bet_id: str) -> Dict[str, Any]:
+        return await self._rpc(
+            "cancelOrders",
+            {"marketId": market_id, "instructions": [{"betId": bet_id}]},
+        )
+
+    async def place_lay_bet_chasing(
+        self,
+        market_id: str,
+        selection_id: int,
+        price: float,
+        size: float,
+        *,
+        customer_order_ref: Optional[str] = None,
+        max_ticks: int = 6,
+        max_seconds: int = 45,
+        max_liability: Optional[float] = None,
+        max_price: Optional[float] = None,
+        retry_delay: float = 1.5,
+    ) -> Dict[str, Any]:
+        """Place a LAY and chase upward by ticks if fully unmatched.
+
+        This is intentionally conservative:
+          - only unmatched attempts are cancelled and retried;
+          - the loop stops on any matched/partial match;
+          - price is bounded by max_ticks, max_price and max_liability.
+        """
+        if max_ticks <= 0:
+            result = await self.place_lay_bet(
+                market_id, selection_id, price, size,
+                customer_order_ref=customer_order_ref,
+            )
+            result["chase"] = {"attempts": 1, "final_price": self._snap_to_tick(price), "timed_out": False}
+            return result
+
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + max_seconds
+        attempt = 0
+        current_price = self._snap_to_tick(price)
+        ceiling = self._snap_to_tick(max_price) if max_price else 1000.0
+        last_result: Optional[Dict[str, Any]] = None
+        last_bet_id: Optional[str] = None
+
+        while attempt <= max_ticks and loop.time() < deadline:
+            if current_price > ceiling:
+                break
+            if max_liability and size * (current_price - 1) > max_liability:
+                break
+
+            attempt += 1
+            result = await self.place_lay_bet(
+                market_id,
+                selection_id,
+                current_price,
+                size,
+                customer_order_ref=(f"{customer_order_ref}-{attempt}" if customer_order_ref else None),
+            )
+            last_result = result
+            reports = (result or {}).get("instructionReports") or []
+            rep = reports[0] if reports else {}
+            bet_id = rep.get("betId")
+            last_bet_id = bet_id or last_bet_id
+            matched = float(rep.get("sizeMatched") or 0.0)
+
+            result["chase"] = {
+                "attempts": attempt,
+                "final_price": current_price,
+                "timed_out": False,
+            }
+            if matched > 0:
+                return result
+
+            if bet_id:
+                try:
+                    await self.cancel_order(market_id, bet_id)
+                except BetfairError as e:
+                    logger.warning("Could not cancel unmatched chase attempt bet_id=%s", bet_id)
+                    raise BetfairError(
+                        f"Unmatched chase attempt could not be cancelled; stopped before retrying: {e}"
+                    )
+
+            await asyncio.sleep(min(retry_delay, max(0.0, deadline - loop.time())))
+            current_price = self._next_tick(current_price)
+
+        if last_result is None:
+            raise BetfairError(
+                f"Price chase stopped before placement: price={current_price}, "
+                f"max_price={ceiling}, max_liability={max_liability}"
+            )
+        last_result["chase"] = {
+            "attempts": attempt,
+            "final_price": current_price,
+            "timed_out": loop.time() >= deadline,
+            "last_bet_id": last_bet_id,
+        }
+        return last_result
     
     async def cancel_all(self, market_id: str) -> Dict[str, Any]:
         return await self._rpc("cancelOrders", {"marketId": market_id})

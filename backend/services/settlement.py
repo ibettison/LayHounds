@@ -101,10 +101,8 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
     pnl_change = 0.0
     losses_by_rank: Dict[int, float] = {}
     wins_by_rank: Dict[int, float] = {}
-    # Iterate bets in placement order — each bet has a betfair bet_id at the
-    # SAME INDEX in race.betfair_bet_ids (live placement appends in lock-step).
-    for i, bet in enumerate(race.bets):
-        bet_id = race.betfair_bet_ids[i] if i < len(race.betfair_bet_ids) else None
+    for bet in race.bets:
+        bet_id = bet.betfair_bet_id
         row = by_bet.get(bet_id) if bet_id else None
         if row is None:
             continue

@@ -174,6 +174,19 @@ async def next_race(session_id: str):
         market_start_time = live["market_start_time"]
         selection_by_rank = live["selection_by_rank"]
         category = live["category"]
+        if mode == "live" and market_id:
+            existing_live_market = next(
+                (r for r in session.races if r.source == "live" and r.market_id == market_id),
+                None,
+            )
+            if existing_live_market:
+                logger.info(
+                    "Skipping duplicate live placement for session=%s market=%s race=%s",
+                    session_id[:8],
+                    market_id,
+                    existing_live_market.race_num,
+                )
+                return session
 
     # Place lay bets for each favourite slot
     overrun_mode = session.races_played >= session.config.max_races
@@ -214,11 +227,23 @@ async def next_race(session_id: str):
                 sel_id = selection_by_rank[rank]
                 # Idempotent ref: session + race + rank → unique per attempt
                 cor = f"layhounds-{session.id[:8]}-{session.races_played + 1}-{rank}"
-                # betfair_client.place_lay_bet handles BOTH normal lays (>=£1) and
-                # sub-£1 lays (via betTargetType=BACKERS_PROFIT) — single call.
-                result = await betfair.place_lay_bet(
-                    market_id, sel_id, runner.odds, stake,
+                cap_price = None
+                if session.config.max_liability_cap > 0:
+                    cap_price = 1 + (session.config.max_liability_cap / stake)
+                max_chase_price = min(
+                    session.config.odds_max,
+                    cap_price if cap_price else session.config.odds_max,
+                )
+                result = await betfair.place_lay_bet_chasing(
+                    market_id,
+                    sel_id,
+                    runner.odds,
+                    stake,
                     customer_order_ref=cor,
+                    max_ticks=session.config.live_price_chase_ticks if session.config.live_price_chase else 0,
+                    max_seconds=session.config.live_price_chase_seconds,
+                    max_liability=session.config.max_liability_cap if session.config.max_liability_cap > 0 else None,
+                    max_price=max_chase_price,
                 )
                 # Capture the first instruction report so the UI can show the
                 # actual betfair-side matched size + average price immediately.
@@ -226,12 +251,19 @@ async def next_race(session_id: str):
                 if reports:
                     rep = reports[0]
                     bet_id = rep.get("betId")
-                    if bet_id:
+                    matched = float(rep.get("sizeMatched") or 0.0)
+                    if bet_id and matched > 0:
                         betfair_bet_ids.append(bet_id)
                     new_bet.betfair_bet_id = bet_id
-                    new_bet.matched_size = float(rep.get("sizeMatched") or 0.0) or None
+                    new_bet.matched_size = matched or None
                     new_bet.matched_price = float(rep.get("averagePriceMatched") or 0.0) or None
-                    matched = new_bet.matched_size or 0.0
+                    chase = result.get("chase") or {}
+                    new_bet.chase_attempts = int(chase.get("attempts") or 1)
+                    new_bet.chase_final_price = chase.get("final_price")
+                    new_bet.chase_timed_out = bool(chase.get("timed_out"))
+                    if new_bet.chase_final_price:
+                        new_bet.odds = float(new_bet.chase_final_price)
+                        new_bet.liability = round(stake * (new_bet.odds - 1), 4)
                     if matched <= 0:
                         new_bet.placement_status = "unmatched"
                     elif matched + 0.005 < new_bet.stake:

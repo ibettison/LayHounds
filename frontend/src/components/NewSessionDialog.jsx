@@ -45,6 +45,9 @@ export const NewSessionDialog = ({ onCreated }) => {
     odds_max: 10.0,
     max_recovery_level: 3,
     auto_place: false,
+    live_price_chase: true,
+    live_price_chase_ticks: 6,
+    live_price_chase_seconds: 45,
   });
 
   useEffect(() => {
@@ -80,6 +83,8 @@ export const NewSessionDialog = ({ onCreated }) => {
         stop_loss: parseFloat(form.stop_loss),
         max_races: parseInt(form.max_races),
         max_liability_cap: parseFloat(form.max_liability_cap),
+        live_price_chase_ticks: parseInt(form.live_price_chase_ticks),
+        live_price_chase_seconds: parseInt(form.live_price_chase_seconds),
       });
       toast.success("Session created");
       setOpen(false);
@@ -338,6 +343,56 @@ export const NewSessionDialog = ({ onCreated }) => {
                 onCheckedChange={(v) => update("auto_place", !!v)}
                 className="data-[state=checked]:bg-pink-500"
               />
+            </div>
+
+            <div className="p-3 bg-[#141414] border border-[#2A2A2A] space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-display font-bold text-sm uppercase tracking-wider text-white">
+                    Chase unmatched lays
+                  </div>
+                  <div className="text-[11px] text-zinc-500 leading-relaxed mt-1 max-w-md">
+                    If a live lay is fully unmatched, cancel it and retry one Betfair tick higher until matched, timed out, or capped.
+                  </div>
+                </div>
+                <Switch
+                  data-testid="price-chase-switch"
+                  checked={form.live_price_chase}
+                  onCheckedChange={(v) => update("live_price_chase", !!v)}
+                  className="data-[state=checked]:bg-pink-500"
+                />
+              </div>
+              {form.live_price_chase && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1.5">
+                    <Label className="label-xs">Max chase ticks</Label>
+                    <Input
+                      data-testid="input-price-chase-ticks"
+                      type="number"
+                      min="0"
+                      max="25"
+                      value={form.live_price_chase_ticks}
+                      onChange={(e) => update("live_price_chase_ticks", e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="label-xs">Max chase seconds</Label>
+                    <Input
+                      data-testid="input-price-chase-seconds"
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={form.live_price_chase_seconds}
+                      onChange={(e) => update("live_price_chase_seconds", e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="text-[10px] text-amber-300/80 font-mono">
+                Guarded by Odds Max and Max Liability Cap. The app will not chase beyond either limit.
+              </div>
             </div>
 
             {/* Small-bet info — sub-£1 lays use Betfair betTargetType=BACKERS_PROFIT */}

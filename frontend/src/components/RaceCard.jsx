@@ -142,6 +142,11 @@ export const RaceCard = ({ race, layedRanks }) => {
                           partial
                         </div>
                       )}
+                      {bet.chase_attempts > 1 && (
+                        <div className="text-amber-300/80 text-[10px] mt-0.5 font-mono uppercase tracking-wider">
+                          chased {bet.chase_attempts}x
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <span className="text-zinc-600">—</span>

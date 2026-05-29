@@ -38,6 +38,9 @@ class SessionConfig(BaseModel):
     odds_max: float = Field(default=1000.0, ge=1.01, le=1000.0)  # and <=
     max_recovery_level: int = Field(default=3, ge=1, le=5)  # configurable depth of recovery staircase
     auto_place: bool = False  # live mode: auto-fire bet 60s before next race start
+    live_price_chase: bool = True
+    live_price_chase_ticks: int = Field(default=6, ge=0, le=25)
+    live_price_chase_seconds: int = Field(default=45, ge=1, le=60)
 
 
 class Greyhound(BaseModel):
@@ -67,6 +70,9 @@ class LayBet(BaseModel):
     betfair_status: Optional[str] = None
     settled_profit: Optional[float] = None
     settled_at: Optional[str] = None
+    chase_attempts: int = 1
+    chase_final_price: Optional[float] = None
+    chase_timed_out: bool = False
     # Signed Betfair-tick delta between the requested odds and the actual matched
     # price. Positive = price drifted out (BAD for LAY — more liability).
     # Negative = price steamed in (GOOD for LAY).

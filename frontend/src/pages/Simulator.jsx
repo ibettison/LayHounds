@@ -154,6 +154,12 @@ export default function Simulator() {
       await refreshList();
       const racesAdded = updated.races_played - (current.races_played || 0);
       const pnlDelta = updated.total_pnl - (current.total_pnl || 0);
+      if (racesAdded <= 0) {
+        toast.message(auto ? "AUTO · already placed for this Betfair market" : "Already placed for this Betfair market", {
+          duration: 3500,
+        });
+        return;
+      }
       if (batchSize > 1) {
         const tone = pnlDelta >= 0 ? toast.success : toast.error;
         tone(`Ran ${racesAdded} races: ${pnlDelta >= 0 ? "+" : ""}£${pnlDelta.toFixed(2)}`);
@@ -353,6 +359,14 @@ export default function Simulator() {
                 <ConfRow l="Liab Cap" v={(current.config.max_liability_cap ?? 0) > 0 ? `£${current.config.max_liability_cap.toFixed(2)}` : "off"} />
                 {current.config.mode === "live" && (
                   <ConfRow l="Auto-place" v={current.config.auto_place ? "ON · T-60s" : "off"} />
+                )}
+                {current.config.mode === "live" && (
+                  <ConfRow
+                    l="Price chase"
+                    v={current.config.live_price_chase
+                      ? `${current.config.live_price_chase_ticks ?? 6} ticks · ${current.config.live_price_chase_seconds ?? 45}s`
+                      : "off"}
+                  />
                 )}
                 {current.config.mode === "live" && current.config.stake < 1.0 && (
                   <ConfRow l="Sub-£1 placement" v="Liability · BACKERS_PROFIT" />

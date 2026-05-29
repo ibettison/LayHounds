@@ -1,19 +1,28 @@
 import React from "react";
 
 export const RaceHistory = ({ races }) => {
+  const uniqueRaces = [];
+  const seen = new Set();
+  for (const race of races || []) {
+    const key = race.source === "live" && race.market_id ? `live:${race.market_id}` : `race:${race.race_id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniqueRaces.push(race);
+  }
+
   return (
     <div className="bg-[#141414] border border-[#2A2A2A]" data-testid="race-history-panel">
       <div className="bg-[#0A0A0A] border-b border-[#2A2A2A] p-4">
         <div className="label-xs">Day&apos;s Card</div>
         <div className="font-display text-xl uppercase tracking-tight">
-          Race History ({races.length})
+          Race History ({uniqueRaces.length})
         </div>
       </div>
       <div className="max-h-[420px] overflow-y-auto">
-        {races.length === 0 && (
+        {uniqueRaces.length === 0 && (
           <div className="p-6 text-center text-zinc-500 text-sm">No races run yet.</div>
         )}
-        {[...races].reverse().map((race) => {
+        {[...uniqueRaces].reverse().map((race) => {
           const winner = race.runners.find((r) => r.trap === race.winning_trap);
           const livePending = race.source === "live" && !race.winning_trap;
           return (
@@ -64,6 +73,11 @@ export const RaceHistory = ({ races }) => {
                           <div className="text-[9px] font-mono text-zinc-600 truncate">
                             {bet.betfair_bet_id ? `Betfair ${bet.betfair_bet_id}` : "Betfair id pending"}
                           </div>
+                          {bet.chase_attempts > 1 && (
+                            <div className="text-[9px] font-mono text-amber-300/80 truncate">
+                              chased {bet.chase_attempts}x{bet.chase_final_price ? ` · final @${Number(bet.chase_final_price).toFixed(2)}` : ""}
+                            </div>
+                          )}
                         </div>
                         <div className="text-right shrink-0">
                           <div className={`text-[10px] font-mono font-bold uppercase ${
