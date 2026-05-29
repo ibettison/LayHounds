@@ -244,7 +244,7 @@ const STEPS = [
     d: "Run individual races or batch 50 at a time on simulated UK greyhound fields. Bank carries between sessions so you can stress-test over hundreds of days.",
     img: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=720&auto=format&q=80",
     alt: "Watching the dashboard run through races",
-    imagePosition: "object-[50%_18%]",
+    imagePosition: "object-[50%_12%]",
   },
   {
     n: "03",
@@ -262,7 +262,7 @@ const LifestyleBanner = () => (
         <img
           src="https://images.unsplash.com/photo-1521119989659-a83eee488004?w=1600&auto=format&q=80"
           alt="Friends celebrating together"
-          className="w-full h-[280px] sm:h-[360px] md:h-[420px] object-cover object-[50%_18%]"
+          className="w-full h-[280px] sm:h-[360px] md:h-[420px] object-cover object-[50%_12%]"
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-tr from-slate-900/80 via-slate-900/40 to-transparent" />
