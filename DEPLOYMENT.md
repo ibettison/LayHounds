@@ -57,7 +57,31 @@ Default public deployment names:
 
 ---
 
-## 3. One-Command Public Install
+## 3. Fork The Public Repository
+
+Before deploying, create your own GitHub copy of the public LayHounds
+repository. This is called a fork. Your fork is the repository your VPS will
+pull from during install and future updates.
+
+1. Sign in to GitHub.
+2. Open the LayHounds public repository page.
+3. Click **Fork** in the top-right of the page.
+4. Choose your own GitHub account as the owner.
+5. Keep the repository name, or rename it if preferred.
+6. Leave **Copy the main branch only** ticked unless you need other branches.
+7. Click **Create fork**.
+
+Your fork URL will look like this:
+
+```text
+https://github.com/your-username/LayHounds.git
+```
+
+Use that fork URL as the `REPO` value in the install command below.
+
+---
+
+## 4. One-Command Public Install
 
 On a fresh Ubuntu VPS, SSH in as root or a sudo-capable user and run:
 
@@ -99,7 +123,7 @@ sudo APP_ROLE=public \
 
 ---
 
-## 4. Environment Files
+## 5. Environment Files
 
 The public backend environment lives on the server at:
 
@@ -138,7 +162,7 @@ licence keys to GitHub. Keep them only in server-side `.env` files.
 
 ---
 
-## 5. Manual Deployment
+## 6. Manual Deployment
 
 Use this only if you do not want the installer to do the setup.
 
@@ -243,7 +267,7 @@ sudo certbot --nginx -d app.example.com
 
 ---
 
-## 6. Verify The Install
+## 7. Verify The Install
 
 From the VPS:
 
@@ -265,7 +289,7 @@ In the browser:
 
 ---
 
-## 7. Updating The Public App
+## 8. Updating The Public App
 
 After pushing changes to the public GitHub repo, run:
 
@@ -299,7 +323,7 @@ requirements.
 
 ---
 
-## 8. Hardening Checklist
+## 9. Hardening Checklist
 
 | Concern | Fix |
 |---|---|
@@ -312,7 +336,7 @@ requirements.
 
 ---
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
@@ -326,7 +350,7 @@ requirements.
 
 ---
 
-## 10. Cost Estimate
+## 11. Cost Estimate
 
 | Item | Low | Mid | High |
 |---|---|---|---|
