@@ -183,9 +183,7 @@ Customer installs should only set:
 LICENCE_SERVER_URL=https://your-private-licence-host.example
 ```
 
-The private licensing host should set `LICENCE_SERVER_MODE=true` and include
-the private `backend/licence_server.py` module plus Stripe dependencies. See
-`LICENSING_SPLIT.md` for the split.
+The licence server URL is provided with your purchase/licence details.
 
 ---
 

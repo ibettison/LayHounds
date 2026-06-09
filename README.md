@@ -10,9 +10,7 @@ This public repository contains the customer application only:
 - Customer-side licence activation and cached validation
 - Betfair session, settlement, recovery, and bankroll tools
 
-It deliberately does not contain the private marketing, checkout, Stripe, or licence-issuing system. Those belong in the private licensing/marketing repository.
-
-See [LICENSING_SPLIT.md](./LICENSING_SPLIT.md) for the full public/private split.
+Paper-live and Live mode require a valid licence key, supplied after purchase.
 
 ## Requirements
 
@@ -90,21 +88,17 @@ sudo APP_ROLE=public ./update.sh
 
 The updater pulls the latest repo code, preserves `.env`, rebuilds only what changed, reloads the PM2 backend process, reloads Nginx, and performs a health check.
 
-## Private Licensing/Marketing App
+## Licence Keys
 
-The private app should live in a separate private repository, for example `LayHounds-Licensing`.
+Simulator mode can be used without a licence key. Paper-live and Live mode are unlocked by activating the licence key supplied after purchase.
 
-It should contain:
+The app validates that key against the configured licence server:
 
-- marketing website
-- pricing and checkout pages
-- legal pages
-- Stripe checkout/status/webhook handling
-- central licence database
-- `/api/licences/*` validation endpoints
-- manual licence seed/admin tools
+```env
+LICENCE_SERVER_URL=https://lay-hounds.co.uk
+```
 
-The public app validates licences against that private service via `LICENCE_SERVER_URL`.
+Use the Licence panel inside the app to paste and activate your key.
 
 ## Useful Commands
 
