@@ -1,90 +1,137 @@
-# LayHounds — Greyhound Recovery Simulator
+# LayHounds Public App
 
-A full-stack lay-betting lab for UK greyhound racing. Test configurable
-staircase-recovery strategies in a **Simulator**, against real Betfair odds
-(**Paper-Live**), or with real lay bets (**Live**).
+LayHounds is a self-hosted greyhound lay-betting simulator and Betfair live-betting tool.
 
-## Stack
+This public repository contains the customer application only:
 
-- **Frontend**: React 19 + Tailwind + Shadcn UI + Recharts
-- **Backend**: FastAPI + Motor (async MongoDB) + httpx (Betfair JSON-RPC)
-- **Storage**: MongoDB
+- Simulator mode
+- Paper-live mode using real Betfair prices
+- Live mode for real Betfair lay bets
+- Customer-side licence activation and cached validation
+- Betfair session, settlement, recovery, and bankroll tools
 
-## Features
+It deliberately does not contain the private marketing, checkout, Stripe, or licence-issuing system. Those belong in the private licensing/marketing repository.
 
-- 3 modes: Simulator / Paper-Live / Live
-- Configurable stake (£0.05 – £2.00), commission (0 – 10%), liability cap
-- Recovery depth **L1 – L5** per-favourite-rank
-- Monte-Carlo cap-impact preview (1,500 iterations)
-- Odds-range filter, batch race execution (1 / 5 / 10 / 25 / 50)
-- End-of-day recovery overrun
-- Bank carryover across sessions + daily P&L graph
-- One-click Reset for clean slates
+See [LICENSING_SPLIT.md](./LICENSING_SPLIT.md) for the full public/private split.
 
-## Running locally
+## Requirements
 
-Development is done inside the Emergent preview pod — hot-reload is enabled for
-both frontend and backend.
+- Ubuntu 22.04 or 24.04 VPS
+- UK/EU hosting location for Betfair API access
+- Domain or subdomain pointing at the VPS
+- Betfair App Key, username, and password
+- Private licence server URL, for example `https://lay-hounds.co.uk`
 
-- Backend: `http://localhost:8001` (supervisor-managed)
-- Frontend: `http://localhost:3000` (supervisor-managed)
-- MongoDB: `mongodb://localhost:27017`
+Betfair geo-blocks many non-UK/EU hosts, so a local US/non-EU preview environment may show `GEO_BLOCKED` even when the code is correct.
 
-## Deploying to a UK/EU server
+## Quick Public Install
 
-Betfair geo-blocks all non-UK/EU traffic. The preview pod runs in the US, so
-Paper-Live and Live modes are disabled here and the header shows
-**GEO-BLOCKED**. To use the real Betfair API, deploy to any UK/EU VPS.
-
-**Quick-start** (Ubuntu 22.04 or 24.04, root):
+On a fresh Ubuntu VPS:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<you>/<repo>/main/deploy.sh \
-  | DOMAIN=lay.example.com EMAIL=me@example.com \
-    REPO=https://github.com/<you>/<repo>.git bash
+curl -fsSL https://raw.githubusercontent.com/YOURNAME/LayHounds/main/deploy.sh \
+  | sudo APP_ROLE=public \
+      DOMAIN=app.lay-hounds.co.uk \
+      EMAIL=you@example.com \
+      APP_DIR=/opt/layhounds-public \
+      REPO=https://github.com/YOURNAME/LayHounds.git \
+      LICENCE_SERVER_URL=https://lay-hounds.co.uk \
+      bash
 ```
 
-That's it — ~3 minutes later you'll have an HTTPS site with Betfair connected.
+The installer will:
 
-**Updating** (after pushing new commits from Emergent → GitHub):
+- install Python, Node, MongoDB, Nginx, PM2, and Certbot
+- clone the public app repo
+- create a backend virtualenv
+- build the React frontend
+- create role-specific `.env` files
+- start the backend as `layhounds-public-api`
+- configure Nginx for the supplied domain
+- request HTTPS via Let's Encrypt
+
+During install, it prompts for Betfair credentials if they are not supplied as environment variables.
+
+If you have already cloned the repo on the VPS, run the wrapper instead:
 
 ```bash
-cd /opt/layhounds && sudo ./update.sh
+sudo APP_ROLE=public \
+  DOMAIN=app.lay-hounds.co.uk \
+  EMAIL=you@example.com \
+  APP_DIR=/opt/layhounds-public \
+  LICENCE_SERVER_URL=https://lay-hounds.co.uk \
+  ./install.sh
 ```
 
-Zero-downtime: pulls latest, rebuilds only what changed, atomically swaps the
-bundle, and gracefully reloads the API.
+## Public App Environment
 
-👉 **See [DEPLOYMENT.md](./DEPLOYMENT.md)** for the manual step-by-step,
-provider comparison, and troubleshooting.
+The installer writes `backend/.env` similar to:
 
-## Repo layout
-
-```
-/app
-├── backend/
-│   ├── server.py            # FastAPI app, all /api routes, sim engine
-│   ├── betfair_client.py    # Betfair JSON-RPC httpx client
-│   ├── requirements.txt
-│   └── tests/               # pytest suite (25 tests)
-├── frontend/
-│   ├── src/
-│   │   ├── App.js
-│   │   ├── lib/api.js
-│   │   └── components/      # Shadcn + custom panels
-│   └── package.json
-├── memory/
-│   ├── PRD.md               # product spec + roadmap
-│   └── test_credentials.md
-└── DEPLOYMENT.md            # UK/EU production deploy guide
+```env
+MONGO_URL=mongodb://127.0.0.1:27017
+DB_NAME=layhounds_public
+CORS_ORIGINS=https://app.lay-hounds.co.uk
+LICENCE_SERVER_URL=https://lay-hounds.co.uk
+BETFAIR_APP_KEY=...
+BETFAIR_USERNAME=...
+BETFAIR_PASSWORD=...
 ```
 
-## Credentials
+Never commit `.env`, Betfair credentials, licence keys, or API secrets.
 
-Betfair App Key, username and password live in `backend/.env`. Never commit
-this file. Deployment hosts get their own `.env` created manually — see
-`DEPLOYMENT.md §5`.
+## Updating
 
-## License
+On the VPS:
 
-Private — proprietary, all rights reserved.
+```bash
+cd /opt/layhounds-public
+sudo APP_ROLE=public ./update.sh
+```
+
+The updater pulls the latest repo code, preserves `.env`, rebuilds only what changed, reloads the PM2 backend process, reloads Nginx, and performs a health check.
+
+## Private Licensing/Marketing App
+
+The private app should live in a separate private repository, for example `LayHounds-Licensing`.
+
+It should contain:
+
+- marketing website
+- pricing and checkout pages
+- legal pages
+- Stripe checkout/status/webhook handling
+- central licence database
+- `/api/licences/*` validation endpoints
+- manual licence seed/admin tools
+
+The public app validates licences against that private service via `LICENCE_SERVER_URL`.
+
+## Useful Commands
+
+View backend logs:
+
+```bash
+sudo -u layhounds pm2 logs layhounds-public-api
+```
+
+Restart backend:
+
+```bash
+sudo -u layhounds pm2 restart layhounds-public-api
+```
+
+Check API:
+
+```bash
+curl https://app.lay-hounds.co.uk/api/
+curl https://app.lay-hounds.co.uk/api/betfair/status
+curl https://app.lay-hounds.co.uk/api/licence/diag
+```
+
+## More Detail
+
+For the full deployment walkthrough, manual setup, Nginx notes, troubleshooting, and VPS recommendations, read [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+## Licence
+
+Private/proprietary. All rights reserved.
