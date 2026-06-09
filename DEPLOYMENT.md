@@ -19,6 +19,12 @@ Betfair API integration works end-to-end (Paper-Live and Live modes).
 | Betfair credentials | App Key + username + password | Created by you at developer.betfair.com — **never paste them into any tracked file**. A delayed-data App Key is enough for paper-live. |
 | RAM / CPU | 2 GB / 1 vCPU | Enough for a single user. MongoDB is the heaviest component. |
 
+Need a VPS? You can use this referral link to create a UK VPS suitable for LayHounds:
+
+[Launch a Fasthosts VPS](https://www.fasthosts.co.uk/referral?referral=37u6fp7gtbgc9n)
+
+Use Ubuntu 22.04 or 24.04, with at least 2 GB RAM where possible.
+
 ---
 
 ## 2. Architecture on the VPS

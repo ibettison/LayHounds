@@ -22,6 +22,14 @@ Paper-live and Live mode require a valid licence key, supplied after purchase.
 
 Betfair geo-blocks many non-UK/EU hosts, so a local US/non-EU preview environment may show `GEO_BLOCKED` even when the code is correct.
 
+## Need A VPS?
+
+LayHounds needs to run from a UK/EU server for Betfair API access. If you do not already have one, you can use this referral link to set up a UK VPS:
+
+[Launch a Fasthosts VPS](https://www.fasthosts.co.uk/referral?referral=37u6fp7gtbgc9n)
+
+Recommended minimum: Ubuntu 22.04 or 24.04, 2 GB RAM, 1 vCPU, and enough disk for MongoDB, Node, and build artifacts.
+
 ## Quick Public Install
 
 On a fresh Ubuntu VPS:
