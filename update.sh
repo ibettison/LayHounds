@@ -2,20 +2,20 @@
 # ==============================================================================
 #  Lay-Hounds — safe zero-downtime updater
 # ------------------------------------------------------------------------------
-#  Pulls latest code into REPO_DIR (your git clone, e.g. ~/layhounds),
-#  syncs it to APP_DIR (the runtime, e.g. /opt/layhounds), reinstalls deps if
+#  Pulls latest code into REPO_DIR (your git clone, e.g. ~/layhounds-public),
+#  syncs it to APP_DIR (the runtime, e.g. /opt/layhounds-public), reinstalls deps if
 #  needed, rebuilds the React bundle, and rolls the API under PM2 — without
 #  dropping requests, AND with automatic rollback on failure so a botched
 #  update can't brick the VPS.
 #
 #  Two-stage layout (recommended):
-#    REPO_DIR  = ~/layhounds          (your git clone, owned by your user)
-#    APP_DIR   = /opt/layhounds       (runtime, owned by APP_USER = layhounds)
+#    REPO_DIR  = ~/layhounds-public          (your git clone, owned by your user)
+#    APP_DIR   = /opt/layhounds-public       (runtime, owned by APP_USER = layhounds)
 #  The script auto-detects this and runs git operations as REPO_OWNER, then
 #  rsyncs source files to APP_DIR (NEVER touching .env, build, venv, node_modules).
 #
 #  Single-stage layout (also supported):
-#    REPO_DIR  = APP_DIR              (one location for both, e.g. /opt/layhounds)
+#    REPO_DIR  = APP_DIR              (one location for both, e.g. /opt/layhounds-public)
 #
 #  Hard-learnt safety features:
 #   • OOM-proof:  caps Node memory + auto-creates a 2 GB swap file if the box
@@ -30,12 +30,12 @@
 #   • .env safe:  NEVER overwritten — rsync explicitly excludes them.
 #
 #  Usage  (on the VPS, as root or sudo, from your repo):
-#    cd ~/layhounds && sudo ./update.sh                     # two-stage (recommended)
-#    cd /opt/layhounds && sudo ./update.sh                  # single-stage
+#    cd ~/layhounds-public && sudo ./update.sh              # two-stage (recommended)
+#    cd /opt/layhounds-public && sudo ./update.sh           # single-stage
 #
 #  Env vars:
 #    REPO_DIR   git-clone location  (default: dir containing this script)
-#    APP_DIR    runtime install     (default: /opt/layhounds)
+#    APP_DIR    runtime install     (default: /opt/layhounds-public)
 #    APP_USER   APP_DIR file owner  (default: layhounds)
 #    REPO_OWNER REPO_DIR file owner (default: auto-detected from stat)
 #    BRANCH     git branch          (default: current)
@@ -60,26 +60,13 @@ die() { err "$*"; exit 1; }
 # REPO_DIR = where this script lives (typically ~/layhounds, the git clone).
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 REPO_DIR="${REPO_DIR:-$SCRIPT_DIR}"
-APP_DIR="${APP_DIR:-/opt/layhounds}"
+APP_DIR="${APP_DIR:-/opt/layhounds-public}"
 APP_USER="${APP_USER:-layhounds}"
 FORCE="${FORCE:-0}"
 SKIP_SWAP="${SKIP_SWAP:-0}"
 SKIP_HEALTH="${SKIP_HEALTH:-0}"
-APP_ROLE="${APP_ROLE:-public}"
-
-case "$APP_ROLE" in
-  public)
-    PM2_NAME="${PM2_NAME:-layhounds-public-api}"
-    NGINX_SITE="${NGINX_SITE:-layhounds-public}"
-    ;;
-  private)
-    PM2_NAME="${PM2_NAME:-layhounds-private-api}"
-    NGINX_SITE="${NGINX_SITE:-layhounds-private}"
-    ;;
-  *)
-    die "APP_ROLE must be 'public' or 'private' (got '$APP_ROLE')."
-    ;;
-esac
+PM2_NAME="${PM2_NAME:-layhounds-public-api}"
+NGINX_SITE="${NGINX_SITE:-layhounds-public}"
 
 # Auto-detect who owns the repo (for `sudo -u` on git commands).
 if [ -z "${REPO_OWNER:-}" ]; then
@@ -107,14 +94,14 @@ id -u "$REPO_OWNER" >/dev/null 2>&1 || die "Repo owner '$REPO_OWNER' does not ex
 
 log "REPO_DIR:    $REPO_DIR   (owner: $REPO_OWNER)"
 log "APP_DIR:     $APP_DIR    (owner: $APP_USER)"
-log "App role:    $APP_ROLE"
+log "App role:    public"
 log "PM2 name:    $PM2_NAME"
 log "Mode:        $([ "$TWO_STAGE" = 1 ] && echo two-stage 'repo→runtime' || echo single-stage)"
 
 cd "$APP_DIR"
 
 # Single-run lock: prevent two updates from racing each other ----------------
-LOCKFILE="/var/lock/layhounds-${APP_ROLE}-update.lock"
+LOCKFILE="/var/lock/layhounds-public-update.lock"
 exec 200>"$LOCKFILE"
 if ! flock -n 200; then
   die "Another update is already running (lock $LOCKFILE held). Wait for it to finish."
@@ -163,7 +150,7 @@ if [ "$TOTAL_HEADROOM" -lt 1800 ] && [ "$SKIP_SWAP" != "1" ]; then
 fi
 
 # Cap Node's heap so even a runaway build can't eat the whole box.
-# 1024 MB is comfortable for our React 19 + framer-motion + recharts bundle.
+# 1024 MB is comfortable for the React app build.
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1024}"
 log "NODE_OPTIONS=$NODE_OPTIONS"
 
@@ -251,15 +238,6 @@ restore_envs() {
 # are protected by --exclude so the runtime stays self-consistent even if the
 # repo just got a fresh `git reset --hard`.
 sync_repo_to_app_dir() {
-  local role_excludes=()
-  if [ "$APP_ROLE" = "public" ]; then
-    role_excludes=(
-      --exclude='private_app/'
-      --exclude='backend/licence_server.py'
-      --exclude='backend/requirements-licensing.txt'
-      --exclude='backend/seed_test_licence.py'
-    )
-  fi
   rsync -a --delete \
     --exclude='.git/' \
     --exclude='node_modules/' \
@@ -275,7 +253,10 @@ sync_repo_to_app_dir() {
     --exclude='*.pyc' \
     --exclude='.update-snapshot/' \
     --exclude='/swapfile' \
-    "${role_excludes[@]}" \
+    --exclude='private_app/' \
+    --exclude='backend/licence_server.py' \
+    --exclude='backend/requirements-licensing.txt' \
+    --exclude='backend/seed_test_licence.py' \
     "$REPO_DIR"/ "$APP_DIR"/
   chown -R "$APP_USER:$APP_USER" "$APP_DIR" 2>/dev/null || true
   # Re-tighten .env perms after the chown sweep
@@ -338,7 +319,7 @@ changed() { [ "$FORCE" = "1" ] || echo "$CHANGED" | grep -q "^$1"; }
 # ==============================================================================
 step "3/6  Backend dependencies"
 # ==============================================================================
-if changed "backend/requirements.txt" || changed "backend/requirements-licensing.txt" || [ ! -d "$APP_DIR/backend/venv" ]; then
+if changed "backend/requirements.txt" || [ ! -d "$APP_DIR/backend/venv" ]; then
   log "requirements.txt changed → reinstalling into venv"
   # Use --no-cache-dir + retry to handle flaky PyPI on tiny VPSs.
   if ! sudo -u "$APP_USER" bash -c "
@@ -348,9 +329,6 @@ if changed "backend/requirements.txt" || changed "backend/requirements-licensing
     source venv/bin/activate
     pip install --upgrade pip wheel >/dev/null
     pip install --no-cache-dir -r requirements.txt
-    if [ '$APP_ROLE' = 'private' ] && [ -f requirements-licensing.txt ]; then
-      pip install --no-cache-dir -r requirements-licensing.txt
-    fi
   "; then
     err "Backend pip install failed"
     ROLLBACK_NEEDED=1

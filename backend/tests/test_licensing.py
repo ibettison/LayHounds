@@ -1,8 +1,8 @@
-"""Tests for the central licensing flow and Stripe checkout endpoints.
+"""Tests for the public customer licensing flow.
 
 Covers the customer-side endpoints (/api/licence/...), the licence gate on
-POST /api/sessions for paper_live/live modes, and the Stripe create/status
-endpoints from emergentintegrations.
+POST /api/sessions for paper_live/live modes, and licence activation/refresh
+through the configured external licence server.
 """
 import os
 import time

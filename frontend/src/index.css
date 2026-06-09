@@ -38,8 +38,8 @@ body {
     font-family: 'JetBrains Mono', 'Menlo', monospace;
 }
 
-/* Marketing site (light theme, sans-serif body) */
-.font-sans, .marketing-body {
+/* Public app sans-serif body */
+.font-sans {
     font-family: 'Manrope', 'Inter', system-ui, sans-serif;
 }
 

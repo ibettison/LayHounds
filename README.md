@@ -36,7 +36,7 @@ On a fresh Ubuntu VPS:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/YOURNAME/LayHounds/main/deploy.sh \
-  | sudo APP_ROLE=public \
+  | sudo \
       DOMAIN=app.lay-hounds.co.uk \
       EMAIL=you@example.com \
       APP_DIR=/opt/layhounds-public \
@@ -51,7 +51,7 @@ The installer will:
 - clone the public app repo
 - create a backend virtualenv
 - build the React frontend
-- create role-specific `.env` files
+- create public app `.env` files
 - start the backend as `layhounds-public-api`
 - configure Nginx for the supplied domain
 - request HTTPS via Let's Encrypt
@@ -61,7 +61,7 @@ During install, it prompts for Betfair credentials if they are not supplied as e
 If you have already cloned the repo on the VPS, run the wrapper instead:
 
 ```bash
-sudo APP_ROLE=public \
+sudo \
   DOMAIN=app.lay-hounds.co.uk \
   EMAIL=you@example.com \
   APP_DIR=/opt/layhounds-public \
@@ -91,7 +91,7 @@ On the VPS:
 
 ```bash
 cd /opt/layhounds-public
-sudo APP_ROLE=public ./update.sh
+sudo ./update.sh
 ```
 
 The updater pulls the latest repo code, preserves `.env`, rebuilds only what changed, reloads the PM2 backend process, reloads Nginx, and performs a health check.

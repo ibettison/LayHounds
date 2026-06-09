@@ -25,17 +25,6 @@ app.include_router(betfair.router)
 if LICENCE_SERVER_URL:
     app.include_router(build_customer_router(db), prefix="/api")
 
-# Private central licence router: only available in the private licensing repo/deploy.
-LICENCE_SERVER_MODE = (os.environ.get("LICENCE_SERVER_MODE", "false").lower() == "true")
-if LICENCE_SERVER_MODE:
-    try:
-        from licence_server import build_central_router
-    except ImportError as e:
-        raise RuntimeError(
-            "LICENCE_SERVER_MODE=true but the private licence_server module is not installed"
-        ) from e
-    app.include_router(build_central_router(db), prefix="/api")
-
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -50,8 +39,6 @@ async def startup_tasks():
     if LICENCE_SERVER_URL:
         asyncio.create_task(background_revalidate_loop(db))
         logger.info("Licence revalidate loop scheduled (LICENCE_SERVER_URL=%s)", LICENCE_SERVER_URL)
-    if LICENCE_SERVER_MODE:
-        logger.info("Running in CENTRAL LICENCE SERVER mode - /api/licences/* + /api/webhook/stripe live")
 
 
 @app.on_event("shutdown")

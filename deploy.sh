@@ -19,7 +19,7 @@
 #
 #  Optional env vars:
 #    REPO             — git URL to clone (skip if running from inside the repo)
-#    APP_DIR          — install path (default: /opt/layhounds)
+#    APP_DIR          — install path (default: /opt/layhounds-public)
 #    APP_USER         — owner of app files (default: layhounds)
 #    BETFAIR_APP_KEY  — prompted if missing
 #    BETFAIR_USERNAME — prompted if missing
@@ -42,39 +42,21 @@ step()  { echo -e "\n${BOLD}==> $*${NC}"; }
 
 : "${DOMAIN:?Set DOMAIN=your-domain.com OR your server IP}"
 
-APP_DIR="${APP_DIR:-/opt/layhounds}"
+APP_DIR="${APP_DIR:-/opt/layhounds-public}"
 APP_USER="${APP_USER:-layhounds}"
 REPO="${REPO:-}"
 SKIP_TLS="${SKIP_TLS:-0}"
-APP_ROLE="${APP_ROLE:-public}"
+API_PORT="${API_PORT:-8001}"
+PM2_NAME="${PM2_NAME:-layhounds-public-api}"
+NGINX_SITE="${NGINX_SITE:-layhounds-public}"
+DB_NAME="${DB_NAME:-layhounds_public}"
 
-case "$APP_ROLE" in
-  public)
-    API_PORT="${API_PORT:-8001}"
-    PM2_NAME="${PM2_NAME:-layhounds-public-api}"
-    NGINX_SITE="${NGINX_SITE:-layhounds-public}"
-    DB_NAME="${DB_NAME:-layhounds_public}"
-    ;;
-  private)
-    API_PORT="${API_PORT:-8002}"
-    PM2_NAME="${PM2_NAME:-layhounds-private-api}"
-    NGINX_SITE="${NGINX_SITE:-layhounds-private}"
-    DB_NAME="${DB_NAME:-layhounds_private}"
-    ;;
-  *)
-    die "APP_ROLE must be 'public' or 'private' (got '$APP_ROLE')."
-    ;;
-esac
-
-ROLE_EXCLUDES=()
-if [ "$APP_ROLE" = "public" ]; then
-  ROLE_EXCLUDES=(
-    --exclude='private_app'
-    --exclude='backend/licence_server.py'
-    --exclude='backend/requirements-licensing.txt'
-    --exclude='backend/seed_test_licence.py'
-  )
-fi
+ROLE_EXCLUDES=(
+  --exclude='private_app'
+  --exclude='backend/licence_server.py'
+  --exclude='backend/requirements-licensing.txt'
+  --exclude='backend/seed_test_licence.py'
+)
 
 # If DOMAIN looks like an IPv4 address, force HTTP-only (Let's Encrypt won't
 # issue certs for raw IPs).
@@ -103,15 +85,9 @@ prompt_if_empty() {
     export "$var=$val"
   fi
 }
-if [ "$APP_ROLE" = "public" ]; then
-  prompt_if_empty BETFAIR_APP_KEY  "Betfair App Key"
-  prompt_if_empty BETFAIR_USERNAME "Betfair username"
-  prompt_if_empty BETFAIR_PASSWORD "Betfair password" 1
-fi
-
-if [ "$APP_ROLE" = "private" ]; then
-  prompt_if_empty STRIPE_API_KEY "Stripe secret key (sk_live_... or sk_test_...)" 1
-fi
+prompt_if_empty BETFAIR_APP_KEY  "Betfair App Key"
+prompt_if_empty BETFAIR_USERNAME "Betfair username"
+prompt_if_empty BETFAIR_PASSWORD "Betfair password" 1
 
 # ==============================================================================
 step "1/8  System packages"
@@ -234,9 +210,6 @@ cd "$APP_DIR/backend"
 source venv/bin/activate
 pip install --upgrade pip wheel >/dev/null
 pip install -r requirements.txt
-if [ "$APP_ROLE" = "private" ] && [ -f requirements-licensing.txt ]; then
-  pip install -r requirements-licensing.txt
-fi
 EOF
 
 # ==============================================================================
@@ -247,7 +220,6 @@ PROTO_BUILD="https"
 PUBLIC_URL="${PROTO_BUILD}://${DOMAIN}"
 
 BE_ENV="$APP_DIR/backend/.env"
-if [ "$APP_ROLE" = "public" ]; then
 cat > "$BE_ENV" <<EOF
 MONGO_URL=mongodb://127.0.0.1:27017
 DB_NAME=${DB_NAME}
@@ -257,16 +229,6 @@ BETFAIR_APP_KEY=${BETFAIR_APP_KEY}
 BETFAIR_USERNAME=${BETFAIR_USERNAME}
 BETFAIR_PASSWORD=${BETFAIR_PASSWORD}
 EOF
-else
-cat > "$BE_ENV" <<EOF
-MONGO_URL=mongodb://127.0.0.1:27017
-DB_NAME=${DB_NAME}
-CORS_ORIGINS=${PUBLIC_URL}
-LICENCE_SERVER_MODE=true
-STRIPE_API_KEY=${STRIPE_API_KEY}
-STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
-EOF
-fi
 chown "$APP_USER:$APP_USER" "$BE_ENV"
 chmod 600 "$BE_ENV"
 
@@ -368,28 +330,23 @@ step "Done — verification"
 sleep 2
 PROTO="https"; [ "$SKIP_TLS" = "1" ] && PROTO="http"
 API_STATUS="$(curl -s -o /dev/null -w '%{http_code}' "${PROTO}://${DOMAIN}/api/" || true)"
-BF_STATUS=""
-if [ "$APP_ROLE" = "public" ]; then
-  BF_STATUS="$(curl -s "${PROTO}://${DOMAIN}/api/betfair/status" || true)"
-fi
+BF_STATUS="$(curl -s "${PROTO}://${DOMAIN}/api/betfair/status" || true)"
 
 echo
 echo -e "${BOLD}Lay-Hounds deployment complete.${NC}"
 echo "  URL:              ${PROTO}://${DOMAIN}"
 echo "  API /api/:        HTTP ${API_STATUS}"
-echo "  Role:             ${APP_ROLE}"
-if [ "$APP_ROLE" = "public" ]; then
-  echo "  Betfair status:   ${BF_STATUS}"
-fi
+echo "  Role:             public"
+echo "  Betfair status:   ${BF_STATUS}"
 echo
 echo "  Backend logs:     sudo -u $APP_USER pm2 logs $PM2_NAME"
 echo "  Restart API:      sudo -u $APP_USER pm2 restart $PM2_NAME"
 echo "  Nginx config:     $NGINX_CONF"
 echo "  App dir:          $APP_DIR"
 echo
-if [ "$APP_ROLE" = "public" ] && echo "$BF_STATUS" | grep -q GEO_BLOCKED; then
+if echo "$BF_STATUS" | grep -q GEO_BLOCKED; then
   warn "Betfair still reports GEO_BLOCKED — this VPS region is not UK/EU."
   warn "Move to Hetzner FSN1/NBG1, OVH UK, Linode London, or AWS eu-west-2."
-elif [ "$APP_ROLE" = "public" ]; then
+else
   log "Betfair API reachable from this host."
 fi

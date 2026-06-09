@@ -79,6 +79,11 @@ https://github.com/your-username/LayHounds.git
 
 Use that fork URL as the `REPO` value in the install command below.
 
+The fork must be public for the one-command `curl` install to work without
+GitHub authentication. If GitHub shows `404` for the raw `deploy.sh` URL, check
+that the repository is public, the branch name is correct, and `deploy.sh` has
+been pushed to that branch.
+
 ---
 
 ## 4. One-Command Public Install
@@ -86,12 +91,12 @@ Use that fork URL as the `REPO` value in the install command below.
 On a fresh Ubuntu VPS, SSH in as root or a sudo-capable user and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<you>/<public-repo>/main/deploy.sh \
-  | sudo APP_ROLE=public \
+curl -fsSL https://raw.githubusercontent.com/your-username/LayHounds/main/deploy.sh \
+  | sudo \
       DOMAIN=app.example.com \
       EMAIL=you@example.com \
       APP_DIR=/opt/layhounds-public \
-      REPO=https://github.com/<you>/<public-repo>.git \
+      REPO=https://github.com/your-username/LayHounds.git \
       LICENCE_SERVER_URL=https://your-licence-server.example \
       bash
 ```
@@ -100,10 +105,33 @@ Replace:
 
 | Placeholder | Meaning |
 |---|---|
-| `<you>/<public-repo>` | Your public GitHub repository. |
+| `your-username` | Your GitHub username or organisation. |
+| `LayHounds` | The name of your forked repository if you renamed it. |
 | `app.example.com` | The domain pointed at the VPS. |
 | `you@example.com` | Email used by Let's Encrypt. |
 | `LICENCE_SERVER_URL` | The licence server URL supplied with the licence setup. |
+
+Do not include angle brackets such as `<you>` or `<public-repo>` in the real
+command. Those were placeholders. For example, if your GitHub username is
+`jbloggs` and your fork is called `LayHounds`, the first URL should be:
+
+```text
+https://raw.githubusercontent.com/jbloggs/LayHounds/main/deploy.sh
+```
+
+If that URL gives a `404`, check whether your repository default branch is
+called `master` instead of `main`. In that case, use:
+
+```text
+https://raw.githubusercontent.com/jbloggs/LayHounds/master/deploy.sh
+```
+
+You can test the raw script URL in a browser first. If the browser also shows
+`404`, the username, repository name, branch name, or file path is wrong.
+
+GitHub also returns `404` when the repository is private. For public customer
+installs, make the deployment repository public first or publish the customer
+version to a separate public repository.
 
 The installer will prompt for Betfair credentials when needed. It installs
 system packages, MongoDB, Node/Yarn, Python dependencies, the React build, PM2,
@@ -113,7 +141,7 @@ If you have already cloned the repository on the VPS, you can run the wrapper:
 
 ```bash
 cd ~/layhounds-public
-sudo APP_ROLE=public \
+sudo \
   DOMAIN=app.example.com \
   EMAIL=you@example.com \
   APP_DIR=/opt/layhounds-public \
@@ -295,22 +323,22 @@ After pushing changes to the public GitHub repo, run:
 
 ```bash
 cd ~/layhounds-public
-sudo APP_ROLE=public APP_DIR=/opt/layhounds-public ./update.sh
+sudo APP_DIR=/opt/layhounds-public ./update.sh
 ```
 
 If your clone and runtime are the same directory:
 
 ```bash
 cd /opt/layhounds-public
-sudo APP_ROLE=public APP_DIR=/opt/layhounds-public ./update.sh
+sudo APP_DIR=/opt/layhounds-public ./update.sh
 ```
 
 Useful options:
 
 ```bash
-sudo APP_ROLE=public APP_DIR=/opt/layhounds-public FORCE=1 ./update.sh
-sudo APP_ROLE=public APP_DIR=/opt/layhounds-public BRANCH=staging ./update.sh
-sudo APP_ROLE=public APP_DIR=/opt/layhounds-public SKIP_HEALTH=1 ./update.sh
+sudo APP_DIR=/opt/layhounds-public FORCE=1 ./update.sh
+sudo APP_DIR=/opt/layhounds-public BRANCH=staging ./update.sh
+sudo APP_DIR=/opt/layhounds-public SKIP_HEALTH=1 ./update.sh
 ```
 
 The updater keeps server `.env` files intact, rebuilds the frontend when needed,
