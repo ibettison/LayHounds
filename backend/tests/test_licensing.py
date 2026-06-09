@@ -161,38 +161,6 @@ class TestSessionLicenceGate:
         assert r.status_code in (200, 502, 400), f"unexpected status {r.status_code}: {r.text}"
 
 
-# ---- Stripe checkout ------------------------------------------------------
-
-# Skip Stripe tests when only the Emergent dev placeholder is configured
-# (the official Stripe SDK rejects 'sk_test_emergent' with AuthenticationError).
-_STRIPE_KEY = os.environ.get("STRIPE_API_KEY", "")
-_STRIPE_PLACEHOLDER = _STRIPE_KEY in ("", "sk_test_emergent")
-
-@pytest.mark.skipif(_STRIPE_PLACEHOLDER, reason="No real Stripe test key configured (STRIPE_API_KEY=sk_test_emergent)")
-class TestStripeCheckout:
-    @pytest.fixture
-    def checkout_session(self, http):
-        payload = {"origin_url": BASE_URL, "email": "test@layhounds.test"}
-        r = http.post(f"{API}/payments/stripe/checkout", json=payload, timeout=20)
-        assert r.status_code == 200, r.text
-        data = r.json()
-        assert "url" in data and "session_id" in data
-        assert data["url"].startswith("https://"), data["url"]
-        return data
-
-    def test_checkout_creates_session(self, checkout_session):
-        assert "stripe.com" in checkout_session["url"] or "checkout" in checkout_session["url"]
-        assert len(checkout_session["session_id"]) > 10
-
-    def test_status_unpaid_session_no_pydantic_crash(self, http, checkout_session):
-        sid = checkout_session["session_id"]
-        r = http.get(f"{API}/payments/stripe/status/{sid}", timeout=15)
-        assert r.status_code == 200, r.text
-        data = r.json()
-        assert data.get("payment_status") == "unpaid", data
-        assert data.get("licence_key") is None
-
-
 # ---- Teardown: leave licence UNBOUND for next test run --------------------
 
 def teardown_module(module):

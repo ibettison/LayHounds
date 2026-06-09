@@ -2,8 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import "../App.css";
 import { toast } from "sonner";
 import { Play, Square, Activity, TrendingUp, TrendingDown, Wallet, Flag, Trash2, RefreshCw } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import {
   AlertDialog,
@@ -38,27 +37,6 @@ export default function Simulator() {
   const [loading, setLoading] = useState(false);
   const [batchSize, setBatchSize] = useState(1);
 
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [showArrival, setShowArrival] = useState(false);
-
-  // "You've arrived" moment — fires when navigating in from the marketing site.
-  useEffect(() => {
-    if (location.state?.fromMarketing) {
-      setShowArrival(true);
-      // Clear the state so a refresh doesn't replay the animation
-      navigate(location.pathname, { replace: true, state: {} });
-      // Toast lands as the overlay fades
-      const t1 = setTimeout(() => {
-        toast.success("Welcome to your sandbox", {
-          description: "Running in Free Simulator mode — no card needed.",
-          duration: 5000,
-        });
-      }, 700);
-      const t2 = setTimeout(() => setShowArrival(false), 1200);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refreshList = useCallback(async () => {
     try {
@@ -258,41 +236,6 @@ export default function Simulator() {
 
   return (
     <div className="App min-h-screen bg-[#0A0A0A]">
-      {/* "You've arrived" pink-gradient transition */}
-      <AnimatePresence>
-        {showArrival && (
-          <motion.div
-            data-testid="arrival-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center"
-            style={{
-              background:
-                "radial-gradient(ellipse at center, rgba(236,72,153,0.55) 0%, rgba(190,24,93,0.85) 50%, rgba(10,10,10,0.95) 100%)",
-            }}
-          >
-            <motion.div
-              initial={{ scale: 0.92, opacity: 0, y: 12 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 1.04, opacity: 0 }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="text-center"
-            >
-              <div className="w-16 h-16 mx-auto mb-5 bg-white grid place-items-center shadow-2xl">
-                <Activity className="w-8 h-8 text-pink-500" />
-              </div>
-              <div className="font-display font-black text-4xl sm:text-5xl tracking-tighter text-white">
-                You're in.
-              </div>
-              <div className="text-xs font-mono uppercase tracking-[0.3em] text-pink-100 mt-3 font-semibold">
-                Loading your sandbox…
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Header */}
       <header className="border-b border-[#2A2A2A] bg-[#0A0A0A]" data-testid="app-header">

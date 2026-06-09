@@ -78,6 +78,12 @@ agenthub/agents/youtube/db
 
 memory/test_credentials.md
 
+# Private licensing server assets - keep these out of the public customer app.
+backend/licence_server.py
+backend/requirements-licensing.txt
+backend/seed_test_licence.py
+private_app/
+
 # Mobile development
 android-sdk/-e 
 # Environment and credential files

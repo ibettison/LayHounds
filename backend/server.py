@@ -6,14 +6,12 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from db import client, db
-from licences import (
-    LICENCE_SERVER_MODE,
+from licence_client import (
     LICENCE_SERVER_URL,
     background_revalidate_loop,
-    build_central_router,
     build_customer_router,
 )
-from routes import betfair, payments, sessions
+from routes import betfair, sessions
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -22,12 +20,20 @@ app = FastAPI()
 
 app.include_router(sessions.router)
 app.include_router(betfair.router)
-app.include_router(payments.router)
 
-# Licence routers (always mount the customer one; mount central only on the host with LICENCE_SERVER_MODE=true)
+# Customer licence router: safe for public/customer installs.
 if LICENCE_SERVER_URL:
     app.include_router(build_customer_router(db), prefix="/api")
+
+# Private central licence router: only available in the private licensing repo/deploy.
+LICENCE_SERVER_MODE = (os.environ.get("LICENCE_SERVER_MODE", "false").lower() == "true")
 if LICENCE_SERVER_MODE:
+    try:
+        from licence_server import build_central_router
+    except ImportError as e:
+        raise RuntimeError(
+            "LICENCE_SERVER_MODE=true but the private licence_server module is not installed"
+        ) from e
     app.include_router(build_central_router(db), prefix="/api")
 
 app.add_middleware(

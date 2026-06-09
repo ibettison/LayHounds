@@ -39,7 +39,10 @@ def _ensure_test_licence_active():
     from motor.motor_asyncio import AsyncIOMotorClient
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from licences import Licence, _now  # noqa: E402
+    try:
+        from licence_server import Licence, _now  # noqa: E402
+    except ImportError:
+        pytest.skip("Private licence_server module is not installed in this public app build")
 
     async def setup():
         c = AsyncIOMotorClient(_os.environ['MONGO_URL'])

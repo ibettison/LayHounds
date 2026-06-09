@@ -171,25 +171,21 @@ curl -s http://127.0.0.1:8001/api/licence/diag | python3 -m json.tool
 # look first when "Licence server: not found" or activation issues show up.
 ```
 
-### Issuing your own test licence (no Stripe needed)
+### Issuing licences
 
-For first-run testing of the Paper-Live / Live gate WITHOUT going through the
-real Stripe checkout flow, seed a test licence into your local MongoDB:
+The public/customer app no longer contains licence-issuing tools. Licence
+generation, Stripe checkout, Stripe webhooks, and any manual seed/admin scripts
+belong in the private licensing repository/deployment only.
+
+Customer installs should only set:
 
 ```bash
-cd /opt/layhounds/backend
-source venv/bin/activate
-python seed_test_licence.py                     # default: LH-TEST-AAAA-BBBB-CCCC, 30 days
-python seed_test_licence.py --reset             # unbind it after testing for re-activation
-python seed_test_licence.py --key LH-MINE-1234-5678-9999 --days 365 --email me@example.com
+LICENCE_SERVER_URL=https://your-private-licence-host.example
 ```
 
-The key is then immediately usable: open the simulator UI on your domain,
-paste it into the "Live Unlock Licence" panel and click Activate. Paper-Live
-and Live modes will unlock for as long as `current_period_end` is in the future.
-
-> Requires `LICENCE_SERVER_MODE=true` in `backend/.env` so the API exposes the
-> central `/api/licences/activate` endpoint that the customer flow calls.
+The private licensing host should set `LICENCE_SERVER_MODE=true` and include
+the private `backend/licence_server.py` module plus Stripe dependencies. See
+`LICENSING_SPLIT.md` for the split.
 
 ---
 
@@ -394,9 +390,9 @@ Wire it to a cron / GitHub webhook later if you want auto-deploys.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `Licence server: Licence key not found` | The licence key you typed doesn't exist in the central server's MongoDB. The test key `LH-TEST-AAAA-BBBB-CCCC` only exists in the dev preview pod — your VPS has its own MongoDB. | Run `cd /opt/layhounds/backend && source venv/bin/activate && python seed_test_licence.py` to inject a fresh test key, or pay through the real Stripe checkout to get a real key. Confirm via `curl http://127.0.0.1:8001/api/licence/diag`. |
+| `Licence server: Licence key not found` | The licence key you typed does not exist in the private central licensing database. | Issue the key from the private licensing deployment, or complete the real Stripe checkout to mint one. Confirm the customer app can reach the host via `curl http://127.0.0.1:8001/api/licence/diag`. |
 | `Could not reach licence server` | `LICENCE_SERVER_URL` is wrong, the central host is down, or a firewall is in the way. | Check `curl http://127.0.0.1:8001/api/licence/diag` — the `connectivity` block tells you exactly which URL was tried and the error. |
-| `Live Unlock required` (HTTP 402 on session create) | Paper-Live/Live mode requires an active licence. | Either activate a key (see seed_test_licence.py) or use Simulator mode for free testing. |
+| `Live Unlock required` (HTTP 402 on session create) | Paper-Live/Live mode requires an active licence. | Activate a key issued by the private licensing service, or use Simulator mode for free testing. |
 | `GEO_BLOCKED` still showing | VPS is in a non-UK/EU region; some AWS edges also blocked | Pick a confirmed-UK/EU region: Hetzner FSN1/NBG1, OVH UK, Linode London, AWS eu-west-2. |
 | `502 Bad Gateway` | Backend not running or wrong port | `pm2 status`, `pm2 logs layhounds-api`. |
 | Betfair login 401 | Password contains shell-special chars in `.env` not quoted | Wrap the value in single quotes or escape `$`, `[`, `]`. |

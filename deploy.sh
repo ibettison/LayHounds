@@ -46,6 +46,35 @@ APP_DIR="${APP_DIR:-/opt/layhounds}"
 APP_USER="${APP_USER:-layhounds}"
 REPO="${REPO:-}"
 SKIP_TLS="${SKIP_TLS:-0}"
+APP_ROLE="${APP_ROLE:-public}"
+
+case "$APP_ROLE" in
+  public)
+    API_PORT="${API_PORT:-8001}"
+    PM2_NAME="${PM2_NAME:-layhounds-public-api}"
+    NGINX_SITE="${NGINX_SITE:-layhounds-public}"
+    DB_NAME="${DB_NAME:-layhounds_public}"
+    ;;
+  private)
+    API_PORT="${API_PORT:-8002}"
+    PM2_NAME="${PM2_NAME:-layhounds-private-api}"
+    NGINX_SITE="${NGINX_SITE:-layhounds-private}"
+    DB_NAME="${DB_NAME:-layhounds_private}"
+    ;;
+  *)
+    die "APP_ROLE must be 'public' or 'private' (got '$APP_ROLE')."
+    ;;
+esac
+
+ROLE_EXCLUDES=()
+if [ "$APP_ROLE" = "public" ]; then
+  ROLE_EXCLUDES=(
+    --exclude='private_app'
+    --exclude='backend/licence_server.py'
+    --exclude='backend/requirements-licensing.txt'
+    --exclude='backend/seed_test_licence.py'
+  )
+fi
 
 # If DOMAIN looks like an IPv4 address, force HTTP-only (Let's Encrypt won't
 # issue certs for raw IPs).
@@ -74,9 +103,15 @@ prompt_if_empty() {
     export "$var=$val"
   fi
 }
-prompt_if_empty BETFAIR_APP_KEY  "Betfair App Key"
-prompt_if_empty BETFAIR_USERNAME "Betfair username"
-prompt_if_empty BETFAIR_PASSWORD "Betfair password" 1
+if [ "$APP_ROLE" = "public" ]; then
+  prompt_if_empty BETFAIR_APP_KEY  "Betfair App Key"
+  prompt_if_empty BETFAIR_USERNAME "Betfair username"
+  prompt_if_empty BETFAIR_PASSWORD "Betfair password" 1
+fi
+
+if [ "$APP_ROLE" = "private" ]; then
+  prompt_if_empty STRIPE_API_KEY "Stripe secret key (sk_live_... or sk_test_...)" 1
+fi
 
 # ==============================================================================
 step "1/8  System packages"
@@ -180,6 +215,7 @@ else
     mkdir -p "$APP_DIR"
     rsync -a --delete --exclude='.git' --exclude='node_modules' \
           --exclude='frontend/build' --exclude='backend/venv' \
+          "${ROLE_EXCLUDES[@]}" \
           "$SELF_DIR/" "$APP_DIR/"
     chown -R "$APP_USER:$APP_USER" "$APP_DIR"
   fi
@@ -198,6 +234,9 @@ cd "$APP_DIR/backend"
 source venv/bin/activate
 pip install --upgrade pip wheel >/dev/null
 pip install -r requirements.txt
+if [ "$APP_ROLE" = "private" ] && [ -f requirements-licensing.txt ]; then
+  pip install -r requirements-licensing.txt
+fi
 EOF
 
 # ==============================================================================
@@ -208,14 +247,26 @@ PROTO_BUILD="https"
 PUBLIC_URL="${PROTO_BUILD}://${DOMAIN}"
 
 BE_ENV="$APP_DIR/backend/.env"
+if [ "$APP_ROLE" = "public" ]; then
 cat > "$BE_ENV" <<EOF
 MONGO_URL=mongodb://127.0.0.1:27017
-DB_NAME=layhounds
+DB_NAME=${DB_NAME}
 CORS_ORIGINS=${PUBLIC_URL}
+LICENCE_SERVER_URL=${LICENCE_SERVER_URL:-}
 BETFAIR_APP_KEY=${BETFAIR_APP_KEY}
 BETFAIR_USERNAME=${BETFAIR_USERNAME}
 BETFAIR_PASSWORD=${BETFAIR_PASSWORD}
 EOF
+else
+cat > "$BE_ENV" <<EOF
+MONGO_URL=mongodb://127.0.0.1:27017
+DB_NAME=${DB_NAME}
+CORS_ORIGINS=${PUBLIC_URL}
+LICENCE_SERVER_MODE=true
+STRIPE_API_KEY=${STRIPE_API_KEY}
+STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+EOF
+fi
 chown "$APP_USER:$APP_USER" "$BE_ENV"
 chmod 600 "$BE_ENV"
 
@@ -238,9 +289,9 @@ step "6/8  Start API with PM2 (auto-start on boot)"
 sudo -u "$APP_USER" bash <<EOF
 set -e
 cd "$APP_DIR/backend"
-pm2 delete layhounds-api >/dev/null 2>&1 || true
-pm2 start "venv/bin/uvicorn server:app --host 127.0.0.1 --port 8001" \
-          --name layhounds-api --cwd "$APP_DIR/backend"
+pm2 delete "$PM2_NAME" >/dev/null 2>&1 || true
+pm2 start "venv/bin/uvicorn server:app --host 127.0.0.1 --port $API_PORT" \
+          --name "$PM2_NAME" --cwd "$APP_DIR/backend"
 pm2 save
 EOF
 
@@ -253,7 +304,7 @@ systemctl restart "pm2-$APP_USER" >/dev/null 2>&1 || true
 # ==============================================================================
 step "7/8  Nginx reverse proxy"
 # ==============================================================================
-NGINX_CONF="/etc/nginx/sites-available/layhounds"
+NGINX_CONF="/etc/nginx/sites-available/${NGINX_SITE}"
 cat > "$NGINX_CONF" <<EOF
 server {
     listen 80;
@@ -271,7 +322,7 @@ server {
 
     # API proxy
     location /api/ {
-        proxy_pass         http://127.0.0.1:8001;
+        proxy_pass         http://127.0.0.1:${API_PORT};
         proxy_http_version 1.1;
         proxy_set_header   Host              \$host;
         proxy_set_header   X-Real-IP         \$remote_addr;
@@ -292,7 +343,7 @@ server {
 }
 EOF
 
-ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/layhounds
+ln -sf "$NGINX_CONF" "/etc/nginx/sites-enabled/${NGINX_SITE}"
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
 systemctl reload nginx
@@ -317,22 +368,28 @@ step "Done — verification"
 sleep 2
 PROTO="https"; [ "$SKIP_TLS" = "1" ] && PROTO="http"
 API_STATUS="$(curl -s -o /dev/null -w '%{http_code}' "${PROTO}://${DOMAIN}/api/" || true)"
-BF_STATUS="$(curl -s "${PROTO}://${DOMAIN}/api/betfair/status" || true)"
+BF_STATUS=""
+if [ "$APP_ROLE" = "public" ]; then
+  BF_STATUS="$(curl -s "${PROTO}://${DOMAIN}/api/betfair/status" || true)"
+fi
 
 echo
 echo -e "${BOLD}Lay-Hounds deployment complete.${NC}"
 echo "  URL:              ${PROTO}://${DOMAIN}"
 echo "  API /api/:        HTTP ${API_STATUS}"
-echo "  Betfair status:   ${BF_STATUS}"
+echo "  Role:             ${APP_ROLE}"
+if [ "$APP_ROLE" = "public" ]; then
+  echo "  Betfair status:   ${BF_STATUS}"
+fi
 echo
-echo "  Backend logs:     sudo -u $APP_USER pm2 logs layhounds-api"
-echo "  Restart API:      sudo -u $APP_USER pm2 restart layhounds-api"
+echo "  Backend logs:     sudo -u $APP_USER pm2 logs $PM2_NAME"
+echo "  Restart API:      sudo -u $APP_USER pm2 restart $PM2_NAME"
 echo "  Nginx config:     $NGINX_CONF"
 echo "  App dir:          $APP_DIR"
 echo
-if echo "$BF_STATUS" | grep -q GEO_BLOCKED; then
+if [ "$APP_ROLE" = "public" ] && echo "$BF_STATUS" | grep -q GEO_BLOCKED; then
   warn "Betfair still reports GEO_BLOCKED — this VPS region is not UK/EU."
   warn "Move to Hetzner FSN1/NBG1, OVH UK, Linode London, or AWS eu-west-2."
-else
+elif [ "$APP_ROLE" = "public" ]; then
   log "Betfair API reachable from this host."
 fi

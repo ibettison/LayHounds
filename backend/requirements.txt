@@ -9,8 +9,5 @@ requests>=2.31.0
 python-multipart>=0.0.9
 tzdata>=2024.2
 
-# Stripe (payments) — official SDK, public PyPI
-stripe>=11.0.0
-
 # Dev / test
 pytest>=8.0.0

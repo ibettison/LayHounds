@@ -65,6 +65,21 @@ APP_USER="${APP_USER:-layhounds}"
 FORCE="${FORCE:-0}"
 SKIP_SWAP="${SKIP_SWAP:-0}"
 SKIP_HEALTH="${SKIP_HEALTH:-0}"
+APP_ROLE="${APP_ROLE:-public}"
+
+case "$APP_ROLE" in
+  public)
+    PM2_NAME="${PM2_NAME:-layhounds-public-api}"
+    NGINX_SITE="${NGINX_SITE:-layhounds-public}"
+    ;;
+  private)
+    PM2_NAME="${PM2_NAME:-layhounds-private-api}"
+    NGINX_SITE="${NGINX_SITE:-layhounds-private}"
+    ;;
+  *)
+    die "APP_ROLE must be 'public' or 'private' (got '$APP_ROLE')."
+    ;;
+esac
 
 # Auto-detect who owns the repo (for `sudo -u` on git commands).
 if [ -z "${REPO_OWNER:-}" ]; then
@@ -92,12 +107,14 @@ id -u "$REPO_OWNER" >/dev/null 2>&1 || die "Repo owner '$REPO_OWNER' does not ex
 
 log "REPO_DIR:    $REPO_DIR   (owner: $REPO_OWNER)"
 log "APP_DIR:     $APP_DIR    (owner: $APP_USER)"
+log "App role:    $APP_ROLE"
+log "PM2 name:    $PM2_NAME"
 log "Mode:        $([ "$TWO_STAGE" = 1 ] && echo two-stage 'repo→runtime' || echo single-stage)"
 
 cd "$APP_DIR"
 
 # Single-run lock: prevent two updates from racing each other ----------------
-LOCKFILE="/var/lock/layhounds-update.lock"
+LOCKFILE="/var/lock/layhounds-${APP_ROLE}-update.lock"
 exec 200>"$LOCKFILE"
 if ! flock -n 200; then
   die "Another update is already running (lock $LOCKFILE held). Wait for it to finish."
@@ -198,9 +215,9 @@ rollback() {
   done
   shopt -u nullglob
   # 4. pm2 restart (in case the API was reloaded mid-fail)
-  sudo -u "$APP_USER" pm2 restart layhounds-api >/dev/null 2>&1 || true
+  sudo -u "$APP_USER" pm2 restart "$PM2_NAME" >/dev/null 2>&1 || true
   err "Rollback complete. The site should be back online at the previous version."
-  err "Check logs:  sudo -u $APP_USER pm2 logs layhounds-api --lines 80"
+  err "Check logs:  sudo -u $APP_USER pm2 logs $PM2_NAME --lines 80"
 }
 
 # Trap any exit (incl. EXIT trap on uncaught error) and roll back if flagged.
@@ -234,6 +251,15 @@ restore_envs() {
 # are protected by --exclude so the runtime stays self-consistent even if the
 # repo just got a fresh `git reset --hard`.
 sync_repo_to_app_dir() {
+  local role_excludes=()
+  if [ "$APP_ROLE" = "public" ]; then
+    role_excludes=(
+      --exclude='private_app/'
+      --exclude='backend/licence_server.py'
+      --exclude='backend/requirements-licensing.txt'
+      --exclude='backend/seed_test_licence.py'
+    )
+  fi
   rsync -a --delete \
     --exclude='.git/' \
     --exclude='node_modules/' \
@@ -249,6 +275,7 @@ sync_repo_to_app_dir() {
     --exclude='*.pyc' \
     --exclude='.update-snapshot/' \
     --exclude='/swapfile' \
+    "${role_excludes[@]}" \
     "$REPO_DIR"/ "$APP_DIR"/
   chown -R "$APP_USER:$APP_USER" "$APP_DIR" 2>/dev/null || true
   # Re-tighten .env perms after the chown sweep
@@ -311,7 +338,7 @@ changed() { [ "$FORCE" = "1" ] || echo "$CHANGED" | grep -q "^$1"; }
 # ==============================================================================
 step "3/6  Backend dependencies"
 # ==============================================================================
-if changed "backend/requirements.txt" || [ ! -d "$APP_DIR/backend/venv" ]; then
+if changed "backend/requirements.txt" || changed "backend/requirements-licensing.txt" || [ ! -d "$APP_DIR/backend/venv" ]; then
   log "requirements.txt changed → reinstalling into venv"
   # Use --no-cache-dir + retry to handle flaky PyPI on tiny VPSs.
   if ! sudo -u "$APP_USER" bash -c "
@@ -321,6 +348,9 @@ if changed "backend/requirements.txt" || [ ! -d "$APP_DIR/backend/venv" ]; then
     source venv/bin/activate
     pip install --upgrade pip wheel >/dev/null
     pip install --no-cache-dir -r requirements.txt
+    if [ '$APP_ROLE' = 'private' ] && [ -f requirements-licensing.txt ]; then
+      pip install --no-cache-dir -r requirements-licensing.txt
+    fi
   "; then
     err "Backend pip install failed"
     ROLLBACK_NEEDED=1
@@ -380,11 +410,11 @@ step "5/6  Roll API (zero-downtime)"
 # ==============================================================================
 if changed "backend/" || [ "$FORCE" = "1" ]; then
   log "Backend changed → pm2 reload (graceful)"
-  if sudo -u "$APP_USER" pm2 reload layhounds-api 2>/dev/null; then
+  if sudo -u "$APP_USER" pm2 reload "$PM2_NAME" 2>/dev/null; then
     log "pm2 reload OK"
   else
     warn "pm2 reload not available — falling back to restart"
-    if ! sudo -u "$APP_USER" pm2 restart layhounds-api; then
+    if ! sudo -u "$APP_USER" pm2 restart "$PM2_NAME"; then
       err "pm2 restart failed"
       ROLLBACK_NEEDED=1
       exit 1
@@ -406,9 +436,9 @@ if ! nginx -t 2>/dev/null; then
 fi
 systemctl reload nginx || warn "nginx reload returned non-zero (already serving previous config)"
 
-DOMAIN="$(awk '/server_name/ {print $2; exit}' /etc/nginx/sites-enabled/layhounds 2>/dev/null | tr -d ';')"
+DOMAIN="$(awk '/server_name/ {print $2; exit}' "/etc/nginx/sites-enabled/${NGINX_SITE}" 2>/dev/null | tr -d ';')"
 PROTO="http"
-grep -q 'listen 443' /etc/nginx/sites-enabled/layhounds 2>/dev/null && PROTO="https"
+grep -q 'listen 443' "/etc/nginx/sites-enabled/${NGINX_SITE}" 2>/dev/null && PROTO="https"
 
 if [ "$SKIP_HEALTH" != "1" ] && [ -n "$DOMAIN" ]; then
   log "Health-checking ${PROTO}://${DOMAIN}/api/ for up to 30 s…"

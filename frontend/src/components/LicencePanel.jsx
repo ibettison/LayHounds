@@ -156,7 +156,6 @@ export const LicencePanel = () => {
           <>
             <p className="text-xs text-zinc-400 leading-relaxed">
               Paste the licence key you received after purchase to unlock Paper-Live & Live modes.
-              No key? <a href="/#pricing" className="text-pink-400 hover:text-pink-300 underline">Get one for £19.99/mo →</a>
             </p>
             <div className="flex gap-2">
               <Input

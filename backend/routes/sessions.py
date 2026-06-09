@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from betfair_client import betfair, BetfairError
 from db import db
-from licences import LICENCE_SERVER_URL, is_licence_active
+from licence_client import LICENCE_SERVER_URL, is_licence_active
 from models import LayBet, Race, RecoveryChain, Session, SessionConfig
 from services.racing import (
     doc_to_session,
