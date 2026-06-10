@@ -153,6 +153,10 @@ sudo \
   ./install.sh
 ```
 
+The wrapper copies that checkout into `/opt/layhounds-public` and records the
+source path in `/opt/layhounds-public/.source-dir`. Keep the original
+`~/layhounds-public` clone on the VPS so future updates can pull from it.
+
 ---
 
 ## 5. Environment Files
@@ -336,6 +340,10 @@ If your clone and runtime are the same directory:
 cd /opt/layhounds-public
 sudo APP_DIR=/opt/layhounds-public ./update.sh
 ```
+
+If `/opt/layhounds-public` is a runtime copy rather than a Git checkout,
+`update.sh` reads `.source-dir`, pulls updates in the original clone, then
+copies the updated source back into `/opt`.
 
 Useful options:
 

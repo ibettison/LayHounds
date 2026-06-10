@@ -68,6 +68,13 @@ SKIP_HEALTH="${SKIP_HEALTH:-0}"
 PM2_NAME="${PM2_NAME:-layhounds-public-api}"
 NGINX_SITE="${NGINX_SITE:-layhounds-public}"
 
+if [ ! -d "$REPO_DIR/.git" ] && [ -f "$APP_DIR/.source-dir" ]; then
+  RECORDED_REPO_DIR="$(cat "$APP_DIR/.source-dir")"
+  if [ -d "$RECORDED_REPO_DIR/.git" ]; then
+    REPO_DIR="$RECORDED_REPO_DIR"
+  fi
+fi
+
 # Auto-detect who owns the repo (for `sudo -u` on git commands).
 if [ -z "${REPO_OWNER:-}" ]; then
   REPO_OWNER="$(stat -c '%U' "$REPO_DIR" 2>/dev/null || echo root)"
@@ -252,12 +259,14 @@ sync_repo_to_app_dir() {
     --exclude='**/__pycache__/' \
     --exclude='*.pyc' \
     --exclude='.update-snapshot/' \
+    --exclude='.source-dir' \
     --exclude='/swapfile' \
     --exclude='private_app/' \
     --exclude='backend/licence_server.py' \
     --exclude='backend/requirements-licensing.txt' \
     --exclude='backend/seed_test_licence.py' \
     "$REPO_DIR"/ "$APP_DIR"/
+  echo "$REPO_DIR" > "$APP_DIR/.source-dir"
   chown -R "$APP_USER:$APP_USER" "$APP_DIR" 2>/dev/null || true
   # Re-tighten .env perms after the chown sweep
   [ -f "$APP_DIR/backend/.env" ]  && chmod 600 "$APP_DIR/backend/.env"  || true

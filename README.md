@@ -64,6 +64,7 @@ add `LICENCE_SERVER_URL`, `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, and
 If you have already cloned the repo on the VPS, run the wrapper instead:
 
 ```bash
+cd ~/layhounds-public
 sudo \
   DOMAIN=app.lay-hounds.co.uk \
   EMAIL=you@example.com \
@@ -71,6 +72,10 @@ sudo \
   LICENCE_SERVER_URL=https://lay-hounds.co.uk \
   ./install.sh
 ```
+
+The wrapper copies this checkout into `/opt/layhounds-public` and records the
+source path in `/opt/layhounds-public/.source-dir`. Keep the original
+`~/layhounds-public` clone on the VPS so future updates can pull from it.
 
 ## Public App Environment
 
@@ -96,6 +101,10 @@ On the VPS:
 cd /opt/layhounds-public
 sudo ./update.sh
 ```
+
+If `/opt/layhounds-public` is a runtime copy rather than a Git checkout,
+`update.sh` reads `.source-dir`, pulls updates in the original clone, then
+copies the updated source back into `/opt`.
 
 The updater pulls the latest repo code, preserves `.env`, rebuilds only what changed, reloads the PM2 backend process, reloads Nginx, and performs a health check.
 

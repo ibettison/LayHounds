@@ -195,8 +195,10 @@ else
     mkdir -p "$APP_DIR"
     rsync -a --delete --exclude='.git' --exclude='node_modules' \
           --exclude='frontend/build' --exclude='backend/venv' \
+          --exclude='.source-dir' \
           "${ROLE_EXCLUDES[@]}" \
           "$SELF_DIR/" "$APP_DIR/"
+    echo "$SELF_DIR" > "$APP_DIR/.source-dir"
     chown -R "$APP_USER:$APP_USER" "$APP_DIR"
   fi
 fi
