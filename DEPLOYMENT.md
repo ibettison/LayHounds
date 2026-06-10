@@ -133,9 +133,13 @@ GitHub also returns `404` when the repository is private. For public customer
 installs, make the deployment repository public first or publish the customer
 version to a separate public repository.
 
-The installer will prompt for Betfair credentials when needed. It installs
-system packages, MongoDB, Node/Yarn, Python dependencies, the React build, PM2,
-Nginx, and HTTPS certificates.
+The installer will prompt for the licence server URL and Betfair credentials
+when needed. These prompts work when using `curl | sudo ... bash` because the
+script reads from the VPS terminal. For non-interactive installs, pass
+`LICENCE_SERVER_URL`, `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, and
+`BETFAIR_PASSWORD` in the command. The installer then installs system packages,
+MongoDB, Node/Yarn, Python dependencies, the React build, PM2, Nginx, and HTTPS
+certificates.
 
 If you have already cloned the repository on the VPS, you can run the wrapper:
 

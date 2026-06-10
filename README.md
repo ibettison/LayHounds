@@ -56,7 +56,10 @@ The installer will:
 - configure Nginx for the supplied domain
 - request HTTPS via Let's Encrypt
 
-During install, it prompts for Betfair credentials if they are not supplied as environment variables.
+During install, it prompts for the licence server URL and Betfair credentials if
+they are not supplied as environment variables. For non-interactive installs,
+add `LICENCE_SERVER_URL`, `BETFAIR_APP_KEY`, `BETFAIR_USERNAME`, and
+`BETFAIR_PASSWORD` to the command.
 
 If you have already cloned the repo on the VPS, run the wrapper instead:
 

@@ -77,14 +77,18 @@ EMAIL="${EMAIL:-noreply@example.com}"
 prompt_if_empty() {
   local var="$1" msg="$2" silent="${3:-0}"
   if [ -z "${!var:-}" ]; then
+    [ -r /dev/tty ] || die "$var is required but no interactive terminal is available. Re-run with $var set in the install command."
     if [ "$silent" = "1" ]; then
-      read -rsp "$msg: " val; echo
+      read -rsp "$msg: " val </dev/tty
+      echo >/dev/tty
     else
-      read -rp "$msg: " val
+      read -rp "$msg: " val </dev/tty
     fi
+    [ -n "$val" ] || die "$var cannot be empty."
     export "$var=$val"
   fi
 }
+prompt_if_empty LICENCE_SERVER_URL "Licence server URL"
 prompt_if_empty BETFAIR_APP_KEY  "Betfair App Key"
 prompt_if_empty BETFAIR_USERNAME "Betfair username"
 prompt_if_empty BETFAIR_PASSWORD "Betfair password" 1
