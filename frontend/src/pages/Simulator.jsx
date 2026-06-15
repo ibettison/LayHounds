@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import "../App.css";
 import { toast } from "sonner";
-import { Play, Square, Activity, TrendingUp, TrendingDown, Wallet, Flag, Trash2, RefreshCw } from "lucide-react";
+import { Play, Square, Activity, TrendingUp, TrendingDown, Wallet, Flag, Trash2, RefreshCw, KeyRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import {
@@ -252,6 +252,15 @@ export default function Simulator() {
             </div>
           </Link>
           <div className="flex items-center justify-end gap-2 sm:gap-3 flex-wrap">
+            <Link to="/licence" className="lg:hidden">
+              <Button
+                data-testid="mobile-licence-link"
+                variant="ghost"
+                className="rounded-none border border-[#2A2A2A] text-zinc-300 hover:text-pink-400 hover:bg-pink-500/10 hover:border-pink-500/40 font-bold uppercase tracking-wider text-xs"
+              >
+                <KeyRound className="w-3.5 h-3.5 mr-1.5" /> Licence
+              </Button>
+            </Link>
             <div className="hidden sm:block">
               <BetfairStatusBadge />
             </div>
