@@ -19,6 +19,19 @@ UK_GREYHOUND_NAMES = [
     "Swift Falcon", "Templeogue Whip", "Crash Bandicoot", "Loughteen Blanco",
     "Dazzling Sunset", "Ballyanne Sim", "Yahoo Hippy", "Imperial Spirit",
     "Roxholme Magic", "Tyrur Lewis", "Killeacle Annie", "Dancing Anto",
+    "Aero Phantom", "Annual Sydney", "Barnfield Barra", "Blackhouse Finn",
+    "Blue Tick Queen", "Broadstrand Ace", "Burkos Ellie", "Cashen Eliza",
+    "Clonbrien Treaty", "Cooladerry Dust", "Coppice Rocket", "Crafty Shivoo",
+    "Crossfield Larry", "Deelish Nora", "Distant Podge", "Droopys Clue",
+    "Easy Razzle", "Fabulous Azurra", "Farloe Caprice", "Glenvale Bill",
+    "Havana Bale Out", "Hawkfield Abbie", "Highview Splash", "Hopes Paddington",
+    "King Memphis", "Laughil Jess", "Links Maverick", "Longacres Porto",
+    "Makeit For Waz", "March On Freddie", "Marlfield Duke", "Millridge Tanic",
+    "Murlens Brae", "New Destiny", "Nowhere To Go", "Oakfield Magic",
+    "Queen Joni", "Romeo Command", "Savana Beau", "Signet Goofy",
+    "Slick Sentinel", "Sober Glory", "Southfield Daisy", "Storys Hybrid",
+    "Swift Battery", "Tommys Boss", "Trinity Junior", "Unanimous Leon",
+    "Untold Dollar", "Wasted Monday", "Whyaye Man", "Wrighty",
 ]
 
 

@@ -346,7 +346,7 @@ export default function Simulator() {
 
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 grid grid-cols-12 gap-4">
         {/* Left column */}
-        <aside className="hidden lg:block lg:col-span-3 space-y-4">
+        <aside className="hidden lg:block lg:col-span-3 xl:col-span-2 space-y-4">
           <LicencePanel />
           <SessionList
             sessions={sessions}
@@ -387,7 +387,7 @@ export default function Simulator() {
         </aside>
 
         {/* Center + right */}
-        <section className="col-span-12 lg:col-span-9 space-y-4">
+        <section className="col-span-12 lg:col-span-9 xl:col-span-10 space-y-4">
           {!current && (
             <div className="bg-[#141414] border border-[#2A2A2A] p-16 text-center">
               <Flag className="w-14 h-14 mx-auto text-zinc-700 mb-4" />
@@ -511,10 +511,10 @@ export default function Simulator() {
 
               {/* Race + Recovery side-by-side */}
               <div className="grid grid-cols-12 gap-4">
-                <div className="col-span-12 xl:col-span-8">
+                <div className="col-span-12 xl:col-span-7 2xl:col-span-8">
                   <RaceCard race={lastRace} layedRanks={layedRanks} />
                 </div>
-                <div className="col-span-12 xl:col-span-4 space-y-4">
+                <div className="col-span-12 xl:col-span-5 2xl:col-span-4 space-y-4">
                   <RecoveryStatus chains={current.recovery_chains} maxRecoveryLevel={current.config.max_recovery_level || 3} />
                   <RaceHistory races={current.races} />
                 </div>
