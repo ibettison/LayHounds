@@ -39,7 +39,7 @@ export const RecoveryStatus = ({ chains, maxRecoveryLevel = 3 }) => {
             <th className="p-3 text-left">Level</th>
             <th className="p-3 text-right">Next Stake</th>
             <th className="p-3 text-right">Accum Loss</th>
-            <th className="p-3 text-center">Status</th>
+            <th className="p-3 text-center">Recovery Status</th>
           </tr>
         </thead>
         <tbody>
@@ -49,7 +49,7 @@ export const RecoveryStatus = ({ chains, maxRecoveryLevel = 3 }) => {
               ? { icon: ShieldX, color: "text-red-400", label: "Busted" }
               : c.level === 0
               ? { icon: ShieldCheck, color: "text-emerald-400", label: "Clean" }
-              : { icon: ShieldAlert, color: "text-amber-400", label: `Recovery L${c.level}` };
+              : { icon: ShieldAlert, color: "text-amber-400", label: `L${c.level}` };
             const Icon = status.icon;
             return (
               <tr key={rank} className="border-b border-[#2A2A2A]" data-testid={`recovery-row-${rank}`}>
