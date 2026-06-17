@@ -18,15 +18,15 @@ def apply_settled_bet_to_chain(
 ) -> None:
     """Update a recovery chain from one settled lay bet.
 
-    The chain tracks shortfall versus the expected per-selection net profit.
-    That means a losing bet adds both the actual loss and the missed target
-    profit, so the next recovery bet can catch up the race profit curve.
+    The chain tracks the actual money lost on that favourite rank. The next
+    recovery stake aims to clear that deficit and add one normal target profit,
+    instead of backfilling a target for every skipped/losing race.
     """
     target = target_net_profit(config)
 
     if settled_profit < 0:
         base_level = max(chain.level, bet.recovery_level)
-        shortfall = round(chain.accumulated_loss + abs(settled_profit) + target, 4)
+        shortfall = round(chain.accumulated_loss + abs(settled_profit), 4)
         if base_level >= config.max_recovery_level:
             chain.busted = True
             chain.level = config.max_recovery_level

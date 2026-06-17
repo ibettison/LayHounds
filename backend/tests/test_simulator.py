@@ -121,8 +121,10 @@ def test_recovery_chain_transitions(client, cleanup_sessions):
     sid = r.json()["id"]
     cleanup_sessions.append(sid)
 
-    prev_chains = {"1": {"level": 0, "pending_stake": 0.05, "busted": False},
-                   "2": {"level": 0, "pending_stake": 0.05, "busted": False}}
+    prev_chains = {
+        "1": {"level": 0, "pending_stake": 0.05, "accumulated_loss": 0.0, "busted": False},
+        "2": {"level": 0, "pending_stake": 0.05, "accumulated_loss": 0.0, "busted": False},
+    }
 
     for _ in range(40):
         r2 = client.post(f"{API}/sessions/{sid}/next-race", timeout=15)
@@ -150,9 +152,9 @@ def test_recovery_chain_transitions(client, cleanup_sessions):
             assert bet["recovery_level"] == prev["level"]
 
             if bet["result"] == "win":
-                # Lay won. With default commission_rate=0.05, pnl = stake * 0.95.
-                expected_pnl = round(bet["stake"] * (1 - 0.05), 4)
-                assert abs(bet["pnl"] - expected_pnl) < 1e-3
+                # Lay won. Simulator commission is applied at market level, so
+                # individual winning bet P&L may be anywhere up to full stake.
+                assert 0 < bet["pnl"] <= bet["stake"]
                 assert new_chain["level"] == 0
                 assert abs(new_chain["pending_stake"] - 0.05) < 1e-6
                 assert new_chain["busted"] is False
@@ -163,7 +165,9 @@ def test_recovery_chain_transitions(client, cleanup_sessions):
                     assert new_chain["busted"] is True
                 else:
                     assert new_chain["level"] == prev["level"] + 1
-                    expected = round(bet["liability"] + bet["stake"] + 0.05, 4)
+                    target = round(0.05 * (1 - 0.05), 4)
+                    shortfall = round(prev.get("accumulated_loss", 0.0) + bet["liability"], 4)
+                    expected = round((shortfall + target) / (1 - 0.05), 4)
                     assert abs(new_chain["pending_stake"] - expected) < 1e-3
             prev_chains[rank_str] = new_chain
 
