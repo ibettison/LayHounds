@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import "../App.css";
 import { toast } from "sonner";
 import { Play, Square, Activity, TrendingUp, TrendingDown, Wallet, Flag, Trash2, RefreshCw, KeyRound } from "lucide-react";
@@ -36,6 +36,7 @@ export default function Simulator() {
   const [current, setCurrent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [batchSize, setBatchSize] = useState(1);
+  const suppressRaceToastsRef = useRef(false);
 
 
   const refreshList = useCallback(async () => {
@@ -91,6 +92,7 @@ export default function Simulator() {
   // event and calls onSessionUpdate so the simulator refetches state.
   useSessionEvents(current?.id, {
     enabled: !!current,
+    suppressRaceToastsRef,
     onSessionUpdate: useCallback(async () => {
       if (!current?.id) return;
       try {
@@ -153,6 +155,8 @@ export default function Simulator() {
   const runNextRace = useCallback(async (opts = {}) => {
     if (!current) return;
     const auto = opts.auto === true;
+    const isBatchRun = current.config.mode === "simulator" && batchSize > 1;
+    if (isBatchRun) suppressRaceToastsRef.current = true;
     setLoading(true);
     try {
       if (current.config.mode === "live") {
@@ -164,23 +168,19 @@ export default function Simulator() {
       setCurrent(updated);
       await refreshList();
       const racesAdded = updated.races_played - (current.races_played || 0);
-      const pnlDelta = updated.total_pnl - (current.total_pnl || 0);
       if (racesAdded <= 0) {
         toast.message(auto ? "AUTO · already placed for this Betfair market" : "Already placed for this Betfair market", {
           duration: 3500,
         });
         return;
       }
-      if (batchSize > 1) {
-        const tone = pnlDelta >= 0 ? toast.success : toast.error;
-        tone(`Ran ${racesAdded} races: ${pnlDelta >= 0 ? "+" : ""}£${pnlDelta.toFixed(2)}`);
-      } else {
+      if (!isBatchRun) {
         const last = updated.races[updated.races.length - 1];
         const prefix = auto ? "AUTO · " : "";
         if (last.pnl_change >= 0) toast.success(`${prefix}Race #${last.race_num}: +£${last.pnl_change.toFixed(2)}`);
         else toast.error(`${prefix}Race #${last.race_num}: £${last.pnl_change.toFixed(2)}`);
       }
-      if (updated.status !== "active") {
+      if (updated.status !== "active" && !isBatchRun) {
         toast.warning(`Session ${updated.status.replace("_", " ").toUpperCase()}`);
       }
     } catch (e) {
@@ -195,6 +195,11 @@ export default function Simulator() {
       }
     } finally {
       setLoading(false);
+      if (isBatchRun) {
+        window.setTimeout(() => {
+          suppressRaceToastsRef.current = false;
+        }, 1500);
+      }
     }
   }, [current, batchSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -346,7 +351,7 @@ export default function Simulator() {
 
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 grid grid-cols-12 gap-4">
         {/* Left column */}
-        <aside className="hidden lg:block lg:col-span-3 space-y-4">
+        <aside className="hidden lg:block lg:col-span-3 xl:col-span-2 space-y-4">
           <LicencePanel />
           <SessionList
             sessions={sessions}
@@ -387,7 +392,7 @@ export default function Simulator() {
         </aside>
 
         {/* Center + right */}
-        <section className="col-span-12 lg:col-span-9 space-y-4">
+        <section className="col-span-12 lg:col-span-9 xl:col-span-10 space-y-4">
           {!current && (
             <div className="bg-[#141414] border border-[#2A2A2A] p-16 text-center">
               <Flag className="w-14 h-14 mx-auto text-zinc-700 mb-4" />
@@ -511,10 +516,10 @@ export default function Simulator() {
 
               {/* Race + Recovery side-by-side */}
               <div className="grid grid-cols-12 gap-4">
-                <div className="col-span-12 xl:col-span-8">
+                <div className="col-span-12 xl:col-span-7 2xl:col-span-8">
                   <RaceCard race={lastRace} layedRanks={layedRanks} />
                 </div>
-                <div className="col-span-12 xl:col-span-4 space-y-4">
+                <div className="col-span-12 xl:col-span-5 2xl:col-span-4 space-y-4">
                   <RecoveryStatus chains={current.recovery_chains} maxRecoveryLevel={current.config.max_recovery_level || 3} />
                   <RaceHistory races={current.races} />
                 </div>

@@ -17,6 +17,8 @@ from race_categories import (  # noqa: E402
     DISTANCE_BANDS,
     GRADE_CATEGORIES,
 )
+from models import UK_GREYHOUND_NAMES  # noqa: E402
+from services.racing import generate_race  # noqa: E402
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
@@ -117,6 +119,37 @@ class TestLongRunDistribution:
             assert abs(actual - target) < 0.03, (
                 f"Rank {rank}: actual={actual:.3f}, target={target:.3f}, delta={actual - target:+.3f}"
             )
+
+
+class TestSimulatorRaceGeneration:
+    def test_generated_races_have_varied_names_venues_and_plausible_odds(self):
+        random.seed(1234)
+        seen_names = set()
+        seen_venues = set()
+        favourite_odds = []
+        outsider_odds = []
+
+        for race_num in range(1, 81):
+            runners, venue, _category = generate_race(race_num)
+            seen_venues.add(venue)
+            seen_names.update(r.name for r in runners)
+
+            assert len(runners) == 6
+            assert sorted(r.trap for r in runners) == [1, 2, 3, 4, 5, 6]
+            assert len({r.name for r in runners}) == 6
+            assert sorted(r.favourite_rank for r in runners) == [1, 2, 3, 4, 5, 6]
+            assert all(1.01 <= r.odds <= 30.0 for r in runners)
+
+            by_rank = sorted(runners, key=lambda r: r.favourite_rank)
+            favourite_odds.append(by_rank[0].odds)
+            outsider_odds.append(by_rank[-1].odds)
+            assert by_rank[0].odds < by_rank[-1].odds
+
+        assert len(UK_GREYHOUND_NAMES) >= 80
+        assert len(seen_names) > 45
+        assert len(seen_venues) >= 10
+        assert 1.4 <= sum(favourite_odds) / len(favourite_odds) <= 4.5
+        assert sum(outsider_odds) / len(outsider_odds) >= 6.0
 
 
 # ---- Integration test against the live FastAPI server ---------------------

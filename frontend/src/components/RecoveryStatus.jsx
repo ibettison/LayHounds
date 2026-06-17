@@ -25,14 +25,21 @@ export const RecoveryStatus = ({ chains, maxRecoveryLevel = 3 }) => {
         <div className="label-xs">Recovery Chains</div>
         <div className="font-display text-xl uppercase tracking-tight">Per-Favourite Status</div>
       </div>
-      <table className="w-full">
+      <table className="w-full table-fixed">
+        <colgroup>
+          <col className="w-[74px]" />
+          <col className="w-[74px]" />
+          <col className="w-[96px]" />
+          <col className="w-[96px]" />
+          <col />
+        </colgroup>
         <thead>
           <tr className="bg-[#1C1C1C] text-xs uppercase tracking-wider text-zinc-400">
             <th className="p-3 text-left">Fav</th>
             <th className="p-3 text-left">Level</th>
             <th className="p-3 text-right">Next Stake</th>
             <th className="p-3 text-right">Accum Loss</th>
-            <th className="p-3 text-center">Status</th>
+            <th className="p-3 text-center">Recovery Status</th>
           </tr>
         </thead>
         <tbody>
@@ -42,12 +49,12 @@ export const RecoveryStatus = ({ chains, maxRecoveryLevel = 3 }) => {
               ? { icon: ShieldX, color: "text-red-400", label: "Busted" }
               : c.level === 0
               ? { icon: ShieldCheck, color: "text-emerald-400", label: "Clean" }
-              : { icon: ShieldAlert, color: "text-amber-400", label: `Recovery L${c.level}` };
+              : { icon: ShieldAlert, color: "text-amber-400", label: `L${c.level}` };
             const Icon = status.icon;
             return (
               <tr key={rank} className="border-b border-[#2A2A2A]" data-testid={`recovery-row-${rank}`}>
-                <td className="p-3">
-                  <span className="bg-pink-500/10 border border-pink-500/30 text-pink-400 px-2 py-0.5 text-xs font-bold uppercase tracking-wider">
+                <td className="p-3 whitespace-nowrap">
+                  <span className="inline-flex whitespace-nowrap bg-pink-500/10 border border-pink-500/30 text-pink-400 px-2 py-0.5 text-xs font-bold uppercase tracking-wider">
                     Fav #{rank}
                   </span>
                 </td>

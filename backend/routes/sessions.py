@@ -310,26 +310,41 @@ async def next_race(session_id: str):
     # Simulator + paper_live: simulate outcome (blended category win-rates)
     winning_trap = pick_winner(runners, category)
 
-    pnl_change = 0.0
     total_staked = 0.0
     total_liability = 0.0
+    gross_pnl_change = 0.0
     for bet in bets:
-        chain = session.recovery_chains[str(bet.favourite_rank)]
         total_staked += bet.stake
         total_liability += bet.liability
         if bet.dog_trap == winning_trap:
             bet.result = "loss"
             bet.pnl = -bet.liability
-            pnl_change -= bet.liability
-            apply_settled_bet_to_chain(chain, bet, session.config, bet.pnl)
+            gross_pnl_change -= bet.liability
         else:
             bet.result = "win"
-            gross_win = bet.stake
-            commission = round(gross_win * session.config.commission_rate, 4)
-            net_win = round(gross_win - commission, 4)
-            bet.pnl = net_win
-            pnl_change += net_win
-            apply_settled_bet_to_chain(chain, bet, session.config, bet.pnl)
+            bet.pnl = bet.stake
+            gross_pnl_change += bet.stake
+
+    market_commission = round(
+        max(gross_pnl_change, 0.0) * session.config.commission_rate,
+        4,
+    )
+    winning_bets = [bet for bet in bets if bet.result == "win" and (bet.pnl or 0.0) > 0]
+    total_winning_gross = sum(bet.pnl or 0.0 for bet in winning_bets)
+    if market_commission > 0 and total_winning_gross > 0:
+        allocated = 0.0
+        for idx, bet in enumerate(winning_bets):
+            if idx == len(winning_bets) - 1:
+                commission_share = round(market_commission - allocated, 4)
+            else:
+                commission_share = round(market_commission * ((bet.pnl or 0.0) / total_winning_gross), 4)
+                allocated = round(allocated + commission_share, 4)
+            bet.pnl = round((bet.pnl or 0.0) - commission_share, 4)
+
+    pnl_change = round(sum((bet.pnl or 0.0) for bet in bets), 4)
+    for bet in bets:
+        chain = session.recovery_chains[str(bet.favourite_rank)]
+        apply_settled_bet_to_chain(chain, bet, session.config, bet.pnl or 0.0)
 
     session.bank = round(session.bank + pnl_change, 4)
     session.total_pnl = round(session.total_pnl + pnl_change, 4)
@@ -513,7 +528,7 @@ async def preview_cap(inp: CapPreviewInput):
                 # lay loses
                 chain_pnl -= liability
                 target = inp.stake * (1 - inp.commission_rate)
-                accum_loss += liability + target
+                accum_loss += liability
                 if level >= inp.max_recovery_level:
                     return {"bust_level": inp.max_recovery_level, "chain_pnl": chain_pnl, "races": races}
                 level += 1

@@ -16,6 +16,72 @@ from race_categories import (
 TRAP_FROM_NAME_RE = re.compile(r"^\s*(?:trap|t|no\.?)?\s*([1-6])(?:\D|$)", re.IGNORECASE)
 
 
+SIMULATOR_VENUES = [
+    "Romford", "Hove", "Nottingham", "Sheffield", "Crayford", "Towcester",
+    "Newcastle", "Sunderland", "Monmore", "Perry Barr", "Yarmouth", "Oxford",
+    "Doncaster", "Swindon", "Kinsley", "Pelaw Grange",
+]
+
+BETFAIR_PRICE_STEPS = [
+    (2.0, 0.01),
+    (3.0, 0.02),
+    (4.0, 0.05),
+    (6.0, 0.1),
+    (10.0, 0.2),
+    (20.0, 0.5),
+    (30.0, 1.0),
+]
+
+
+def _round_exchange_price(price: float) -> float:
+    """Round a simulated price to a familiar Betfair-style ladder step."""
+    price = max(1.01, min(float(price), 30.0))
+    for upper, step in BETFAIR_PRICE_STEPS:
+        if price <= upper:
+            return round(round(price / step) * step, 2)
+    return round(price)
+
+
+def _simulated_lay_odds(category: RaceCategory) -> List[float]:
+    """Create a plausible six-runner greyhound market.
+
+    We model underlying runner strength, normalise it into a book, then apply a
+    small exchange lay-side spread. This gives more natural races than a linear
+    odds ladder while keeping the favourite ranks coherent.
+    """
+    grade = category.grade
+    if grade in {"OR", "A1", "A2"}:
+        shape, favourite_push = 1.15, 1.22
+    elif grade in {"A8", "A9", "A10", "A11", "H1", "H2", "H3"}:
+        shape, favourite_push = 1.75, 1.04
+    else:
+        shape, favourite_push = 1.45, 1.12
+
+    if category.distance_band in {"stayer", "marathon"}:
+        shape += 0.2
+        favourite_push -= 0.04
+
+    strengths = [random.gammavariate(shape, 1.0) for _ in range(6)]
+    strongest = max(range(6), key=lambda idx: strengths[idx])
+    strengths[strongest] *= random.uniform(favourite_push, favourite_push + 0.35)
+
+    total_strength = sum(strengths) or 1.0
+    fair_probs = [s / total_strength for s in strengths]
+    exchange_margin = random.uniform(0.97, 1.04)
+    lay_spread = random.uniform(1.015, 1.055)
+    odds = [
+        _round_exchange_price(1.0 / max(0.045, min(0.62, p * exchange_margin)) * lay_spread)
+        for p in fair_probs
+    ]
+
+    ranked = sorted(odds)
+    for idx in range(1, len(ranked)):
+        if ranked[idx] <= ranked[idx - 1]:
+            ranked[idx] = _round_exchange_price(ranked[idx - 1] + (0.02 if ranked[idx - 1] < 3 else 0.1))
+    random.shuffle(ranked)
+    return ranked
+
+
 def trap_from_runner_name(name: str) -> int:
     """Return a trap number from Betfair runner names like '1. Dog Name'."""
     match = TRAP_FROM_NAME_RE.search(name or "")
@@ -32,18 +98,10 @@ def fill_missing_traps(priced: List[dict]) -> None:
 
 
 def generate_race(race_num: int) -> tuple[List[Greyhound], str, RaceCategory]:
-    venues = ["Romford", "Hove", "Nottingham", "Sheffield", "Crayford", "Towcester", "Newcastle", "Sunderland"]
-    venue = random.choice(venues)
+    venue = random.choice(SIMULATOR_VENUES)
     category = random_category()
     names = random.sample(UK_GREYHOUND_NAMES, 6)
-    raw_odds = []
-    # Generate spread of odds: one strong fav (~1.8-3), then progressively longer
-    base = random.uniform(1.8, 3.5)
-    for i in range(6):
-        o = round(base + i * random.uniform(0.6, 1.8) + random.uniform(-0.3, 0.6), 2)
-        o = max(1.5, o)
-        raw_odds.append(o)
-    random.shuffle(raw_odds)  # shuffle so trap order != odds order
+    raw_odds = _simulated_lay_odds(category)
     # Assign trap 1..6
     runners_unsorted = [{"trap": i + 1, "name": names[i], "odds": raw_odds[i]} for i in range(6)]
     # Compute favourite rank by sorting by odds asc
