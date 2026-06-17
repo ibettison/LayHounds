@@ -5,6 +5,7 @@
  *   bet_placed     → blue "BET PLACED" toast with stake + liability totals.
  *   poll_status    → muted "waiting for settlement, attempt X/Y" toast (debounced).
  *   race_resulted  → green/red toast + invalidates the session so the UI repaints.
+ *                    Toasts can be suppressed during simulator batch runs.
  *   bank_updated   → silent — caller refetches via onSessionUpdate.
  *   error          → red toast.
  *
@@ -15,7 +16,10 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { API } from "../lib/api";
 
-export const useSessionEvents = (sessionId, { onSessionUpdate, enabled = true } = {}) => {
+export const useSessionEvents = (
+  sessionId,
+  { onSessionUpdate, enabled = true, suppressRaceToastsRef = null } = {}
+) => {
   useEffect(() => {
     if (!enabled || !sessionId) return undefined;
     const url = `${API}/sessions/${sessionId}/events`;
@@ -62,17 +66,19 @@ export const useSessionEvents = (sessionId, { onSessionUpdate, enabled = true } 
         const d = JSON.parse(e.data);
         // Auto-dismiss the bottom-center settlement banner via clearing event
         window.dispatchEvent(new CustomEvent("lh:poll_status", { detail: { market_status: "settled" } }));
-        const tone = d.pnl_change >= 0 ? toast.success : toast.error;
-        const prefix = d.source === "live_settled" ? "LIVE SETTLED · " : "";
-        tone(
-          `${prefix}Race #${d.race_num}: ${d.pnl_change >= 0 ? "+" : ""}£${Number(d.pnl_change || 0).toFixed(2)}`,
-          {
-            description: d.winner_name
-              ? `Trap ${d.winning_trap} ${d.winner_name} @${Number(d.winner_odds || 0).toFixed(2)} · bank £${Number(d.bank_after || 0).toFixed(2)}`
-              : `Bank £${Number(d.bank_after || 0).toFixed(2)}`,
-            duration: 6000,
-          }
-        );
+        if (!suppressRaceToastsRef?.current) {
+          const tone = d.pnl_change >= 0 ? toast.success : toast.error;
+          const prefix = d.source === "live_settled" ? "LIVE SETTLED · " : "";
+          tone(
+            `${prefix}Race #${d.race_num}: ${d.pnl_change >= 0 ? "+" : ""}£${Number(d.pnl_change || 0).toFixed(2)}`,
+            {
+              description: d.winner_name
+                ? `Trap ${d.winning_trap} ${d.winner_name} @${Number(d.winner_odds || 0).toFixed(2)} · bank £${Number(d.bank_after || 0).toFixed(2)}`
+                : `Bank £${Number(d.bank_after || 0).toFixed(2)}`,
+              duration: 6000,
+            }
+          );
+        }
         if (onSessionUpdate) onSessionUpdate({ reason: "race_resulted" });
 
         window.dispatchEvent(

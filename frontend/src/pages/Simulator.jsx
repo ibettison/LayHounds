@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import "../App.css";
 import { toast } from "sonner";
 import { Play, Square, Activity, TrendingUp, TrendingDown, Wallet, Flag, Trash2, RefreshCw, KeyRound } from "lucide-react";
@@ -36,6 +36,7 @@ export default function Simulator() {
   const [current, setCurrent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [batchSize, setBatchSize] = useState(1);
+  const suppressRaceToastsRef = useRef(false);
 
 
   const refreshList = useCallback(async () => {
@@ -91,6 +92,7 @@ export default function Simulator() {
   // event and calls onSessionUpdate so the simulator refetches state.
   useSessionEvents(current?.id, {
     enabled: !!current,
+    suppressRaceToastsRef,
     onSessionUpdate: useCallback(async () => {
       if (!current?.id) return;
       try {
@@ -153,6 +155,8 @@ export default function Simulator() {
   const runNextRace = useCallback(async (opts = {}) => {
     if (!current) return;
     const auto = opts.auto === true;
+    const isBatchRun = current.config.mode === "simulator" && batchSize > 1;
+    if (isBatchRun) suppressRaceToastsRef.current = true;
     setLoading(true);
     try {
       if (current.config.mode === "live") {
@@ -164,23 +168,19 @@ export default function Simulator() {
       setCurrent(updated);
       await refreshList();
       const racesAdded = updated.races_played - (current.races_played || 0);
-      const pnlDelta = updated.total_pnl - (current.total_pnl || 0);
       if (racesAdded <= 0) {
         toast.message(auto ? "AUTO · already placed for this Betfair market" : "Already placed for this Betfair market", {
           duration: 3500,
         });
         return;
       }
-      if (batchSize > 1) {
-        const tone = pnlDelta >= 0 ? toast.success : toast.error;
-        tone(`Ran ${racesAdded} races: ${pnlDelta >= 0 ? "+" : ""}£${pnlDelta.toFixed(2)}`);
-      } else {
+      if (!isBatchRun) {
         const last = updated.races[updated.races.length - 1];
         const prefix = auto ? "AUTO · " : "";
         if (last.pnl_change >= 0) toast.success(`${prefix}Race #${last.race_num}: +£${last.pnl_change.toFixed(2)}`);
         else toast.error(`${prefix}Race #${last.race_num}: £${last.pnl_change.toFixed(2)}`);
       }
-      if (updated.status !== "active") {
+      if (updated.status !== "active" && !isBatchRun) {
         toast.warning(`Session ${updated.status.replace("_", " ").toUpperCase()}`);
       }
     } catch (e) {
@@ -195,6 +195,11 @@ export default function Simulator() {
       }
     } finally {
       setLoading(false);
+      if (isBatchRun) {
+        window.setTimeout(() => {
+          suppressRaceToastsRef.current = false;
+        }, 1500);
+      }
     }
   }, [current, batchSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
