@@ -27,7 +27,7 @@ from services.backtest_analysis import (
 )
 from services.favourite_risk import favourite_risk_bet_plan, format_skip_reasons
 from services.historical_replay import next_historical_replay_race
-from services.recovery import apply_settled_bet_to_chain, stake_for_liability_budget
+from services.recovery import apply_settled_bet_to_chain, plan_recovery_bet
 from services.settlement import reconcile_live_settlements
 from services.session_status import apply_stop_conditions
 from session_events import (
@@ -165,6 +165,10 @@ async def next_race(session_id: str):
     betfair_bet_ids: List[str] = []
     historical_winning_trap: Optional[int] = None
     historical_commission_rate: Optional[float] = None
+    historical_market_name: Optional[str] = None
+    historical_race_time: Optional[str] = None
+    historical_favourite_odds: Optional[float] = None
+    historical_second_favourite_odds: Optional[float] = None
 
     if mode == "simulator":
         historical = next_historical_replay_race(session)
@@ -175,6 +179,10 @@ async def next_race(session_id: str):
             historical_winning_trap = historical.winning_trap
             historical_commission_rate = historical.commission_rate
             market_id = f"historical:{historical.market_id}"
+            historical_market_name = historical.market_name
+            historical_race_time = historical.race_time
+            historical_favourite_odds = historical.favourite_odds
+            historical_second_favourite_odds = historical.second_favourite_odds
             market_start_time = historical.replay_start_time
             market_time_label = historical.market_time_label
         else:
@@ -249,21 +257,16 @@ async def next_race(session_id: str):
         # (skip in overrun mode too — if odds outside band, chain still pending next race)
         if runner.odds < session.config.odds_min or runner.odds > session.config.odds_max:
             continue
-        stake = round(chain.pending_stake, 4)
+        bet_plan = plan_recovery_bet(
+            chain,
+            runner.odds,
+            session.config,
+            stop_loss_budget=_remaining_stop_loss_budget(session),
+        )
+        stake = _floor_money(bet_plan.stake)
         liability = round(stake * (runner.odds - 1), 4)
-        loss_budget = _remaining_stop_loss_budget(session)
-        if loss_budget is not None and liability > loss_budget:
-            stake = _floor_money(stake_for_liability_budget(runner.odds, loss_budget))
-            liability = round(stake * (runner.odds - 1), 4)
-            if stake <= 0 or liability <= 0:
-                continue
-
-        # Liability cap applies to all modes — auto-busts recovery chains
-        # whose next bet would exceed the safety cap.
-        if session.config.max_liability_cap > 0 and liability > session.config.max_liability_cap:
-            chain.busted = True
+        if stake <= 0 or liability <= 0:
             continue
-
         new_bet = LayBet(
             favourite_rank=rank, dog_trap=runner.trap, dog_name=runner.name,
             odds=runner.odds, stake=stake, liability=liability,
@@ -344,8 +347,12 @@ async def next_race(session_id: str):
             "race_num": race.race_num,
             "venue": venue,
             "market_id": market_id,
+            "market_name": historical_market_name,
             "market_start_time": market_start_time,
+            "race_time": historical_race_time,
             "market_time_label": market_time_label,
+            "favourite_odds": historical_favourite_odds,
+            "second_favourite_odds": historical_second_favourite_odds,
             "category": category.model_dump() if category else None,
             "bets": [{
                 "rank": b.favourite_rank, "trap": b.dog_trap, "name": b.dog_name,
@@ -394,9 +401,16 @@ async def next_race(session_id: str):
             bet.pnl = round((bet.pnl or 0.0) - commission_share, 4)
 
     pnl_change = round(sum((bet.pnl or 0.0) for bet in bets), 4)
+    projected_session_profit = round(session.total_pnl + pnl_change, 4)
     for bet in bets:
         chain = session.recovery_chains[str(bet.favourite_rank)]
-        apply_settled_bet_to_chain(chain, bet, session.config, bet.pnl or 0.0)
+        apply_settled_bet_to_chain(
+            chain,
+            bet,
+            session.config,
+            bet.pnl or 0.0,
+            session_profit=projected_session_profit,
+        )
 
     session.bank = round(session.bank + pnl_change, 4)
     session.total_pnl = round(session.total_pnl + pnl_change, 4)
@@ -408,7 +422,13 @@ async def next_race(session_id: str):
         race_num=session.races_played, venue=venue, runners=runners, bets=bets,
         winning_trap=winning_trap, pnl_change=round(pnl_change, 4),
         bank_after=session.bank, source=mode, market_id=market_id,
-        market_start_time=market_start_time, market_time_label=market_time_label, category=category,
+        market_name=historical_market_name,
+        market_start_time=market_start_time,
+        race_time=historical_race_time,
+        market_time_label=market_time_label,
+        favourite_odds=historical_favourite_odds,
+        second_favourite_odds=historical_second_favourite_odds,
+        category=category,
         skipped_bets=skipped_bets,
     )
     session.races.append(race)

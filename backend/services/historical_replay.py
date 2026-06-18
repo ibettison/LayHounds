@@ -4,7 +4,6 @@ import bz2
 import json
 import logging
 import os
-import random
 import re
 import tarfile
 from dataclasses import dataclass
@@ -31,8 +30,12 @@ class HistoricalRace:
     market_name: str
     event_name: str
     venue: str
+    race_time: str
     runners: List[Greyhound]
+    favourite_odds: float
+    second_favourite_odds: float
     winning_trap: int
+    result: int
     category: RaceCategory
     historic_start_time: Optional[str]
     replay_start_time: Optional[str]
@@ -41,6 +44,7 @@ class HistoricalRace:
 
 
 _loaded_archive: Optional[Path] = None
+ALL_RACES_KEY = "all"
 _days_by_key: Dict[str, List[HistoricalRace]] = {}
 
 
@@ -86,12 +90,16 @@ def _latest_definition(objects: Iterable[dict]) -> Optional[dict]:
         for market_change in obj.get("mc") or []:
             definition = market_change.get("marketDefinition")
             if definition:
-                latest = definition
+                latest = dict(definition)
+                if market_change.get("id"):
+                    latest["_marketId"] = market_change.get("id")
+                if market_change.get("marketStartTime") and not latest.get("marketStartTime"):
+                    latest["marketStartTime"] = market_change.get("marketStartTime")
     return latest
 
 
 def _parse_start_time(definition: dict) -> Optional[datetime]:
-    raw = definition.get("marketTime") or definition.get("openDate")
+    raw = definition.get("marketTime") or definition.get("marketStartTime") or definition.get("openDate")
     if raw:
         try:
             parsed = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
@@ -185,16 +193,25 @@ def _historical_race_from_definition(member_name: str, definition: dict) -> Opti
     country = (definition.get("countryCode") or "").upper()
     historic_start = _parse_start_time(definition)
     historic_start_iso = historic_start.isoformat() if historic_start else None
-    market_id = Path(member_name).stem
+    if not historic_start_iso:
+        return None
+    market_id = str(definition.get("_marketId") or Path(member_name).stem)
     category = detect_category_from_market_name(market_name, event_name)
+    favourite_odds = round(sorted_by_bsp[0]["odds"], 2)
+    second_favourite_odds = round(sorted_by_bsp[1]["odds"], 2)
+    winning_trap = trap_from_runner_name(winner.get("name") or "") or int(winner.get("sortPriority") or 0)
 
     return HistoricalRace(
         market_id=market_id,
         market_name=market_name,
         event_name=event_name,
         venue=f"{venue} ({country})" if country else venue,
+        race_time=historic_start_iso,
         runners=runners,
-        winning_trap=trap_from_runner_name(winner.get("name") or "") or int(winner.get("sortPriority") or 0),
+        favourite_odds=favourite_odds,
+        second_favourite_odds=second_favourite_odds,
+        winning_trap=winning_trap,
+        result=winning_trap,
         category=category,
         historic_start_time=historic_start_iso,
         replay_start_time=_today_with_historic_time(historic_start),
@@ -204,7 +221,7 @@ def _historical_race_from_definition(member_name: str, definition: dict) -> Opti
 
 
 def _load_days(path: Path) -> Dict[str, List[HistoricalRace]]:
-    days: Dict[str, List[HistoricalRace]] = {}
+    races: List[HistoricalRace] = []
     with tarfile.open(path, "r") as tar:
         for member in tar:
             filename = Path(member.name).name
@@ -217,12 +234,27 @@ def _load_days(path: Path) -> Dict[str, List[HistoricalRace]]:
             race = _historical_race_from_definition(member.name, definition)
             if not race or not race.historic_start_time:
                 continue
-            day_key = race.historic_start_time[:10]
-            days.setdefault(day_key, []).append(race)
+            logger.info(
+                "Historical market loaded: market_id=%s race_time=%s",
+                race.market_id,
+                race.race_time,
+            )
+            races.append(race)
 
-    for races in days.values():
-        races.sort(key=lambda race: race.historic_start_time or "")
-    return {day: races for day, races in days.items() if races}
+    races.sort(key=lambda race: race.race_time)
+    logger.info("Loaded %s historical markets", len(races))
+    logger.info(
+        "First 10 historical races after sorting: %s",
+        [
+            {
+                "market_id": race.market_id,
+                "race_time": race.race_time,
+                "venue": race.venue,
+            }
+            for race in races[:10]
+        ],
+    )
+    return {ALL_RACES_KEY: races} if races else {}
 
 
 def _ensure_loaded() -> Dict[str, List[HistoricalRace]]:
@@ -235,7 +267,11 @@ def _ensure_loaded() -> Dict[str, List[HistoricalRace]]:
     try:
         _days_by_key = _load_days(path)
         _loaded_archive = path
-        logger.info("Loaded %s historical replay days from %s", len(_days_by_key), path)
+        logger.info(
+            "Loaded historical replay archive from %s with %s markets",
+            path,
+            len(_days_by_key.get(ALL_RACES_KEY, [])),
+        )
     except Exception:
         logger.exception("Could not load historical replay archive %s", path)
         _days_by_key = {}
@@ -252,23 +288,24 @@ def next_historical_replay_race(session: Session) -> Optional[HistoricalRace]:
     if not days:
         return None
 
-    day_keys = sorted(days)
-    if session.historical_replay_day not in days:
-        session.historical_replay_day = random.choice(day_keys)
+    if session.historical_replay_day != ALL_RACES_KEY:
+        session.historical_replay_day = ALL_RACES_KEY
         session.historical_replay_cursor = 0
 
-    races = days.get(session.historical_replay_day or "") or []
+    races = days.get(ALL_RACES_KEY) or []
     if session.historical_replay_cursor >= len(races):
-        current_day = session.historical_replay_day
-        choices = [day for day in day_keys if day != current_day] or day_keys
-        session.historical_replay_day = random.choice(choices)
         session.historical_replay_cursor = 0
-        races = days.get(session.historical_replay_day or "") or []
 
     if not races:
         return None
 
     race = races[session.historical_replay_cursor]
+    logger.info(
+        "Passing historical race into simulator: order=%s market_id=%s race_time=%s",
+        session.historical_replay_cursor + 1,
+        race.market_id,
+        race.race_time,
+    )
     session.historical_replay_cursor += 1
     return replace(
         race,

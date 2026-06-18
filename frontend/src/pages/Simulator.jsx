@@ -303,7 +303,7 @@ export default function Simulator() {
               <div className="font-display text-2xl sm:text-3xl font-black uppercase tracking-tighter leading-none truncate">
                 Lay-Hounds
               </div>
-              <div className="label-xs">Greyhound Recovery Simulator</div>
+              <div className="label-xs">Greyhound Historical Replay</div>
             </div>
           </Link>
           <div className="flex items-center justify-end gap-2 sm:gap-3 flex-wrap">
@@ -413,7 +413,7 @@ export default function Simulator() {
             <div className="bg-[#141414] border border-[#2A2A2A] p-4">
               <div className="label-xs mb-3">Config</div>
               <div className="space-y-2 text-sm">
-                <ConfRow l="Mode" v={(current.config.mode || "simulator").replace("_", "-")} />
+                <ConfRow l="Mode" v={(current.config.mode || "simulator") === "simulator" ? "Historical Replay" : (current.config.mode || "simulator").replace("_", "-")} />
                 <ConfRow l="Stake" v={`£${current.config.stake.toFixed(2)}`} />
                 <ConfRow l="Commission" v={`${((current.config.commission_rate ?? 0.05) * 100).toFixed(1)}%`} />
                 <ConfRow l="Liab Cap" v={(current.config.max_liability_cap ?? 0) > 0 ? `£${current.config.max_liability_cap.toFixed(2)}` : "off"} />
@@ -609,7 +609,7 @@ export default function Simulator() {
       <footer className="border-t border-[#2A2A2A] bg-[#0A0A0A] mt-8">
         <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between text-xs text-zinc-500 font-mono">
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5"><Wallet className="w-3 h-3" /> Simulator only — no real money</span>
+            <span className="flex items-center gap-1.5"><Wallet className="w-3 h-3" /> Historical Replay only — no real money</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5"><TrendingUp className="w-3 h-3 text-emerald-400" /> lay won = stake collected</span>

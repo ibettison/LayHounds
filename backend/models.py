@@ -105,8 +105,12 @@ class Race(BaseModel):
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     source: Literal["simulator", "paper_live", "live"] = "simulator"
     market_id: Optional[str] = None
+    market_name: Optional[str] = None
     market_start_time: Optional[str] = None
+    race_time: Optional[str] = None
     market_time_label: Optional[str] = None
+    favourite_odds: Optional[float] = None
+    second_favourite_odds: Optional[float] = None
     betfair_bet_ids: List[str] = Field(default_factory=list)
     category: Optional[RaceCategory] = None
     skipped_bets: List[str] = Field(default_factory=list)
@@ -116,7 +120,9 @@ class RecoveryChain(BaseModel):
     """Tracks pending recovery for a specific favourite rank."""
     level: int = 0  # 0 = no active recovery (next bet is initial)
     pending_stake: float = INITIAL_STAKE  # stake to use on next race
-    accumulated_loss: float = 0.0
+    normal_recovery_balance: float = 0.0
+    overflow_recovery_balance: float = 0.0
+    accumulated_loss: float = 0.0  # backwards-compatible total recovery balance
     busted: bool = False  # True after level 3 loss; chain stopped
 
 

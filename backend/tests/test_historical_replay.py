@@ -12,12 +12,17 @@ from services.historical_replay import next_historical_replay_race
 
 
 def _write_market_archive(path, definition):
-    payload = json.dumps({"mc": [{"marketDefinition": definition}]}) + "\n"
-    data = bz2.compress(payload.encode("utf-8"))
-    info = tarfile.TarInfo("BASIC/2026/Jan/1/123/1.234567890.bz2")
-    info.size = len(data)
+    _write_market_archive_many(path, [("BASIC/2026/Jan/1/123/1.234567890.bz2", definition)])
+
+
+def _write_market_archive_many(path, definitions):
     with tarfile.open(path, "w") as tar:
-        tar.addfile(info, fileobj=io.BytesIO(data))
+        for member_name, definition in definitions:
+            payload = json.dumps({"mc": [{"id": definition.get("marketId"), "marketDefinition": definition}]}) + "\n"
+            data = bz2.compress(payload.encode("utf-8"))
+            info = tarfile.TarInfo(member_name)
+            info.size = len(data)
+            tar.addfile(info, fileobj=io.BytesIO(data))
 
 
 def test_historical_replay_uses_real_market_and_rewrites_date(monkeypatch, tmp_path):
@@ -61,7 +66,7 @@ def test_historical_replay_uses_real_market_and_rewrites_date(monkeypatch, tmp_p
     assert race.replay_start_time[:10] == datetime.now().date().isoformat()
     assert "19:24:00" in race.replay_start_time
     assert race.market_time_label == "19:24"
-    assert session.historical_replay_day == "2026-01-01"
+    assert session.historical_replay_day == historical_replay.ALL_RACES_KEY
     assert session.historical_replay_cursor == 1
 
 
@@ -97,3 +102,80 @@ def test_historical_replay_converts_market_time_to_track_timezone(monkeypatch, t
     assert race.replay_start_time[:10] == datetime.now().date().isoformat()
     assert "16:16:00" in race.replay_start_time
     assert race.market_time_label == "16:16"
+
+
+def _definition(market_id, market_time, venue="Romford", winner=2):
+    return {
+        "marketId": market_id,
+        "marketType": "WIN",
+        "status": "CLOSED",
+        "countryCode": "GB",
+        "venue": venue,
+        "name": "R3 400m A4",
+        "eventName": f"{venue} 1st Jan",
+        "marketTime": market_time,
+        "marketBaseRate": 5.0,
+        "runners": [
+            {
+                "status": "WINNER" if winner == 1 else "LOSER",
+                "sortPriority": 1,
+                "bsp": 3.5,
+                "id": 1,
+                "name": "1. Swift One",
+            },
+            {
+                "status": "WINNER" if winner == 2 else "LOSER",
+                "sortPriority": 2,
+                "bsp": 2.2,
+                "id": 2,
+                "name": "2. Fast Two",
+            },
+            {
+                "status": "WINNER" if winner == 3 else "LOSER",
+                "sortPriority": 3,
+                "bsp": 5.0,
+                "id": 3,
+                "name": "3. Honest Three",
+            },
+        ],
+    }
+
+
+def test_historical_replay_sorts_races_by_race_time_before_simulation(monkeypatch, tmp_path):
+    archive = tmp_path / "data.tar"
+    _write_market_archive_many(
+        archive,
+        [
+            (
+                "BASIC/2026/Jan/1/123/1.333333333.bz2",
+                _definition("1.333333333", "2026-01-01T20:15:00.000Z", venue="Late"),
+            ),
+            (
+                "BASIC/2026/Jan/1/123/1.111111111.bz2",
+                _definition("1.111111111", "2026-01-01T18:05:00.000Z", venue="Early"),
+            ),
+            (
+                "BASIC/2026/Jan/1/123/1.222222222.bz2",
+                _definition("1.222222222", "2026-01-01T19:10:00.000Z", venue="Middle"),
+            ),
+        ],
+    )
+    monkeypatch.setenv("LAYHOUNDS_HISTORICAL_TAR", str(archive))
+    historical_replay._loaded_archive = None
+    historical_replay._days_by_key = {}
+
+    session = Session(config=SessionConfig(mode="simulator"), bank=10)
+
+    first = next_historical_replay_race(session)
+    second = next_historical_replay_race(session)
+    third = next_historical_replay_race(session)
+
+    assert [first.market_id, second.market_id, third.market_id] == [
+        "1.111111111",
+        "1.222222222",
+        "1.333333333",
+    ]
+    assert [first.race_time, second.race_time, third.race_time] == sorted(
+        [first.race_time, second.race_time, third.race_time]
+    )
+    assert [first.venue, second.venue, third.venue] == ["Early (GB)", "Middle (GB)", "Late (GB)"]

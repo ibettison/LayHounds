@@ -31,6 +31,7 @@ export const RecoveryStatus = ({ chains, maxRecoveryLevel = 3 }) => {
           <col className="w-[74px]" />
           <col className="w-[96px]" />
           <col className="w-[96px]" />
+          <col className="w-[96px]" />
           <col />
         </colgroup>
         <thead>
@@ -38,13 +39,16 @@ export const RecoveryStatus = ({ chains, maxRecoveryLevel = 3 }) => {
             <th className="p-3 text-left">Fav</th>
             <th className="p-3 text-left">Level</th>
             <th className="p-3 text-right">Next Stake</th>
-            <th className="p-3 text-right">Accum Loss</th>
+            <th className="p-3 text-right">Normal</th>
+            <th className="p-3 text-right">Overflow</th>
             <th className="p-3 text-center">Recovery Status</th>
           </tr>
         </thead>
         <tbody>
           {ranks.map((rank) => {
             const c = chains[rank];
+            const normalBalance = Number(c.normal_recovery_balance ?? c.accumulated_loss ?? 0);
+            const overflowBalance = Number(c.overflow_recovery_balance ?? 0);
             const status = c.busted
               ? { icon: ShieldX, color: "text-red-400", label: "Busted" }
               : c.level === 0
@@ -65,7 +69,10 @@ export const RecoveryStatus = ({ chains, maxRecoveryLevel = 3 }) => {
                   {c.busted ? "—" : `£${c.pending_stake.toFixed(2)}`}
                 </td>
                 <td className="p-3 text-right font-mono text-amber-400/80">
-                  £{c.accumulated_loss.toFixed(2)}
+                  £{normalBalance.toFixed(2)}
+                </td>
+                <td className="p-3 text-right font-mono text-amber-400/80">
+                  £{overflowBalance.toFixed(2)}
                 </td>
                 <td className="p-3 text-center">
                   <span className={`inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider ${status.color}`}>

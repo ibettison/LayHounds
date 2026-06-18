@@ -59,10 +59,17 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
         pnl_change += profit
         newly_settled.append(bet)
 
+    projected_session_profit = round(session.total_pnl + pnl_change, 4)
     for bet in newly_settled:
         chain = session.recovery_chains.get(str(bet.favourite_rank))
         if chain:
-            apply_settled_bet_to_chain(chain, bet, session.config, bet.pnl or 0.0)
+            apply_settled_bet_to_chain(
+                chain,
+                bet,
+                session.config,
+                bet.pnl or 0.0,
+                session_profit=projected_session_profit,
+            )
 
     losing_bet = next((b for b in race.bets if b.result == "loss"), None)
     winning_trap = losing_bet.dog_trap if losing_bet else 0
