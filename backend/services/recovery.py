@@ -10,6 +10,12 @@ def stake_for_shortfall(shortfall: float, config: SessionConfig) -> float:
     return round((shortfall + target_net_profit(config)) / net_factor, 4)
 
 
+def stake_for_liability_budget(odds: float, liability_budget: float) -> float:
+    if odds <= 1 or liability_budget <= 0:
+        return 0.0
+    return round(liability_budget / (odds - 1), 4)
+
+
 def apply_settled_bet_to_chain(
     chain: RecoveryChain,
     bet: LayBet,
@@ -38,22 +44,7 @@ def apply_settled_bet_to_chain(
         chain.pending_stake = stake_for_shortfall(shortfall, config)
         return
 
-    if chain.accumulated_loss <= 0:
-        chain.level = 0
-        chain.accumulated_loss = 0.0
-        chain.pending_stake = config.stake
-        chain.busted = False
-        return
-
-    surplus_after_current_target = max(settled_profit - target, 0.0)
-    remaining = round(chain.accumulated_loss - surplus_after_current_target, 4)
-    if remaining <= 0.0001:
-        chain.level = 0
-        chain.accumulated_loss = 0.0
-        chain.pending_stake = config.stake
-        chain.busted = False
-        return
-
-    chain.level = max(chain.level, bet.recovery_level)
-    chain.accumulated_loss = remaining
-    chain.pending_stake = stake_for_shortfall(remaining, config)
+    chain.level = 0
+    chain.accumulated_loss = 0.0
+    chain.pending_stake = config.stake
+    chain.busted = False

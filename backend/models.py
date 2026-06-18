@@ -50,6 +50,7 @@ class SessionConfig(BaseModel):
     odds_min: float = Field(default=1.01, ge=1.01, le=1000.0)  # only lay favs with odds >=
     odds_max: float = Field(default=1000.0, ge=1.01, le=1000.0)  # and <=
     max_recovery_level: int = Field(default=3, ge=1, le=5)  # configurable depth of recovery staircase
+    favourite_risk_guard: Literal["off", "balanced", "strict"] = "strict"
     auto_place: bool = False  # live mode: auto-fire bet 60s before next race start
     live_price_chase: bool = True
     live_price_chase_ticks: int = Field(default=6, ge=0, le=25)
@@ -107,6 +108,7 @@ class Race(BaseModel):
     market_start_time: Optional[str] = None
     betfair_bet_ids: List[str] = Field(default_factory=list)
     category: Optional[RaceCategory] = None
+    skipped_bets: List[str] = Field(default_factory=list)
 
 
 class RecoveryChain(BaseModel):
@@ -129,5 +131,7 @@ class Session(BaseModel):
     recovery_chains: Dict[str, RecoveryChain] = Field(default_factory=dict)  # key = str(rank)
     races: List[Race] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    historical_replay_day: Optional[str] = None
+    historical_replay_cursor: int = 0
 
 

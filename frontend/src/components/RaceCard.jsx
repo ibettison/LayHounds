@@ -11,7 +11,8 @@ const TrapBadge = ({ trap }) => (
 );
 
 const formatRaceTime = (race) => {
-  const raw = race?.market_start_time || race?.timestamp;
+  const isHistorical = String(race?.market_id || "").startsWith("historical:");
+  const raw = race?.market_start_time || (isHistorical ? null : race?.timestamp);
   if (!raw) return null;
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return null;
@@ -37,6 +38,8 @@ export const RaceCard = ({ race, layedRanks }) => {
   const betsByRank = {};
   for (const b of race.bets) betsByRank[b.favourite_rank] = b;
   const raceTime = formatRaceTime(race);
+  const skippedBets = race.skipped_bets || [];
+  const hasBets = (race.bets || []).length > 0;
 
   return (
     <div className="bg-[#141414] border border-[#2A2A2A]" data-testid="race-card">
@@ -77,6 +80,17 @@ export const RaceCard = ({ race, layedRanks }) => {
           </div>
         </div>
       </div>
+
+      {skippedBets.length > 0 && (
+        <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3" data-testid="risk-guard-skip">
+          <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300">
+            {hasBets ? "Favourite Risk Guard avoided first favourite" : "Favourite Risk Guard skipped this race"}
+          </div>
+          <div className="text-xs text-amber-100/80 mt-1">
+            {skippedBets.join(" · ")}
+          </div>
+        </div>
+      )}
 
       <table className="w-full">
         <thead>

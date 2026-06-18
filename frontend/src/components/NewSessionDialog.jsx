@@ -19,12 +19,30 @@ import { toast } from "sonner";
 import { CapPreview } from "./CapPreview";
 
 const MODES = [
-  { id: "simulator", label: "Simulator", desc: "Fake UK greyhound races. No Betfair connection needed." },
+  { id: "simulator", label: "Simulator", desc: "Historical Betfair UK/IE replay when available. No real money." },
   { id: "paper_live", label: "Paper-Live", desc: "Real Betfair odds + races, bets simulated. No real money." },
   { id: "live", label: "Live", desc: "REAL LAY BETS placed on Betfair. Real money at risk." },
 ];
 
 const STAKES = [0.05, 0.50, 1.00, 1.50, 2.00];
+
+const RISK_GUARDS = [
+  { id: "strict", label: "Strict", desc: "Skips risky favourites: 15%+ gaps, short sprint inside traps, and short fields." },
+  { id: "balanced", label: "Balanced", desc: "Skips 15%+ gaps and short sprint inside traps. Allows short fields." },
+  { id: "off", label: "Off", desc: "No favourite risk filter. Useful for comparison testing." },
+];
+
+const RECOMMENDED_CONFIG = {
+  stake: 0.05,
+  max_recovery_level: 5,
+  max_liability_cap: 10,
+  stop_win: 5,
+  stop_loss: 10,
+  num_favourites: 1,
+  odds_min: 1.01,
+  odds_max: 10,
+  favourite_risk_guard: "strict",
+};
 
 export const NewSessionDialog = ({ onCreated }) => {
   const [open, setOpen] = useState(false);
@@ -44,6 +62,7 @@ export const NewSessionDialog = ({ onCreated }) => {
     odds_min: 1.01,
     odds_max: 10.0,
     max_recovery_level: 3,
+    favourite_risk_guard: "strict",
     auto_place: false,
     live_price_chase: true,
     live_price_chase_ticks: 6,
@@ -66,6 +85,7 @@ export const NewSessionDialog = ({ onCreated }) => {
   }, [open]);
 
   const update = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+  const applyRecommended = () => setForm((p) => ({ ...p, ...RECOMMENDED_CONFIG }));
 
   const canSubmit = () => {
     if (form.mode === "live" && !form.risk_accepted) return false;
@@ -118,7 +138,7 @@ export const NewSessionDialog = ({ onCreated }) => {
             New Session
           </DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Choose mode, configure strategy. Stake is fixed at £0.05.
+            Choose a mode, then use the recommended setup or adjust the main limits.
           </DialogDescription>
         </DialogHeader>
 
@@ -156,6 +176,23 @@ export const NewSessionDialog = ({ onCreated }) => {
         </div>
 
         <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="col-span-2 border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="font-display uppercase text-sm font-bold text-emerald-200">Recommended setup</div>
+              <div className="text-[11px] text-zinc-400 mt-1">
+                Stake £0.05, L5 recovery, £10 liability cap, £5 stop-win, £10 stop-loss, strict risk guard.
+              </div>
+            </div>
+            <Button
+              type="button"
+              data-testid="apply-recommended-config"
+              onClick={applyRecommended}
+              className="rounded-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase tracking-wider shrink-0"
+            >
+              Apply
+            </Button>
+          </div>
+
           <div className="space-y-1.5 col-span-2">
             <Label className="label-xs">Stake per Bet £</Label>
             <div className="grid grid-cols-5 gap-1.5">
@@ -179,7 +216,7 @@ export const NewSessionDialog = ({ onCreated }) => {
               })}
             </div>
             <div className="text-[10px] text-zinc-500 font-mono">
-              Target profit per won bet = stake. Recovery stake = prev_liability + prev_stake + stake.
+              Each favourite has its own recovery chain. A winning bet clears that chain.
             </div>
           </div>
           <div className="space-y-1.5">
@@ -228,6 +265,12 @@ export const NewSessionDialog = ({ onCreated }) => {
               value={form.max_races} onChange={(e) => update("max_races", e.target.value)}
               className={inputCls} />
           </div>
+
+          <details className="col-span-2 border border-[#2A2A2A] bg-[#0A0A0A]/40 p-3">
+            <summary className="cursor-pointer font-display uppercase text-sm font-bold text-zinc-200">
+              Advanced controls
+            </summary>
+            <div className="grid grid-cols-2 gap-4 pt-3">
           <div className="space-y-1.5 col-span-2">
             <Label className="label-xs">Betfair Commission %</Label>
             <div className="grid grid-cols-5 gap-1.5">
@@ -257,7 +300,7 @@ export const NewSessionDialog = ({ onCreated }) => {
               onChange={(e) => update("max_liability_cap", e.target.value)}
               className={inputCls} />
             <div className="text-[10px] text-zinc-500 font-mono">
-              Any recovery bet whose liability would exceed this auto-busts the chain. Set 0 to disable.
+              A bet whose liability would exceed this is skipped and the chain is protected. Set 0 to disable.
             </div>
           </div>
           <div className="space-y-1.5 col-span-2">
@@ -277,7 +320,7 @@ export const NewSessionDialog = ({ onCreated }) => {
               })}
             </div>
             <div className="text-[10px] text-zinc-500 font-mono">
-              Chain busts after L{form.max_recovery_level} loss. Higher = more recovery attempts but bigger drawdowns.
+              Higher levels give more chances to recover, but can create bigger bets before the cap stops them.
             </div>
           </div>
           <div className="space-y-1.5 col-span-2">
@@ -291,20 +334,50 @@ export const NewSessionDialog = ({ onCreated }) => {
                 placeholder="max e.g. 4.00" className={inputCls} />
             </div>
             <div className="text-[10px] text-zinc-500 font-mono">
-              Lay only when favourite odds fall in [{form.odds_min}, {form.odds_max}]. Tighter band = fewer bets but typically better EV.
+              Lay only when favourite odds fall inside this range.
             </div>
           </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label className="label-xs">Favourite Risk Guard</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {RISK_GUARDS.map((guard) => {
+                const active = form.favourite_risk_guard === guard.id;
+                return (
+                  <button
+                    key={guard.id}
+                    type="button"
+                    data-testid={`risk-guard-${guard.id}`}
+                    onClick={() => update("favourite_risk_guard", guard.id)}
+                    className={`p-2 border text-left transition-colors ${
+                      active
+                        ? "border-pink-500 bg-pink-500/10"
+                        : "border-[#2A2A2A] hover:bg-[#1C1C1C]"
+                    }`}
+                  >
+                    <div className="font-display uppercase text-sm font-bold">{guard.label}</div>
+                    <div className="text-[10px] text-zinc-500 mt-1 leading-tight">{guard.desc}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-[10px] text-zinc-500 font-mono">
+              Based on 2026 UK/IE historical back-testing. This is a risk filter, not a profit guarantee.
+            </div>
+          </div>
+          <div className="col-span-2">
+            <CapPreview
+              stake={form.stake}
+              maxLiabilityCap={form.max_liability_cap}
+              numFavourites={form.num_favourites}
+              commissionRate={form.commission_rate}
+              oddsMin={form.odds_min}
+              oddsMax={form.odds_max}
+              maxRecoveryLevel={form.max_recovery_level}
+            />
+          </div>
+            </div>
+          </details>
         </div>
-
-        <CapPreview
-          stake={form.stake}
-          maxLiabilityCap={form.max_liability_cap}
-          numFavourites={form.num_favourites}
-          commissionRate={form.commission_rate}
-          oddsMin={form.odds_min}
-          oddsMax={form.odds_max}
-          maxRecoveryLevel={form.max_recovery_level}
-        />
 
         {form.mode === "live" && (
           <div className="space-y-3 pt-2 border-t border-red-500/30">

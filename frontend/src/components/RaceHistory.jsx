@@ -1,7 +1,8 @@
 import React from "react";
 
 const formatRaceTime = (race) => {
-  const raw = race?.market_start_time || race?.timestamp;
+  const isHistorical = String(race?.market_id || "").startsWith("historical:");
+  const raw = race?.market_start_time || (isHistorical ? null : race?.timestamp);
   if (!raw) return null;
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return null;
@@ -37,6 +38,8 @@ export const RaceHistory = ({ races }) => {
             (bet) => bet.result || bet.settled_at || bet.placement_status === "settled" || bet.pnl != null
           );
           const livePending = race.source === "live" && !liveSettled;
+          const skippedBets = race.skipped_bets || [];
+          const hasBets = (race.bets || []).length > 0;
           return (
             <div
               key={race.race_id}
@@ -116,6 +119,16 @@ export const RaceHistory = ({ races }) => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+              {skippedBets.length > 0 && (
+                <div className="mt-2 bg-amber-500/10 border border-amber-500/30 px-2 py-1.5">
+                  <div className="text-[9px] font-mono font-bold uppercase tracking-wider text-amber-300">
+                    {hasBets ? "Favourite Risk Guard avoided first favourite" : "Favourite Risk Guard skipped"}
+                  </div>
+                  <div className="text-[10px] text-amber-100/75 mt-0.5">
+                    {skippedBets.join(" · ")}
+                  </div>
                 </div>
               )}
               <div className="text-xs text-zinc-500 mt-1 font-mono">

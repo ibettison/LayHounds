@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import "../App.css";
 import { toast } from "sonner";
-import { Play, Square, Activity, TrendingUp, TrendingDown, Wallet, Flag, Trash2, RefreshCw, KeyRound } from "lucide-react";
+import { Play, Square, Activity, TrendingUp, TrendingDown, Wallet, Flag, Trash2, RefreshCw, KeyRound, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import {
@@ -35,6 +35,7 @@ export default function Simulator() {
   const [sessions, setSessions] = useState([]);
   const [current, setCurrent] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [batchSize, setBatchSize] = useState(1);
   const suppressRaceToastsRef = useRef(false);
 
@@ -222,6 +223,55 @@ export default function Simulator() {
     }
   };
 
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportBacktestAnalysis = async () => {
+    if (!current) return;
+    setExporting(true);
+    try {
+      const blob = await api.exportBacktestAnalysis({
+        races: 1000,
+        include_races: true,
+        repeat_50_samples: 20,
+        stake: current.config.stake,
+        starting_bank: current.config.starting_bank,
+        stop_loss: current.config.stop_loss,
+        max_liability_cap: current.config.max_liability_cap ?? 0,
+        commission_rate: current.config.commission_rate ?? 0.05,
+        max_recovery_level: current.config.max_recovery_level ?? 3,
+      });
+      downloadBlob(blob, "layhounds-backtest-analysis.csv");
+      toast.success("Backtest CSV exported");
+    } catch (e) {
+      toast.error(`Backtest export failed: ${e.response?.data?.detail || e.message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportSessionAnalysis = async () => {
+    if (!current) return;
+    setExporting(true);
+    try {
+      const blob = await api.exportSessionAnalysis(current.id);
+      downloadBlob(blob, `layhounds-session-${current.id.slice(0, 8)}-analysis.csv`);
+      toast.success("Session analysis CSV exported");
+    } catch (e) {
+      toast.error(`Session export failed: ${e.response?.data?.detail || e.message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const lastRace = current?.races?.[current.races.length - 1];
   const layedRanks = lastRace ? lastRace.bets.map((b) => b.favourite_rank) : [];
 
@@ -367,6 +417,7 @@ export default function Simulator() {
                 <ConfRow l="Stake" v={`£${current.config.stake.toFixed(2)}`} />
                 <ConfRow l="Commission" v={`${((current.config.commission_rate ?? 0.05) * 100).toFixed(1)}%`} />
                 <ConfRow l="Liab Cap" v={(current.config.max_liability_cap ?? 0) > 0 ? `£${current.config.max_liability_cap.toFixed(2)}` : "off"} />
+                <ConfRow l="Risk Guard" v={current.config.favourite_risk_guard || "strict"} />
                 {current.config.mode === "live" && (
                   <ConfRow l="Auto-place" v={current.config.auto_place ? "ON · T-60s" : "off"} />
                 )}
@@ -437,7 +488,29 @@ export default function Simulator() {
                   </div>
                 </div>
                 {current.config.mode === "simulator" && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-end gap-2 flex-wrap">
+                  <Button
+                    data-testid="export-backtest-analysis-btn"
+                    onClick={exportBacktestAnalysis}
+                    disabled={exporting}
+                    variant="ghost"
+                    className="bg-[#1C1C1C] hover:bg-[#2A2A2A] text-white border border-[#2A2A2A] rounded-none disabled:opacity-30"
+                    title="Export a fresh 1,000-race favourite-lay filter backtest as CSV"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Backtest CSV
+                  </Button>
+                  <Button
+                    data-testid="export-session-analysis-btn"
+                    onClick={exportSessionAnalysis}
+                    disabled={exporting || !current.races?.length}
+                    variant="ghost"
+                    className="bg-[#1C1C1C] hover:bg-[#2A2A2A] text-white border border-[#2A2A2A] rounded-none disabled:opacity-30"
+                    title="Export analysis for races already recorded in this session"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Session CSV
+                  </Button>
                   <div className="flex items-center bg-[#0A0A0A] border border-[#2A2A2A]" data-testid="batch-size-selector">
                     {[1, 5, 10, 25, 50].map((n) => (
                       <button
