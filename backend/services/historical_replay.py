@@ -12,6 +12,7 @@ from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Optional
+from zoneinfo import ZoneInfo
 
 from models import Greyhound, Session
 from race_categories import RaceCategory, detect_category_from_market_name
@@ -92,9 +93,15 @@ def _parse_start_time(definition: dict) -> Optional[datetime]:
     raw = definition.get("marketTime") or definition.get("openDate")
     if raw:
         try:
-            return datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+            parsed = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+            timezone_name = definition.get("timezone") or "Europe/London"
+            if parsed.tzinfo is not None:
+                return parsed.astimezone(ZoneInfo(timezone_name)).replace(tzinfo=None)
+            return parsed
         except ValueError:
             pass
+        except Exception:
+            return parsed.replace(tzinfo=None) if "parsed" in locals() else None
 
     # Some BASIC archive rows omit marketTime/openDate but include the race
     # clock in names like "Towcester 16:16 R4 240m".

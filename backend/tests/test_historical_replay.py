@@ -62,3 +62,36 @@ def test_historical_replay_uses_real_market_and_rewrites_date(monkeypatch, tmp_p
     assert "19:24:00" in race.replay_start_time
     assert session.historical_replay_day == "2026-01-01"
     assert session.historical_replay_cursor == 1
+
+
+def test_historical_replay_converts_market_time_to_track_timezone(monkeypatch, tmp_path):
+    archive = tmp_path / "data.tar"
+    _write_market_archive(
+        archive,
+        {
+            "marketType": "WIN",
+            "status": "CLOSED",
+            "countryCode": "GB",
+            "venue": "Towcester",
+            "name": "A6 240m",
+            "eventName": "Towcester 1st Jun",
+            "marketTime": "2026-06-01T15:16:00.000Z",
+            "timezone": "Europe/London",
+            "marketBaseRate": 5.0,
+            "runners": [
+                {"status": "WINNER", "sortPriority": 1, "bsp": 2.5, "id": 1, "name": "1. Swift One"},
+                {"status": "LOSER", "sortPriority": 2, "bsp": 3.2, "id": 2, "name": "2. Fast Two"},
+            ],
+        },
+    )
+    monkeypatch.setenv("LAYHOUNDS_HISTORICAL_TAR", str(archive))
+    historical_replay._loaded_archive = None
+    historical_replay._days_by_key = {}
+
+    session = Session(config=SessionConfig(mode="simulator"), bank=10)
+    race = next_historical_replay_race(session)
+
+    assert race is not None
+    assert race.replay_start_time is not None
+    assert race.replay_start_time[:10] == datetime.now().date().isoformat()
+    assert "16:16:00" in race.replay_start_time

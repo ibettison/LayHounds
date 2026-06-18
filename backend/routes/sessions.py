@@ -222,7 +222,10 @@ async def next_race(session_id: str):
     overrun_mode = session.races_played >= session.config.max_races
     bets: List[LayBet] = []
     for rank in bet_ranks:
-        chain = session.recovery_chains.get(str(rank), RecoveryChain())
+        chain_key = str(rank)
+        if chain_key not in session.recovery_chains:
+            session.recovery_chains[chain_key] = RecoveryChain(pending_stake=session.config.stake)
+        chain = session.recovery_chains[chain_key]
         if chain.busted:
             continue
         if mode == "live" and chain.level > 0 and _has_unsettled_live_recovery_bet(session, rank):

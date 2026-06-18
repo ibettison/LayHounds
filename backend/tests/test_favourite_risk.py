@@ -49,22 +49,22 @@ def test_guard_off_never_skips():
     assert favourite_risk_skip_reasons(_runners(fav_trap=1, fav_odds=1.5, second_odds=5.0, count=5), config, distance_m=240) == []
 
 
-def test_strict_guard_skips_risky_first_favourite_without_replacement():
+def test_strict_guard_places_second_favourite_for_gap_without_replacement():
     config = SessionConfig(favourite_risk_guard="strict", num_favourites=1)
 
     ranks, reasons = favourite_risk_bet_plan(_runners(fav_trap=3, fav_odds=2.0, second_trap=4, second_odds=3.0), config, distance_m=480)
 
-    assert ranks == []
+    assert ranks == [2]
     assert reasons == ["strong_favourite_gap"]
 
 
-def test_guard_skips_risky_first_favourite_even_when_second_is_available():
+def test_guard_blocks_gap_fallback_when_second_favourite_is_inside_short_sprint():
     config = SessionConfig(favourite_risk_guard="strict", num_favourites=1)
 
     ranks, reasons = favourite_risk_bet_plan(_runners(fav_trap=3, fav_odds=2.0, second_trap=1, second_odds=3.0), config, distance_m=285)
 
     assert ranks == []
-    assert reasons == ["strong_favourite_gap"]
+    assert reasons == ["strong_favourite_gap", "second_fav_inside_trap_sprint"]
 
 
 def test_strict_guard_still_skips_small_fields():
