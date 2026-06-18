@@ -66,6 +66,7 @@ class Greyhound(BaseModel):
 
 class LayBet(BaseModel):
     favourite_rank: int
+    recovery_rank: Optional[int] = None  # chain this bet settles; fallback fav #2 can recover fav #1
     dog_trap: int
     dog_name: str
     odds: float

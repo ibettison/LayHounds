@@ -138,6 +138,11 @@ export const RaceCard = ({ race, layedRanks }) => {
                   {bet ? (
                     <div>
                       <div className="text-pink-400">£{Number(bet.stake || 0).toFixed(2)}</div>
+                      {bet.recovery_rank && bet.recovery_rank !== bet.favourite_rank && (
+                        <div className="text-sky-300/80 text-[10px] mt-0.5 font-mono uppercase tracking-wider">
+                          recovers Fav #{bet.recovery_rank}
+                        </div>
+                      )}
                       <div className="text-amber-400/80 text-xs">
                         liab £{Number(bet.liability || 0).toFixed(2)}
                       </div>
