@@ -17,6 +17,7 @@ import { Plus, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 import { CapPreview } from "./CapPreview";
+import { RiskScaledRecommendation } from "./RiskScaledRecommendation";
 
 const MODES = [
   { id: "simulator", label: "Simulator", desc: "Fake UK greyhound races. No Betfair connection needed." },
@@ -125,7 +126,7 @@ export const NewSessionDialog = ({ onCreated }) => {
             New Session
           </DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Choose mode, configure strategy. Stake is fixed at £0.05.
+            Choose mode, configure stake and risk controls.
           </DialogDescription>
         </DialogHeader>
 
@@ -163,6 +164,8 @@ export const NewSessionDialog = ({ onCreated }) => {
         </div>
 
         <div className="grid grid-cols-2 gap-4 pt-2">
+          <RiskScaledRecommendation form={form} update={update} inputCls={inputCls} />
+
           <div className="space-y-1.5 col-span-2">
             <Label className="label-xs">Stake per Bet £</Label>
             <div className="grid grid-cols-5 gap-1.5">
