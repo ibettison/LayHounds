@@ -1,6 +1,7 @@
 import React from "react";
 
 const formatRaceTime = (race) => {
+  if (race?.market_time_label) return race.market_time_label;
   const isHistorical = String(race?.market_id || "").startsWith("historical:");
   const raw = race?.market_start_time || (isHistorical ? null : race?.timestamp);
   if (!raw) return null;

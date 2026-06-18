@@ -11,6 +11,7 @@ const TrapBadge = ({ trap }) => (
 );
 
 const formatRaceTime = (race) => {
+  if (race?.market_time_label) return race.market_time_label;
   const isHistorical = String(race?.market_id || "").startsWith("historical:");
   const raw = race?.market_start_time || (isHistorical ? null : race?.timestamp);
   if (!raw) return null;
@@ -84,7 +85,7 @@ export const RaceCard = ({ race, layedRanks }) => {
       {skippedBets.length > 0 && (
         <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3" data-testid="risk-guard-skip">
           <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300">
-            {hasBets ? "Favourite Risk Guard avoided first favourite" : "Favourite Risk Guard skipped this race"}
+            {hasBets ? "Favourite Risk Guard skipped selected favourite(s)" : "Favourite Risk Guard skipped this race"}
           </div>
           <div className="text-xs text-amber-100/80 mt-1">
             {skippedBets.join(" · ")}

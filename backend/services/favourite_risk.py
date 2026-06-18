@@ -11,7 +11,6 @@ FAVOURITE_RISK_LABELS = {
     "fav_inside_trap": "Favourite is Trap 1 or 2",
     "fav_inside_trap_sprint": "Favourite is Trap 1 or 2 below 300m",
     "second_fav_inside_trap_sprint": "Second favourite is Trap 1 or 2 below 300m",
-    "small_field": "Race has 5 or fewer runners",
 }
 
 STRONG_FAVOURITE_GAP_THRESHOLD = 0.15
@@ -39,7 +38,7 @@ def favourite_risk_skip_reasons(
         favourite = get_runner_by_rank(runners, 1)
         second_favourite = get_runner_by_rank(runners, 2)
     except ValueError:
-        return ["small_field"] if len(runners) <= 5 else []
+        return []
 
     gap = favourite_probability_gap(favourite, second_favourite)
     reasons: List[str] = []
@@ -49,11 +48,8 @@ def favourite_risk_skip_reasons(
     if favourite.trap in (1, 2) and distance_m is not None and distance_m < 300:
         reasons.append("fav_inside_trap_sprint")
 
-    if guard == "balanced":
-        return reasons
-
-    if len(runners) <= 5:
-        reasons.append("small_field")
+    if second_favourite.trap in (1, 2) and distance_m is not None and distance_m < 300:
+        reasons.append("second_fav_inside_trap_sprint")
     return reasons
 
 
@@ -72,21 +68,16 @@ def favourite_risk_bet_plan(
     if not reasons:
         return base_ranks, []
 
-    if "small_field" in reasons:
-        return [], reasons
+    ranks = list(base_ranks)
+    if "strong_favourite_gap" in reasons or "fav_inside_trap_sprint" in reasons:
+        ranks = [rank for rank in ranks if rank != 1]
+        if "strong_favourite_gap" in reasons and 2 not in ranks:
+            ranks.insert(0, 2)
 
-    ranks = [rank for rank in base_ranks if rank != 1]
-    if "strong_favourite_gap" in reasons and 2 not in ranks:
-        try:
-            second_favourite = get_runner_by_rank(runners, 2)
-        except ValueError:
-            return [], reasons
-        if second_favourite.trap in (1, 2) and distance_m is not None and distance_m < 300:
-            return ranks, [*reasons, "second_fav_inside_trap_sprint"]
-        ranks.insert(0, 2)
-        return ranks, reasons
+    if "second_fav_inside_trap_sprint" in reasons:
+        ranks = [rank for rank in ranks if rank != 2]
 
-    return [], reasons
+    return ranks, reasons
 
 
 def format_skip_reasons(reasons: List[str]) -> List[str]:

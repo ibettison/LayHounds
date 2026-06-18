@@ -60,6 +60,7 @@ def test_historical_replay_uses_real_market_and_rewrites_date(monkeypatch, tmp_p
     assert race.replay_start_time is not None
     assert race.replay_start_time[:10] == datetime.now().date().isoformat()
     assert "19:24:00" in race.replay_start_time
+    assert race.market_time_label == "19:24"
     assert session.historical_replay_day == "2026-01-01"
     assert session.historical_replay_cursor == 1
 
@@ -95,3 +96,4 @@ def test_historical_replay_converts_market_time_to_track_timezone(monkeypatch, t
     assert race.replay_start_time is not None
     assert race.replay_start_time[:10] == datetime.now().date().isoformat()
     assert "16:16:00" in race.replay_start_time
+    assert race.market_time_label == "16:16"

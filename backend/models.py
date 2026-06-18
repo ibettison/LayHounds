@@ -106,6 +106,7 @@ class Race(BaseModel):
     source: Literal["simulator", "paper_live", "live"] = "simulator"
     market_id: Optional[str] = None
     market_start_time: Optional[str] = None
+    market_time_label: Optional[str] = None
     betfair_bet_ids: List[str] = Field(default_factory=list)
     category: Optional[RaceCategory] = None
     skipped_bets: List[str] = Field(default_factory=list)

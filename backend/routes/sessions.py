@@ -160,6 +160,7 @@ async def next_race(session_id: str):
     mode = session.config.mode
     market_id = None
     market_start_time = None
+    market_time_label = None
     selection_by_rank: Dict[int, int] = {}
     betfair_bet_ids: List[str] = []
     historical_winning_trap: Optional[int] = None
@@ -175,6 +176,7 @@ async def next_race(session_id: str):
             historical_commission_rate = historical.commission_rate
             market_id = f"historical:{historical.market_id}"
             market_start_time = historical.replay_start_time
+            market_time_label = historical.market_time_label
         else:
             runners, venue, category = generate_race(session.races_played + 1)
     else:
@@ -329,6 +331,7 @@ async def next_race(session_id: str):
             race_num=session.races_played + 1, venue=venue, runners=runners,
             bets=bets, winning_trap=0, pnl_change=0.0, bank_after=session.bank,
             source=mode, market_id=market_id, market_start_time=market_start_time,
+            market_time_label=market_time_label,
             betfair_bet_ids=betfair_bet_ids, category=category,
             skipped_bets=skipped_bets,
         )
@@ -342,6 +345,7 @@ async def next_race(session_id: str):
             "venue": venue,
             "market_id": market_id,
             "market_start_time": market_start_time,
+            "market_time_label": market_time_label,
             "category": category.model_dump() if category else None,
             "bets": [{
                 "rank": b.favourite_rank, "trap": b.dog_trap, "name": b.dog_name,
@@ -404,7 +408,7 @@ async def next_race(session_id: str):
         race_num=session.races_played, venue=venue, runners=runners, bets=bets,
         winning_trap=winning_trap, pnl_change=round(pnl_change, 4),
         bank_after=session.bank, source=mode, market_id=market_id,
-        market_start_time=market_start_time, category=category,
+        market_start_time=market_start_time, market_time_label=market_time_label, category=category,
         skipped_bets=skipped_bets,
     )
     session.races.append(race)
@@ -424,6 +428,7 @@ async def next_race(session_id: str):
             "winner_odds": winner_dog.odds if winner_dog else None,
             "pnl_change": round(pnl_change, 4),
             "bank_after": session.bank,
+            "market_time_label": market_time_label,
             "category": category.model_dump() if category else None,
             "skipped_bets": skipped_bets,
             "bets": [{
