@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import math
 import random
 from typing import Dict, List, Optional
 
@@ -19,7 +20,7 @@ from services.racing import (
     pick_winner,
     session_to_doc,
 )
-from services.recovery import apply_settled_bet_to_chain
+from services.recovery import apply_settled_bet_to_chain, stake_for_liability_budget
 from services.settlement import reconcile_live_settlements
 from services.session_status import apply_stop_conditions
 from session_events import (
@@ -31,6 +32,16 @@ from session_events import (
 
 router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
+
+
+def _remaining_stop_loss_budget(session: Session) -> Optional[float]:
+    if session.config.stop_loss <= 0:
+        return 0.0
+    return round(max(session.config.stop_loss + session.total_pnl, 0.0), 4)
+
+
+def _floor_money(value: float) -> float:
+    return math.floor(max(value, 0.0) * 10000) / 10000
 
 
 def _has_unsettled_live_recovery_bet(session: Session, rank: int) -> bool:
@@ -209,6 +220,12 @@ async def next_race(session_id: str):
             continue
         stake = round(chain.pending_stake, 4)
         liability = round(stake * (runner.odds - 1), 4)
+        loss_budget = _remaining_stop_loss_budget(session)
+        if loss_budget is not None and liability > loss_budget:
+            stake = _floor_money(stake_for_liability_budget(runner.odds, loss_budget))
+            liability = round(stake * (runner.odds - 1), 4)
+            if stake <= 0 or liability <= 0:
+                continue
 
         # Liability cap applies to all modes — auto-busts recovery chains
         # whose next bet would exceed the safety cap.
