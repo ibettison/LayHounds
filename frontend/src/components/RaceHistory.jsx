@@ -38,6 +38,7 @@ export const RaceHistory = ({ races }) => {
           );
           const livePending = race.source === "live" && !liveSettled;
           const skippedBets = race.skipped_bets || [];
+          const hasBets = (race.bets || []).length > 0;
           return (
             <div
               key={race.race_id}
@@ -122,7 +123,7 @@ export const RaceHistory = ({ races }) => {
               {skippedBets.length > 0 && (
                 <div className="mt-2 bg-amber-500/10 border border-amber-500/30 px-2 py-1.5">
                   <div className="text-[9px] font-mono font-bold uppercase tracking-wider text-amber-300">
-                    Favourite Risk Guard skipped
+                    {hasBets ? "Favourite Risk Guard avoided first favourite" : "Favourite Risk Guard skipped"}
                   </div>
                   <div className="text-[10px] text-amber-100/75 mt-0.5">
                     {skippedBets.join(" · ")}

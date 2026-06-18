@@ -38,6 +38,7 @@ export const RaceCard = ({ race, layedRanks }) => {
   for (const b of race.bets) betsByRank[b.favourite_rank] = b;
   const raceTime = formatRaceTime(race);
   const skippedBets = race.skipped_bets || [];
+  const hasBets = (race.bets || []).length > 0;
 
   return (
     <div className="bg-[#141414] border border-[#2A2A2A]" data-testid="race-card">
@@ -82,7 +83,7 @@ export const RaceCard = ({ race, layedRanks }) => {
       {skippedBets.length > 0 && (
         <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3" data-testid="risk-guard-skip">
           <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300">
-            Favourite Risk Guard skipped this race
+            {hasBets ? "Favourite Risk Guard avoided first favourite" : "Favourite Risk Guard skipped this race"}
           </div>
           <div className="text-xs text-amber-100/80 mt-1">
             {skippedBets.join(" · ")}

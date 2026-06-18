@@ -27,8 +27,8 @@ const MODES = [
 const STAKES = [0.05, 0.50, 1.00, 1.50, 2.00];
 
 const RISK_GUARDS = [
-  { id: "strict", label: "Strict", desc: "Skips strong-gap favourites, Trap 1/2 favourites and 5-runner fields." },
-  { id: "balanced", label: "Balanced", desc: "Skips strong-gap favourites and inside-trap sprint favourites." },
+  { id: "strict", label: "Strict", desc: "Avoids risky first favourites, falls back to second favourite when safe." },
+  { id: "balanced", label: "Balanced", desc: "Uses the same fallback only for strong-gap or inside-trap sprint favourites." },
   { id: "off", label: "Off", desc: "No favourite risk filter. Useful for comparison testing." },
 ];
 
@@ -325,7 +325,7 @@ export const NewSessionDialog = ({ onCreated }) => {
               })}
             </div>
             <div className="text-[10px] text-zinc-500 font-mono">
-              Based on 2026 GB historical back-testing. This is a risk filter, not a profit guarantee.
+              Based on 2026 UK/IE historical back-testing. This is a risk filter, not a profit guarantee.
             </div>
           </div>
         </div>

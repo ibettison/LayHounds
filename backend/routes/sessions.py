@@ -25,7 +25,7 @@ from services.backtest_analysis import (
     generated_race_snapshots,
     session_race_snapshots,
 )
-from services.favourite_risk import favourite_risk_skip_reasons, format_skip_reasons
+from services.favourite_risk import favourite_risk_bet_plan, format_skip_reasons
 from services.recovery import apply_settled_bet_to_chain, stake_for_liability_budget
 from services.settlement import reconcile_live_settlements
 from services.session_status import apply_stop_conditions
@@ -198,7 +198,7 @@ async def next_race(session_id: str):
                 )
                 return session
 
-    risk_skip_reasons = favourite_risk_skip_reasons(
+    bet_ranks, risk_skip_reasons = favourite_risk_bet_plan(
         runners,
         session.config,
         distance_m=category.distance_m if category else None,
@@ -208,7 +208,7 @@ async def next_race(session_id: str):
     # Place lay bets for each favourite slot
     overrun_mode = session.races_played >= session.config.max_races
     bets: List[LayBet] = []
-    for rank in ([] if skipped_bets else range(1, session.config.num_favourites + 1)):
+    for rank in bet_ranks:
         chain = session.recovery_chains.get(str(rank), RecoveryChain())
         if chain.busted:
             continue

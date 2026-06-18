@@ -1,5 +1,9 @@
 from models import Greyhound, SessionConfig
-from services.favourite_risk import favourite_probability_gap, favourite_risk_skip_reasons
+from services.favourite_risk import (
+    favourite_probability_gap,
+    favourite_risk_bet_plan,
+    favourite_risk_skip_reasons,
+)
 
 
 def _runners(fav_trap=3, fav_odds=2.0, second_trap=4, second_odds=3.0, count=6):
@@ -37,3 +41,30 @@ def test_guard_off_never_skips():
     config = SessionConfig(favourite_risk_guard="off")
 
     assert favourite_risk_skip_reasons(_runners(fav_trap=1, fav_odds=1.5, second_odds=5.0, count=5), config, distance_m=240) == []
+
+
+def test_strict_guard_falls_back_to_second_favourite_when_first_is_risky():
+    config = SessionConfig(favourite_risk_guard="strict", num_favourites=1)
+
+    ranks, reasons = favourite_risk_bet_plan(_runners(fav_trap=1, fav_odds=3.0, second_trap=4, second_odds=3.2), config, distance_m=480)
+
+    assert ranks == [2]
+    assert reasons == ["fav_inside_trap"]
+
+
+def test_guard_blocks_second_favourite_fallback_in_inside_short_sprint():
+    config = SessionConfig(favourite_risk_guard="strict", num_favourites=1)
+
+    ranks, reasons = favourite_risk_bet_plan(_runners(fav_trap=3, fav_odds=2.0, second_trap=1, second_odds=4.0), config, distance_m=285)
+
+    assert ranks == []
+    assert reasons == ["strong_favourite_gap", "second_fav_inside_trap_sprint"]
+
+
+def test_strict_guard_still_skips_small_fields():
+    config = SessionConfig(favourite_risk_guard="strict", num_favourites=1)
+
+    ranks, reasons = favourite_risk_bet_plan(_runners(fav_trap=3, fav_odds=3.0, second_trap=4, second_odds=3.2, count=5), config, distance_m=480)
+
+    assert ranks == []
+    assert reasons == ["small_field"]
