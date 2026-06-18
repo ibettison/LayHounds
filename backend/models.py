@@ -131,5 +131,7 @@ class Session(BaseModel):
     recovery_chains: Dict[str, RecoveryChain] = Field(default_factory=dict)  # key = str(rank)
     races: List[Race] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    historical_replay_day: Optional[str] = None
+    historical_replay_cursor: int = 0
 
 

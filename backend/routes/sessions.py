@@ -26,6 +26,7 @@ from services.backtest_analysis import (
     session_race_snapshots,
 )
 from services.favourite_risk import favourite_risk_bet_plan, format_skip_reasons
+from services.historical_replay import next_historical_replay_race
 from services.recovery import apply_settled_bet_to_chain, stake_for_liability_budget
 from services.settlement import reconcile_live_settlements
 from services.session_status import apply_stop_conditions
@@ -161,9 +162,21 @@ async def next_race(session_id: str):
     market_start_time = None
     selection_by_rank: Dict[int, int] = {}
     betfair_bet_ids: List[str] = []
+    historical_winning_trap: Optional[int] = None
+    historical_commission_rate: Optional[float] = None
 
     if mode == "simulator":
-        runners, venue, category = generate_race(session.races_played + 1)
+        historical = next_historical_replay_race(session)
+        if historical:
+            runners = historical.runners
+            venue = historical.venue
+            category = historical.category
+            historical_winning_trap = historical.winning_trap
+            historical_commission_rate = historical.commission_rate
+            market_id = f"historical:{historical.market_id}"
+            market_start_time = historical.replay_start_time
+        else:
+            runners, venue, category = generate_race(session.races_played + 1)
     else:
         if mode == "live":
             try:
@@ -340,7 +353,7 @@ async def next_race(session_id: str):
         return session
 
     # Simulator + paper_live: simulate outcome (blended category win-rates)
-    winning_trap = pick_winner(runners, category)
+    winning_trap = historical_winning_trap or pick_winner(runners, category)
 
     total_staked = 0.0
     total_liability = 0.0
@@ -358,7 +371,7 @@ async def next_race(session_id: str):
             gross_pnl_change += bet.stake
 
     market_commission = round(
-        max(gross_pnl_change, 0.0) * session.config.commission_rate,
+        max(gross_pnl_change, 0.0) * (historical_commission_rate if historical_commission_rate is not None else session.config.commission_rate),
         4,
     )
     winning_bets = [bet for bet in bets if bet.result == "win" and (bet.pnl or 0.0) > 0]

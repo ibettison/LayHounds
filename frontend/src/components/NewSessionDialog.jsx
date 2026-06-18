@@ -20,7 +20,7 @@ import { CapPreview } from "./CapPreview";
 import { RiskScaledRecommendation } from "./RiskScaledRecommendation";
 
 const MODES = [
-  { id: "simulator", label: "Simulator", desc: "Fake UK greyhound races. No Betfair connection needed." },
+  { id: "simulator", label: "Simulator", desc: "Historical Betfair UK/IE replay when available. No real money." },
   { id: "paper_live", label: "Paper-Live", desc: "Real Betfair odds + races, bets simulated. No real money." },
   { id: "live", label: "Live", desc: "REAL LAY BETS placed on Betfair. Real money at risk." },
 ];
