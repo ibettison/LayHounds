@@ -44,21 +44,7 @@ def apply_settled_bet_to_chain(
         chain.pending_stake = stake_for_shortfall(shortfall, config)
         return
 
-    if chain.accumulated_loss <= 0:
-        chain.level = 0
-        chain.accumulated_loss = 0.0
-        chain.pending_stake = config.stake
-        chain.busted = False
-        return
-
-    remaining = round(chain.accumulated_loss - settled_profit, 4)
-    if remaining <= 0.0001:
-        chain.level = 0
-        chain.accumulated_loss = 0.0
-        chain.pending_stake = config.stake
-        chain.busted = False
-        return
-
-    chain.level = max(chain.level, bet.recovery_level)
-    chain.accumulated_loss = remaining
-    chain.pending_stake = stake_for_shortfall(remaining, config)
+    chain.level = 0
+    chain.accumulated_loss = 0.0
+    chain.pending_stake = config.stake
+    chain.busted = False

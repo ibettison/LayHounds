@@ -60,7 +60,7 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
         newly_settled.append(bet)
 
     for bet in newly_settled:
-        chain = session.recovery_chains.get(str(bet.recovery_rank or bet.favourite_rank))
+        chain = session.recovery_chains.get(str(bet.favourite_rank))
         if chain:
             apply_settled_bet_to_chain(chain, bet, session.config, bet.pnl or 0.0)
 
@@ -96,7 +96,6 @@ async def _close_live_race(session_id: str, race_id: str, cleared_rows: List[Dic
             "pnl": b.pnl,
             "result": b.result,
             "recovery_level": b.recovery_level,
-            "recovery_rank": b.recovery_rank or b.favourite_rank,
         } for b in race.bets],
         "source": "live_settled",
         "fully_settled": race_settled,

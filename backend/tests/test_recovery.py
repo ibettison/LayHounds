@@ -21,15 +21,15 @@ def test_stake_for_liability_budget_keeps_liability_inside_budget():
     assert round(stake * (3.5 - 1), 4) <= 5.0
 
 
-def test_partial_recovery_win_pays_down_accumulated_loss():
+def test_recovery_win_clears_accumulated_loss():
     config = SessionConfig(stake=0.05, commission_rate=0.05)
     chain = RecoveryChain(level=2, pending_stake=8.0, accumulated_loss=5.0)
 
     apply_settled_bet_to_chain(chain, _bet(stake=2.0, level=2), config, settled_profit=1.9)
 
-    assert chain.level == 2
-    assert chain.accumulated_loss == 3.1
-    assert chain.pending_stake == 3.3132
+    assert chain.level == 0
+    assert chain.accumulated_loss == 0.0
+    assert chain.pending_stake == config.stake
     assert chain.busted is False
 
 

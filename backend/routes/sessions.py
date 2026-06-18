@@ -57,7 +57,7 @@ def _has_unsettled_live_recovery_bet(session: Session, rank: int) -> bool:
         if race.source != "live":
             continue
         for bet in race.bets:
-            if (bet.recovery_rank or bet.favourite_rank) != rank:
+            if bet.favourite_rank != rank:
                 continue
             if bet.recovery_level <= 0:
                 continue
@@ -217,21 +217,19 @@ async def next_race(session_id: str):
         distance_m=category.distance_m if category else None,
     )
     skipped_bets = format_skip_reasons(risk_skip_reasons)
-    second_favourite_replaces_first = 1 not in bet_ranks and 2 in bet_ranks and bool(risk_skip_reasons)
 
     # Place lay bets for each favourite slot
     overrun_mode = session.races_played >= session.config.max_races
     bets: List[LayBet] = []
     for rank in bet_ranks:
-        recovery_rank = 1 if rank == 2 and second_favourite_replaces_first else rank
-        chain = session.recovery_chains.get(str(recovery_rank), RecoveryChain())
+        chain = session.recovery_chains.get(str(rank), RecoveryChain())
         if chain.busted:
             continue
-        if mode == "live" and chain.level > 0 and _has_unsettled_live_recovery_bet(session, recovery_rank):
+        if mode == "live" and chain.level > 0 and _has_unsettled_live_recovery_bet(session, rank):
             logger.warning(
                 "Skipping duplicate live recovery placement for session=%s rank=%s level=%s; previous recovery bet still unsettled",
                 session_id[:8],
-                recovery_rank,
+                rank,
                 chain.level,
             )
             continue
@@ -262,7 +260,7 @@ async def next_race(session_id: str):
             continue
 
         new_bet = LayBet(
-            favourite_rank=rank, recovery_rank=recovery_rank, dog_trap=runner.trap, dog_name=runner.name,
+            favourite_rank=rank, dog_trap=runner.trap, dog_name=runner.name,
             odds=runner.odds, stake=stake, liability=liability,
             recovery_level=chain.level,
         )
@@ -346,7 +344,6 @@ async def next_race(session_id: str):
                 "rank": b.favourite_rank, "trap": b.dog_trap, "name": b.dog_name,
                 "odds": b.odds, "stake": b.stake, "liability": b.liability,
                 "recovery_level": b.recovery_level,
-                "recovery_rank": b.recovery_rank or b.favourite_rank,
             } for b in bets],
             "betfair_bet_ids": betfair_bet_ids,
             "total_stake": round(sum(b.stake for b in bets), 4),
@@ -391,7 +388,7 @@ async def next_race(session_id: str):
 
     pnl_change = round(sum((bet.pnl or 0.0) for bet in bets), 4)
     for bet in bets:
-        chain = session.recovery_chains[str(bet.recovery_rank or bet.favourite_rank)]
+        chain = session.recovery_chains[str(bet.favourite_rank)]
         apply_settled_bet_to_chain(chain, bet, session.config, bet.pnl or 0.0)
 
     session.bank = round(session.bank + pnl_change, 4)
@@ -429,7 +426,6 @@ async def next_race(session_id: str):
             "bets": [{
                 "rank": b.favourite_rank, "trap": b.dog_trap, "name": b.dog_name,
                 "pnl": b.pnl, "result": b.result, "recovery_level": b.recovery_level,
-                "recovery_rank": b.recovery_rank or b.favourite_rank,
             } for b in bets],
         })
         await sse_publish(session_id, "bank_updated", {

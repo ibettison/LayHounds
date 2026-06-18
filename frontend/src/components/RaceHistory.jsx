@@ -91,11 +91,6 @@ export const RaceHistory = ({ races }) => {
                           <div className="text-[10px] font-mono text-zinc-400 truncate">
                             Fav #{bet.favourite_rank} · T{bet.dog_trap} {bet.dog_name}
                           </div>
-                          {bet.recovery_rank && bet.recovery_rank !== bet.favourite_rank && (
-                            <div className="text-[9px] font-mono text-sky-300/80 truncate uppercase">
-                              recovers Fav #{bet.recovery_rank}
-                            </div>
-                          )}
                           <div className="text-[9px] font-mono text-zinc-600 truncate">
                             {bet.betfair_bet_id ? `Betfair ${bet.betfair_bet_id}` : "Betfair id pending"}
                           </div>

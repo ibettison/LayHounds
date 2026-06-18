@@ -7,14 +7,13 @@ from services.racing import get_runner_by_rank
 
 
 FAVOURITE_RISK_LABELS = {
-    "strong_favourite_gap": "Favourite probability gap is above 20%",
+    "strong_favourite_gap": "Favourite probability gap is above 15%",
     "fav_inside_trap": "Favourite is Trap 1 or 2",
     "fav_inside_trap_sprint": "Favourite is Trap 1 or 2 below 300m",
-    "second_fav_inside_trap_sprint": "Second favourite is Trap 1 or 2 below 300m",
     "small_field": "Race has 5 or fewer runners",
 }
 
-STRONG_FAVOURITE_GAP_THRESHOLD = 0.20
+STRONG_FAVOURITE_GAP_THRESHOLD = 0.15
 
 
 def implied_probability(runner: Greyhound) -> float:
@@ -72,23 +71,7 @@ def favourite_risk_bet_plan(
     if not reasons:
         return base_ranks, []
 
-    if "small_field" in reasons:
-        return [], reasons
-
-    try:
-        second_favourite = get_runner_by_rank(runners, 2)
-    except ValueError:
-        return [], reasons
-
-    ranks = [rank for rank in base_ranks if rank != 1]
-    if 2 not in ranks:
-        ranks.insert(0, 2)
-
-    if second_favourite.trap in (1, 2) and distance_m is not None and distance_m < 300:
-        ranks = [rank for rank in ranks if rank != 2]
-        reasons = [*reasons, "second_fav_inside_trap_sprint"]
-
-    return ranks, reasons
+    return [], reasons
 
 
 def format_skip_reasons(reasons: List[str]) -> List[str]:
