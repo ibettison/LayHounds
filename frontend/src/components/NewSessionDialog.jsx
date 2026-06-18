@@ -27,8 +27,8 @@ const MODES = [
 const STAKES = [0.05, 0.50, 1.00, 1.50, 2.00];
 
 const RISK_GUARDS = [
-  { id: "strict", label: "Strict", desc: "Avoids risky first favourites, falls back to second favourite when safe." },
-  { id: "balanced", label: "Balanced", desc: "Uses the same fallback only for strong-gap or inside-trap sprint favourites." },
+  { id: "strict", label: "Strict", desc: "Avoids 20%+ gap favourites, sprint Trap 1/2 favourites, and short fields." },
+  { id: "balanced", label: "Balanced", desc: "Uses fallback for 20%+ gaps or inside-trap sprint favourites." },
   { id: "off", label: "Off", desc: "No favourite risk filter. Useful for comparison testing." },
 ];
 

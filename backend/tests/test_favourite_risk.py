@@ -22,12 +22,18 @@ def test_probability_gap_uses_implied_probabilities():
     assert favourite_probability_gap(fav, second) == 0.25
 
 
-def test_strict_guard_skips_strong_inside_and_small_field_races():
+def test_strict_guard_skips_twenty_percent_gap_sprint_inside_and_small_field_races():
     config = SessionConfig(favourite_risk_guard="strict")
 
-    reasons = favourite_risk_skip_reasons(_runners(fav_trap=1, fav_odds=2.0, second_odds=4.0, count=5), config)
+    reasons = favourite_risk_skip_reasons(_runners(fav_trap=1, fav_odds=2.0, second_odds=4.0, count=5), config, distance_m=285)
 
-    assert reasons == ["strong_favourite_gap", "fav_inside_trap", "small_field"]
+    assert reasons == ["strong_favourite_gap", "fav_inside_trap_sprint", "small_field"]
+
+
+def test_strict_guard_allows_inside_traps_on_normal_and_longer_races():
+    config = SessionConfig(favourite_risk_guard="strict")
+
+    assert favourite_risk_skip_reasons(_runners(fav_trap=1, fav_odds=3.0, second_odds=3.2), config, distance_m=480) == []
 
 
 def test_balanced_guard_only_skips_inside_trap_on_short_sprints():
@@ -46,10 +52,10 @@ def test_guard_off_never_skips():
 def test_strict_guard_falls_back_to_second_favourite_when_first_is_risky():
     config = SessionConfig(favourite_risk_guard="strict", num_favourites=1)
 
-    ranks, reasons = favourite_risk_bet_plan(_runners(fav_trap=1, fav_odds=3.0, second_trap=4, second_odds=3.2), config, distance_m=480)
+    ranks, reasons = favourite_risk_bet_plan(_runners(fav_trap=3, fav_odds=2.0, second_trap=4, second_odds=4.0), config, distance_m=480)
 
     assert ranks == [2]
-    assert reasons == ["fav_inside_trap"]
+    assert reasons == ["strong_favourite_gap"]
 
 
 def test_guard_blocks_second_favourite_fallback_in_inside_short_sprint():
