@@ -5,7 +5,7 @@ import random
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from betfair_client import betfair, BetfairError
@@ -20,6 +20,12 @@ from services.racing import (
     pick_winner,
     session_to_doc,
 )
+from services.backtest_analysis import (
+    build_analysis_csv,
+    generated_race_snapshots,
+    session_race_snapshots,
+)
+from services.favourite_risk import favourite_risk_skip_reasons, format_skip_reasons
 from services.recovery import apply_settled_bet_to_chain, stake_for_liability_budget
 from services.settlement import reconcile_live_settlements
 from services.session_status import apply_stop_conditions
@@ -192,10 +198,17 @@ async def next_race(session_id: str):
                 )
                 return session
 
+    risk_skip_reasons = favourite_risk_skip_reasons(
+        runners,
+        session.config,
+        distance_m=category.distance_m if category else None,
+    )
+    skipped_bets = format_skip_reasons(risk_skip_reasons)
+
     # Place lay bets for each favourite slot
     overrun_mode = session.races_played >= session.config.max_races
     bets: List[LayBet] = []
-    for rank in range(1, session.config.num_favourites + 1):
+    for rank in ([] if skipped_bets else range(1, session.config.num_favourites + 1)):
         chain = session.recovery_chains.get(str(rank), RecoveryChain())
         if chain.busted:
             continue
@@ -301,6 +314,7 @@ async def next_race(session_id: str):
             bets=bets, winning_trap=0, pnl_change=0.0, bank_after=session.bank,
             source=mode, market_id=market_id, market_start_time=market_start_time,
             betfair_bet_ids=betfair_bet_ids, category=category,
+            skipped_bets=skipped_bets,
         )
         session.races_played += 1
         session.races.append(race)
@@ -321,6 +335,7 @@ async def next_race(session_id: str):
             "betfair_bet_ids": betfair_bet_ids,
             "total_stake": round(sum(b.stake for b in bets), 4),
             "total_liability": round(sum(b.liability for b in bets), 4),
+            "skipped_bets": skipped_bets,
         })
         return session
 
@@ -374,6 +389,7 @@ async def next_race(session_id: str):
         winning_trap=winning_trap, pnl_change=round(pnl_change, 4),
         bank_after=session.bank, source=mode, market_id=market_id,
         market_start_time=market_start_time, category=category,
+        skipped_bets=skipped_bets,
     )
     session.races.append(race)
 
@@ -393,6 +409,7 @@ async def next_race(session_id: str):
             "pnl_change": round(pnl_change, 4),
             "bank_after": session.bank,
             "category": category.model_dump() if category else None,
+            "skipped_bets": skipped_bets,
             "bets": [{
                 "rank": b.favourite_rank, "trap": b.dog_trap, "name": b.dog_name,
                 "pnl": b.pnl, "result": b.result, "recovery_level": b.recovery_level,
@@ -502,6 +519,110 @@ async def daily_stats():
             "mode": d.get("config", {}).get("mode", "simulator"),
         })
     return {"days": rows, "total_pnl": round(cumulative, 2), "sessions": len(rows)}
+
+
+def _csv_response(csv_body: str, filename: str) -> Response:
+    return Response(
+        content=csv_body,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+def _analysis_config(
+    *,
+    stake: float,
+    starting_bank: float,
+    stop_loss: float,
+    max_liability_cap: float,
+    commission_rate: float,
+    max_recovery_level: int,
+) -> SessionConfig:
+    if stake <= 0:
+        raise HTTPException(400, "stake must be > 0")
+    if starting_bank < 0:
+        raise HTTPException(400, "starting_bank must be >= 0")
+    if stop_loss < 0:
+        raise HTTPException(400, "stop_loss must be >= 0")
+    if max_liability_cap < 0:
+        raise HTTPException(400, "max_liability_cap must be >= 0")
+    if commission_rate < 0 or commission_rate > 0.2:
+        raise HTTPException(400, "commission_rate must be 0..0.2")
+    if max_recovery_level < 1 or max_recovery_level > 5:
+        raise HTTPException(400, "max_recovery_level must be 1..5")
+    return SessionConfig(
+        mode="simulator",
+        num_favourites=1,
+        stake=stake,
+        starting_bank=starting_bank,
+        stop_win=1_000_000,
+        stop_loss=stop_loss,
+        max_races=200,
+        max_liability_cap=max_liability_cap,
+        commission_rate=commission_rate,
+        max_recovery_level=max_recovery_level,
+    )
+
+
+@router.get("/analysis/backtest.csv")
+async def backtest_analysis_csv(
+    races: int = 1000,
+    include_races: bool = True,
+    repeat_50_samples: int = 20,
+    seed: Optional[int] = None,
+    stake: float = 0.05,
+    starting_bank: float = 1000.0,
+    stop_loss: float = 1000.0,
+    max_liability_cap: float = 0.0,
+    commission_rate: float = 0.05,
+    max_recovery_level: int = 3,
+):
+    if races < 1 or races > 20000:
+        raise HTTPException(400, "races must be 1..20000")
+    if repeat_50_samples < 0 or repeat_50_samples > 200:
+        raise HTTPException(400, "repeat_50_samples must be 0..200")
+    config = _analysis_config(
+        stake=stake,
+        starting_bank=starting_bank,
+        stop_loss=stop_loss,
+        max_liability_cap=max_liability_cap,
+        commission_rate=commission_rate,
+        max_recovery_level=max_recovery_level,
+    )
+    snapshots = generated_race_snapshots(races, seed=seed)
+    csv_body = build_analysis_csv(
+        snapshots,
+        config,
+        include_races=include_races,
+        repeat_50_samples=repeat_50_samples,
+        seed=seed,
+    )
+    return _csv_response(csv_body, "layhounds-backtest-analysis.csv")
+
+
+@router.get("/sessions/{session_id}/analysis.csv")
+async def session_analysis_csv(
+    session_id: str,
+    include_races: bool = True,
+    repeat_50_samples: int = 20,
+):
+    doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Session not found")
+    if repeat_50_samples < 0 or repeat_50_samples > 200:
+        raise HTTPException(400, "repeat_50_samples must be 0..200")
+    session = Session(**doc)
+    snapshots = session_race_snapshots(session)
+    if not snapshots:
+        raise HTTPException(400, "Session has no settled races to analyse")
+    csv_body = build_analysis_csv(
+        snapshots,
+        session.config,
+        include_races=include_races,
+        repeat_50_samples=repeat_50_samples,
+        seed=None,
+    )
+    return _csv_response(csv_body, f"layhounds-session-{session_id[:8]}-analysis.csv")
 
 
 class CapPreviewInput(BaseModel):

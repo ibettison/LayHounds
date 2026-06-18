@@ -26,6 +26,12 @@ const MODES = [
 
 const STAKES = [0.05, 0.50, 1.00, 1.50, 2.00];
 
+const RISK_GUARDS = [
+  { id: "strict", label: "Strict", desc: "Skips strong-gap favourites, Trap 1/2 favourites and 5-runner fields." },
+  { id: "balanced", label: "Balanced", desc: "Skips strong-gap favourites and inside-trap sprint favourites." },
+  { id: "off", label: "Off", desc: "No favourite risk filter. Useful for comparison testing." },
+];
+
 export const NewSessionDialog = ({ onCreated }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -44,6 +50,7 @@ export const NewSessionDialog = ({ onCreated }) => {
     odds_min: 1.01,
     odds_max: 10.0,
     max_recovery_level: 3,
+    favourite_risk_guard: "strict",
     auto_place: false,
     live_price_chase: true,
     live_price_chase_ticks: 6,
@@ -292,6 +299,33 @@ export const NewSessionDialog = ({ onCreated }) => {
             </div>
             <div className="text-[10px] text-zinc-500 font-mono">
               Lay only when favourite odds fall in [{form.odds_min}, {form.odds_max}]. Tighter band = fewer bets but typically better EV.
+            </div>
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label className="label-xs">Favourite Risk Guard</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {RISK_GUARDS.map((guard) => {
+                const active = form.favourite_risk_guard === guard.id;
+                return (
+                  <button
+                    key={guard.id}
+                    type="button"
+                    data-testid={`risk-guard-${guard.id}`}
+                    onClick={() => update("favourite_risk_guard", guard.id)}
+                    className={`p-2 border text-left transition-colors ${
+                      active
+                        ? "border-pink-500 bg-pink-500/10"
+                        : "border-[#2A2A2A] hover:bg-[#1C1C1C]"
+                    }`}
+                  >
+                    <div className="font-display uppercase text-sm font-bold">{guard.label}</div>
+                    <div className="text-[10px] text-zinc-500 mt-1 leading-tight">{guard.desc}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-[10px] text-zinc-500 font-mono">
+              Based on 2026 GB historical back-testing. This is a risk filter, not a profit guarantee.
             </div>
           </div>
         </div>
