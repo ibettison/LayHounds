@@ -11,7 +11,8 @@ const TrapBadge = ({ trap }) => (
 );
 
 const formatRaceTime = (race) => {
-  const raw = race?.market_start_time || race?.timestamp;
+  const isHistorical = String(race?.market_id || "").startsWith("historical:");
+  const raw = race?.market_start_time || (isHistorical ? null : race?.timestamp);
   if (!raw) return null;
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return null;

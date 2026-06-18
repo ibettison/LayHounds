@@ -9,7 +9,7 @@ import re
 import tarfile
 from dataclasses import dataclass
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Optional
 
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 COUNTRIES = {"GB", "IE"}
 DISTANCE_RE = re.compile(r"(?<!\d)(\d{3,4})\s*m\b", re.IGNORECASE)
+TIME_RE = re.compile(r"\b([01]?\d|2[0-3])[:.]([0-5]\d)\b")
 
 
 @dataclass(frozen=True)
@@ -89,12 +90,22 @@ def _latest_definition(objects: Iterable[dict]) -> Optional[dict]:
 
 def _parse_start_time(definition: dict) -> Optional[datetime]:
     raw = definition.get("marketTime") or definition.get("openDate")
-    if not raw:
+    if raw:
+        try:
+            return datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        except ValueError:
+            pass
+
+    # Some BASIC archive rows omit marketTime/openDate but include the race
+    # clock in names like "Towcester 16:16 R4 240m".
+    blob = " ".join(
+        filter(None, [definition.get("name") or "", definition.get("eventName") or ""])
+    )
+    match = TIME_RE.search(blob)
+    if not match:
         return None
-    try:
-        return datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
-    except ValueError:
-        return None
+    hour, minute = int(match.group(1)), int(match.group(2))
+    return datetime(1970, 1, 1, hour, minute)
 
 
 def _parse_iso_datetime(raw: Optional[str]) -> Optional[datetime]:
@@ -110,9 +121,7 @@ def _today_with_historic_time(historic_start: Optional[datetime]) -> Optional[st
     if historic_start is None:
         return None
     today = datetime.now().date()
-    replay_start = datetime.combine(today, historic_start.timetz())
-    if replay_start.tzinfo is None:
-        replay_start = replay_start.replace(tzinfo=timezone.utc)
+    replay_start = datetime.combine(today, historic_start.time().replace(tzinfo=None))
     return replay_start.isoformat()
 
 
