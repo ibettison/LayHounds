@@ -2,8 +2,10 @@ import React from "react";
 
 const formatRaceTime = (race) => {
   if (race?.market_time_label) return race.market_time_label;
-  const isHistorical = String(race?.market_id || "").startsWith("historical:");
-  const raw = race?.market_start_time || race?.race_time || (isHistorical ? null : race?.timestamp);
+  const isHistorical = String(race?.market_id || "").startsWith("historical:") || !!race?.race_time || race?.source === "simulator";
+  const raw = isHistorical
+    ? (race?.race_time || race?.market_start_time)
+    : (race?.market_start_time || race?.timestamp);
   if (!raw) return null;
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return null;

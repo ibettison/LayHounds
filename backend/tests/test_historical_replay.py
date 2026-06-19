@@ -23,6 +23,13 @@ def _write_market_archive_many(path, definitions):
             tar.addfile(info, fileobj=io.BytesIO(data))
 
 
+def _reset_historical_loader():
+    historical_replay._loaded_archive = None
+    historical_replay._loaded_replay_pack = None
+    historical_replay._days_by_key = {}
+    historical_replay._next_day_index = 0
+
+
 def test_historical_replay_uses_real_market_and_rewrites_date(monkeypatch, tmp_path):
     archive = tmp_path / "data.tar"
     _write_market_archive(
@@ -44,9 +51,7 @@ def test_historical_replay_uses_real_market_and_rewrites_date(monkeypatch, tmp_p
         },
     )
     monkeypatch.setenv("LAYHOUNDS_HISTORICAL_TAR", str(archive))
-    historical_replay._loaded_archive = None
-    historical_replay._days_by_key = {}
-    historical_replay._next_day_index = 0
+    _reset_historical_loader()
 
     session = Session(config=SessionConfig(mode="simulator"), bank=10)
     race = next_historical_replay_race(session)
@@ -90,9 +95,7 @@ def test_historical_replay_converts_market_time_to_track_timezone(monkeypatch, t
         },
     )
     monkeypatch.setenv("LAYHOUNDS_HISTORICAL_TAR", str(archive))
-    historical_replay._loaded_archive = None
-    historical_replay._days_by_key = {}
-    historical_replay._next_day_index = 0
+    _reset_historical_loader()
 
     session = Session(config=SessionConfig(mode="simulator"), bank=10)
     race = next_historical_replay_race(session)
@@ -161,9 +164,7 @@ def test_historical_replay_sorts_races_by_race_time_before_simulation(monkeypatc
         ],
     )
     monkeypatch.setenv("LAYHOUNDS_HISTORICAL_TAR", str(archive))
-    historical_replay._loaded_archive = None
-    historical_replay._days_by_key = {}
-    historical_replay._next_day_index = 0
+    _reset_historical_loader()
 
     session = Session(config=SessionConfig(mode="simulator"), bank=10)
 
@@ -198,9 +199,7 @@ def test_historical_replay_selects_different_days_for_new_sessions(monkeypatch, 
         ],
     )
     monkeypatch.setenv("LAYHOUNDS_HISTORICAL_TAR", str(archive))
-    historical_replay._loaded_archive = None
-    historical_replay._days_by_key = {}
-    historical_replay._next_day_index = 0
+    _reset_historical_loader()
 
     first_session = Session(config=SessionConfig(mode="simulator"), bank=10)
     second_session = Session(config=SessionConfig(mode="simulator"), bank=10)
@@ -212,3 +211,32 @@ def test_historical_replay_selects_different_days_for_new_sessions(monkeypatch, 
     assert second_race.market_id == "1.222222222"
     assert first_session.historical_replay_day == "2026-01-01"
     assert second_session.historical_replay_day == "2026-01-02"
+
+
+def test_historical_replay_uses_bundled_pack_when_archive_missing(monkeypatch, tmp_path):
+    pack = tmp_path / "historical_replay_sample.json"
+    race = historical_replay._historical_race_from_definition(
+        "BASIC/2026/Jan/3/123/1.333333333.bz2",
+        _definition("1.333333333", "2026-01-03T09:05:00.000Z", venue="Pack Day"),
+    )
+    pack.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "countries": ["GB", "IE"],
+                "races": [historical_replay.race_to_replay_pack_dict(race)],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("LAYHOUNDS_HISTORICAL_TAR", str(tmp_path / "missing-data.tar"))
+    monkeypatch.setenv("LAYHOUNDS_HISTORICAL_REPLAY_PACK", str(pack))
+    _reset_historical_loader()
+
+    session = Session(config=SessionConfig(mode="simulator"), bank=10)
+    replay = next_historical_replay_race(session)
+
+    assert replay is not None
+    assert replay.market_id == "1.333333333"
+    assert replay.race_time == "2026-01-03T09:05:00"
+    assert replay.market_time_label == "09:05"

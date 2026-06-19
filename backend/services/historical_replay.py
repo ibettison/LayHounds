@@ -44,8 +44,11 @@ class HistoricalRace:
 
 
 _loaded_archive: Optional[Path] = None
+_loaded_replay_pack: Optional[Path] = None
 _days_by_key: Dict[str, List[HistoricalRace]] = {}
 _next_day_index = 0
+
+BUNDLED_REPLAY_PACK = Path(__file__).resolve().parents[1] / "data" / "historical_replay_sample.json"
 
 
 def _candidate_archives() -> List[Path]:
@@ -64,6 +67,22 @@ def _candidate_archives() -> List[Path]:
 
 def _archive_path() -> Optional[Path]:
     for candidate in _candidate_archives():
+        if candidate.exists() and candidate.is_file():
+            return candidate
+    return None
+
+
+def _candidate_replay_packs() -> List[Path]:
+    configured = os.environ.get("LAYHOUNDS_HISTORICAL_REPLAY_PACK", "").strip()
+    candidates = []
+    if configured:
+        candidates.append(Path(configured))
+    candidates.append(BUNDLED_REPLAY_PACK)
+    return candidates
+
+
+def _replay_pack_path() -> Optional[Path]:
+    for candidate in _candidate_replay_packs():
         if candidate.exists() and candidate.is_file():
             return candidate
     return None
@@ -141,6 +160,54 @@ def _historical_start_time(historic_start: Optional[datetime]) -> Optional[str]:
 
 def _time_label(historic_start: Optional[datetime]) -> Optional[str]:
     return historic_start.strftime("%H:%M") if historic_start else None
+
+
+def race_to_replay_pack_dict(race: HistoricalRace) -> dict:
+    return {
+        "market_id": race.market_id,
+        "market_name": race.market_name,
+        "event_name": race.event_name,
+        "venue": race.venue,
+        "race_time": race.race_time,
+        "runners": [runner.model_dump() for runner in race.runners],
+        "favourite_odds": race.favourite_odds,
+        "second_favourite_odds": race.second_favourite_odds,
+        "winning_trap": race.winning_trap,
+        "result": race.result,
+        "category": race.category.model_dump(),
+        "historic_start_time": race.historic_start_time,
+        "replay_start_time": race.replay_start_time,
+        "market_time_label": race.market_time_label,
+        "commission_rate": race.commission_rate,
+    }
+
+
+def _race_from_replay_pack_dict(payload: dict) -> Optional[HistoricalRace]:
+    try:
+        historic_start = _parse_iso_datetime(payload.get("historic_start_time") or payload.get("race_time"))
+        historic_start_iso = historic_start.isoformat() if historic_start else payload.get("race_time")
+        if not historic_start_iso:
+            return None
+        return HistoricalRace(
+            market_id=str(payload["market_id"]),
+            market_name=str(payload.get("market_name") or ""),
+            event_name=str(payload.get("event_name") or ""),
+            venue=str(payload.get("venue") or ""),
+            race_time=str(payload.get("race_time") or historic_start_iso),
+            runners=[Greyhound(**runner) for runner in payload.get("runners") or []],
+            favourite_odds=float(payload.get("favourite_odds") or 0.0),
+            second_favourite_odds=float(payload.get("second_favourite_odds") or 0.0),
+            winning_trap=int(payload.get("winning_trap") or payload.get("result") or 0),
+            result=int(payload.get("result") or payload.get("winning_trap") or 0),
+            category=RaceCategory(**(payload.get("category") or {})),
+            historic_start_time=historic_start_iso,
+            replay_start_time=_historical_start_time(historic_start),
+            market_time_label=payload.get("market_time_label") or _time_label(historic_start),
+            commission_rate=float(payload.get("commission_rate") or 0.05),
+        )
+    except Exception:
+        logger.exception("Skipping invalid historical replay pack race: %s", payload.get("market_id"))
+        return None
 
 
 def _historical_race_from_definition(member_name: str, definition: dict) -> Optional[HistoricalRace]:
@@ -261,27 +328,87 @@ def _load_days(path: Path) -> Dict[str, List[HistoricalRace]]:
     return {day: races for day, races in days.items() if races}
 
 
+def _load_replay_pack_days(path: Path) -> Dict[str, List[HistoricalRace]]:
+    with path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+
+    raw_races = payload.get("races") or []
+    days: Dict[str, List[HistoricalRace]] = {}
+    loaded_count = 0
+    for raw_race in raw_races:
+        race = _race_from_replay_pack_dict(raw_race)
+        if not race or not race.historic_start_time:
+            continue
+        logger.info(
+            "Historical replay pack market loaded: market_id=%s race_time=%s",
+            race.market_id,
+            race.race_time,
+        )
+        days.setdefault(race.race_time[:10], []).append(race)
+        loaded_count += 1
+
+    for day_key, races in days.items():
+        races.sort(key=lambda race: race.race_time)
+        logger.info(
+            "First 10 historical replay pack races after sorting for %s: %s",
+            day_key,
+            [
+                {
+                    "market_id": race.market_id,
+                    "race_time": race.race_time,
+                    "venue": race.venue,
+                }
+                for race in races[:10]
+            ],
+        )
+
+    logger.info("Loaded %s bundled historical replay markets across %s days", loaded_count, len(days))
+    return {day: races for day, races in days.items() if races}
+
+
 def _ensure_loaded() -> Dict[str, List[HistoricalRace]]:
-    global _loaded_archive, _days_by_key, _next_day_index
+    global _loaded_archive, _loaded_replay_pack, _days_by_key, _next_day_index
     path = _archive_path()
-    if not path:
+    if path:
+        if _loaded_archive == path and _days_by_key:
+            return _days_by_key
+        try:
+            _days_by_key = _load_days(path)
+            _loaded_archive = path
+            _loaded_replay_pack = None
+            _next_day_index = 0
+            logger.info(
+                "Loaded historical replay archive from %s with %s markets across %s days",
+                path,
+                sum(len(races) for races in _days_by_key.values()),
+                len(_days_by_key),
+            )
+            return _days_by_key
+        except Exception:
+            logger.exception("Could not load historical replay archive %s", path)
+            _days_by_key = {}
+            _loaded_archive = path
+
+    replay_pack = _replay_pack_path()
+    if not replay_pack:
         return {}
-    if _loaded_archive == path and _days_by_key:
+    if _loaded_replay_pack == replay_pack and _days_by_key:
         return _days_by_key
     try:
-        _days_by_key = _load_days(path)
-        _loaded_archive = path
+        _days_by_key = _load_replay_pack_days(replay_pack)
+        _loaded_archive = None
+        _loaded_replay_pack = replay_pack
         _next_day_index = 0
         logger.info(
-            "Loaded historical replay archive from %s with %s markets across %s days",
-            path,
+            "Loaded bundled historical replay pack from %s with %s markets across %s days",
+            replay_pack,
             sum(len(races) for races in _days_by_key.values()),
             len(_days_by_key),
         )
     except Exception:
-        logger.exception("Could not load historical replay archive %s", path)
+        logger.exception("Could not load bundled historical replay pack %s", replay_pack)
         _days_by_key = {}
-        _loaded_archive = path
+        _loaded_replay_pack = replay_pack
     return _days_by_key
 
 

@@ -94,7 +94,13 @@ export const NewSessionDialog = ({ onCreated }) => {
 
   const submit = async () => {
     setLoading(true);
+    let replayToast = null;
     try {
+      if (form.mode === "simulator") {
+        replayToast = toast.loading(
+          "Preparing Historical Replay mode. Archived Betfair markets may take a moment to scan.",
+        );
+      }
       const session = await api.createSession({
         ...form,
         starting_bank: parseFloat(form.starting_bank),
@@ -106,11 +112,20 @@ export const NewSessionDialog = ({ onCreated }) => {
         live_price_chase_ticks: parseInt(form.live_price_chase_ticks),
         live_price_chase_seconds: parseInt(form.live_price_chase_seconds),
       });
-      toast.success("Session created");
+      if (replayToast) {
+        toast.success("Historical Replay session ready", { id: replayToast, duration: 3500 });
+        replayToast = null;
+      } else {
+        toast.success("Session created");
+      }
       setOpen(false);
       onCreated?.(session);
     } catch (e) {
-      toast.error(`Failed: ${e.response?.data?.detail || e.message}`);
+      if (replayToast) {
+        toast.error(`Failed: ${e.response?.data?.detail || e.message}`, { id: replayToast, duration: 6000 });
+      } else {
+        toast.error(`Failed: ${e.response?.data?.detail || e.message}`);
+      }
     } finally {
       setLoading(false);
     }

@@ -175,6 +175,16 @@ export default function Simulator() {
         : await api.runRaces(current.id, batchSize);
       setCurrent(updated);
       await refreshList();
+      if (preparingToast) {
+        const last = updated.races?.[updated.races.length - 1];
+        toast.success(
+          last?.market_time_label
+            ? `Historical Replay loaded ${last.venue} at ${last.market_time_label}`
+            : "Historical Replay race card loaded",
+          { id: preparingToast, duration: 3500 },
+        );
+        preparingToast = null;
+      }
       const racesAdded = updated.races_played - (current.races_played || 0);
       if (racesAdded <= 0) {
         toast.message(auto ? "AUTO · already placed for this Betfair market" : "Already placed for this Betfair market", {
@@ -193,7 +203,12 @@ export default function Simulator() {
       }
     } catch (e) {
       const detail = e.response?.data?.detail || e.message;
-      toast.error(`${opts.auto ? "AUTO-place failed · " : ""}${detail}`);
+      if (preparingToast) {
+        toast.error(`${opts.auto ? "AUTO-place failed · " : ""}${detail}`, { id: preparingToast, duration: 6000 });
+        preparingToast = null;
+      } else {
+        toast.error(`${opts.auto ? "AUTO-place failed · " : ""}${detail}`);
+      }
       if (e.response?.status === 400 && String(detail).startsWith("Session is ") && current?.id) {
         try {
           const fresh = await api.getSession(current.id);
@@ -202,7 +217,6 @@ export default function Simulator() {
         } catch (refreshErr) { /* next poll/action will recover */ }
       }
     } finally {
-      if (preparingToast) toast.dismiss(preparingToast);
       setLoading(false);
       if (isBatchRun) {
         window.setTimeout(() => {

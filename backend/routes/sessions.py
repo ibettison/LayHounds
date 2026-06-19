@@ -186,7 +186,14 @@ async def next_race(session_id: str):
             market_start_time = historical.replay_start_time
             market_time_label = historical.market_time_label
         else:
-            runners, venue, category = generate_race(session.races_played + 1)
+            logger.error(
+                "Historical Replay requested for session=%s but no Betfair historical race was available",
+                session_id[:8],
+            )
+            raise HTTPException(
+                503,
+                "Historical Replay data is not available yet. Please check that the Betfair historical archive is attached, then try again.",
+            )
     else:
         if mode == "live":
             try:
