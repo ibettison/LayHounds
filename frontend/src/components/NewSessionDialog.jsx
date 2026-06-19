@@ -17,6 +17,7 @@ import { Plus, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
 import { CapPreview } from "./CapPreview";
+import { RiskScaledRecommendation } from "./RiskScaledRecommendation";
 
 const MODES = [
   { id: "simulator", label: "Historical Replay", desc: "Historical Betfair UK/IE replay when available. No real money." },
@@ -34,11 +35,12 @@ const RISK_GUARDS = [
 
 const RECOMMENDED_CONFIG = {
   stake: 0.05,
-  max_recovery_level: 5,
-  max_liability_cap: 10,
-  stop_win: 5,
-  stop_loss: 10,
-  num_favourites: 1,
+  max_recovery_level: 3,
+  max_liability_cap: 5,
+  stop_win: 0.5,
+  stop_loss: 4,
+  num_favourites: 2,
+  max_races: 200,
   odds_min: 1.01,
   odds_max: 10,
   favourite_risk_guard: "strict",
@@ -195,7 +197,7 @@ export const NewSessionDialog = ({ onCreated }) => {
             <div>
               <div className="font-display uppercase text-sm font-bold text-emerald-200">Recommended setup</div>
               <div className="text-[11px] text-zinc-400 mt-1">
-                Stake £0.05, L5 recovery, £10 liability cap, £5 stop-win, £10 stop-loss, strict risk guard.
+                Starter replay setup: stake £0.05, L3 recovery, £5 liability cap, £0.50 stop-win, £4 stop-loss.
               </div>
             </div>
             <Button
@@ -234,6 +236,9 @@ export const NewSessionDialog = ({ onCreated }) => {
               Each favourite has its own recovery chain. A winning bet clears that chain.
             </div>
           </div>
+
+          <RiskScaledRecommendation form={form} update={update} inputCls={inputCls} />
+
           <div className="space-y-1.5">
             <Label className="label-xs">
               Starting Bank £

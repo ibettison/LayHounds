@@ -29,6 +29,7 @@ import { LiveCountdown } from "../components/LiveCountdown";
 import { UpcomingRacePreview } from "../components/UpcomingRacePreview";
 import { SettlementBanner } from "../components/SettlementBanner";
 import { LicencePanel } from "../components/LicencePanel";
+import { ProductScreenshotGallery } from "../components/ProductScreenshotGallery";
 import { useSessionEvents } from "../hooks/useSessionEvents";
 
 export default function Simulator() {
@@ -467,16 +468,19 @@ export default function Simulator() {
         {/* Center + right */}
         <section className="col-span-12 lg:col-span-9 xl:col-span-10 space-y-4">
           {!current && (
-            <div className="bg-[#141414] border border-[#2A2A2A] p-16 text-center">
-              <Flag className="w-14 h-14 mx-auto text-zinc-700 mb-4" />
-              <div className="font-display text-3xl uppercase tracking-tight mb-2">
-                Welcome to Lay-Hounds
+            <div className="space-y-6">
+              <div className="bg-[#141414] border border-[#2A2A2A] p-10 sm:p-16 text-center">
+                <Flag className="w-14 h-14 mx-auto text-zinc-700 mb-4" />
+                <div className="font-display text-3xl uppercase tracking-tight mb-2">
+                  Welcome to Lay-Hounds
+                </div>
+                <div className="text-zinc-400 max-w-md mx-auto mb-6">
+                  A controlled environment to test configurable lay recovery strategies on historical UK
+                  greyhound racing. Start a session to begin.
+                </div>
+                <NewSessionDialog onCreated={onCreated} />
               </div>
-              <div className="text-zinc-400 max-w-md mx-auto mb-6">
-                A controlled environment to test configurable lay recovery strategies on simulated UK
-                greyhound racing. Start a session to begin.
-              </div>
-              <NewSessionDialog onCreated={onCreated} />
+              <ProductScreenshotGallery />
             </div>
           )}
 
