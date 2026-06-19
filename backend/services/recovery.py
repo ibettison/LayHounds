@@ -43,7 +43,7 @@ def _sync_legacy_balance(chain: RecoveryChain) -> None:
 
 
 def is_chain_back_to_green(chain: RecoveryChain, session_profit: float) -> bool:
-    return recovery_total(chain) <= 0 and session_profit >= 0
+    return recovery_total(chain) <= 0
 
 
 def stake_for_shortfall(shortfall: float, config: SessionConfig) -> float:
@@ -186,22 +186,6 @@ def apply_settled_bet_to_chain(
         chain.pending_stake = config.stake
     elif recovery_total(chain) > 0:
         chain.level = max(chain.level, 1, bet.recovery_level)
-    elif bet.recovery_level > 0 and session_profit < 0:
-        session_shortfall = _money(abs(session_profit) + target_net_profit(config))
-        chain.normal_recovery_balance = session_shortfall
-        refresh_pending_stake(chain, config)
-        chain.level = max(chain.level, 1, bet.recovery_level)
-        logger.info(
-            "Recovery settlement win still below session green: pnl=%.4f "
-            "session_profit=%.4f carried_shortfall=%.4f normal_after=%.4f "
-            "overflow_after=%.4f genuinely_back_to_green=%s",
-            settled_profit,
-            session_profit,
-            session_shortfall,
-            chain.normal_recovery_balance,
-            chain.overflow_recovery_balance,
-            False,
-        )
     else:
         chain.level = max(chain.level, 1, bet.recovery_level)
         chain.pending_stake = config.stake

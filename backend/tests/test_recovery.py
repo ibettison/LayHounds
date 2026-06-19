@@ -142,7 +142,26 @@ def test_winning_full_recovery_clears_both_balances_when_session_green():
     assert chain.pending_stake == config.stake
 
 
-def test_winning_recovery_keeps_chasing_when_session_still_negative():
+def test_winning_recovery_keeps_chasing_own_chain_shortfall():
+    config = SessionConfig(stake=0.05, commission_rate=0.05, max_liability_cap=0)
+    chain = RecoveryChain(level=3, normal_recovery_balance=5.0)
+
+    apply_settled_bet_to_chain(
+        chain,
+        _bet(stake=3.1684, liability=2.0, level=3),
+        config,
+        settled_profit=3.01,
+        session_profit=-1.99,
+    )
+
+    assert chain.level == 3
+    assert chain.normal_recovery_balance == 1.99
+    assert chain.overflow_recovery_balance == 0.0
+    assert chain.accumulated_loss == 1.99
+    assert round(chain.pending_stake * 0.95, 4) == 1.99
+
+
+def test_winning_recovery_does_not_inherit_other_chains_session_shortfall():
     config = SessionConfig(stake=0.05, commission_rate=0.05, max_liability_cap=0)
     chain = RecoveryChain(level=3, normal_recovery_balance=1.0)
 
@@ -154,11 +173,11 @@ def test_winning_recovery_keeps_chasing_when_session_still_negative():
         session_profit=-1.99,
     )
 
-    assert chain.level == 3
-    assert chain.normal_recovery_balance == 2.0375
+    assert chain.level == 0
+    assert chain.normal_recovery_balance == 0.0
     assert chain.overflow_recovery_balance == 0.0
-    assert chain.accumulated_loss == 2.0375
-    assert round(chain.pending_stake * 0.95, 4) == 2.0375
+    assert chain.accumulated_loss == 0.0
+    assert chain.pending_stake == config.stake
 
 
 def test_losing_capped_recovery_adds_new_loss_without_wiping_overflow():
