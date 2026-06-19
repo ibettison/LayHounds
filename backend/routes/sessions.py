@@ -26,7 +26,7 @@ from services.backtest_analysis import (
     session_race_snapshots,
 )
 from services.favourite_risk import favourite_risk_bet_plan, format_skip_reasons
-from services.historical_replay import next_historical_replay_race
+from services.historical_replay import historical_replay_summary, next_historical_replay_race
 from services.recovery import apply_settled_bet_to_chain, plan_recovery_bet
 from services.settlement import reconcile_live_settlements
 from services.session_status import apply_stop_conditions
@@ -117,6 +117,11 @@ async def create_session(config: SessionConfig):
 async def list_sessions():
     docs = await db.sessions.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
     return [Session(**d) for d in docs]
+
+
+@router.get("/historical-replay/summary")
+async def get_historical_replay_summary():
+    return historical_replay_summary()
 
 
 @router.get("/sessions/{session_id}", response_model=Session)

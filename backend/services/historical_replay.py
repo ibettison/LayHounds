@@ -416,6 +416,44 @@ def historical_replay_available() -> bool:
     return bool(_ensure_loaded())
 
 
+def historical_replay_summary() -> dict:
+    days = _ensure_loaded()
+    day_summaries = []
+    for day_key in sorted(days):
+        races = days[day_key]
+        if not races:
+            continue
+        day_summaries.append(
+            {
+                "date": day_key,
+                "race_count": len(races),
+                "first_race_time": races[0].race_time,
+                "last_race_time": races[-1].race_time,
+            }
+        )
+
+    source = "none"
+    source_name = None
+    if _loaded_archive:
+        source = "archive"
+        source_name = _loaded_archive.name
+    elif _loaded_replay_pack:
+        source = "bundled_replay_pack"
+        source_name = _loaded_replay_pack.name
+
+    return {
+        "available": bool(day_summaries),
+        "source": source,
+        "source_name": source_name,
+        "countries": sorted(COUNTRIES),
+        "day_count": len(day_summaries),
+        "race_count": sum(day["race_count"] for day in day_summaries),
+        "first_day": day_summaries[0] if day_summaries else None,
+        "last_day": day_summaries[-1] if day_summaries else None,
+        "days": day_summaries,
+    }
+
+
 def _select_next_day(day_keys: List[str], *, avoid_day: Optional[str] = None) -> str:
     global _next_day_index
     if not day_keys:

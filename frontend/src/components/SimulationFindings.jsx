@@ -1,145 +1,157 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { BarChart3 } from "lucide-react";
+import { api } from "../lib/api";
 
-const balancedRows = [
-  {
-    label: "Small stake",
-    config: <>L5 / 4 favs / stake &pound;0.05 / cap &pound;100</>,
-    day: <>&pound;1.53</>,
-    week: <>&pound;7.66</>,
-    month: <>&pound;30.65</>,
-    risk: "95% positive / 4% bust",
-  },
-  {
-    label: "Mid stake",
-    config: <>L5 / 3 favs / stake &pound;0.50 / cap &pound;100</>,
-    day: <>&pound;8.96</>,
-    week: <>&pound;44.79</>,
-    month: <>&pound;179.15</>,
-    risk: "77% positive / 23% bust",
-  },
-  {
-    label: "Large stake",
-    config: <>L3 / 4 favs / stake &pound;1.00 / cap &pound;100</>,
-    day: <>&pound;19.94</>,
-    week: <>&pound;99.71</>,
-    month: <>&pound;398.83</>,
-    risk: "71% positive / 65% bust",
-  },
-];
+const fmtMoney = (value) => {
+  const n = Number(value || 0);
+  return `${n >= 0 ? "+" : "-"}£${Math.abs(n).toFixed(2)}`;
+};
 
-const potentialRows = [
-  {
-    config: <>L5 / 2 favs / stake &pound;0.05 / cap &pound;100</>,
-    month: <>&pound;15.79</>,
-    drawdown: <>&pound;12.75</>,
-    note: "Highest positive-day rate tested",
-  },
-  {
-    config: <>L4 / 4 favs / stake &pound;0.50 / cap &pound;50</>,
-    month: <>&pound;177.17</>,
-    drawdown: <>&pound;60.53</>,
-    note: "Similar upside with lower cap",
-  },
-  {
-    config: <>L5 / 4 favs / stake &pound;1.00 / cap &pound;100</>,
-    month: <>&pound;368.07</>,
-    drawdown: <>&pound;114.60</>,
-    note: "High upside, very wide swings",
-  },
-];
+const fmtDate = (value) => {
+  if (!value) return "Not selected";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value).slice(0, 10);
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
 
-export const SimulationFindings = () => (
-  <div className="bg-[#141414] border border-[#2A2A2A]" data-testid="simulation-findings">
-    <div className="flex items-center justify-between gap-3 bg-[#0A0A0A] border-b border-[#2A2A2A] p-4">
-      <div>
-        <div className="label-xs">Monte Carlo Findings</div>
-        <div className="font-display text-2xl uppercase tracking-tight">
-          Stake sweep: &pound;0.05, &pound;0.50 and &pound;1.00
+const fmtTime = (value) => {
+  if (!value) return "--:--";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value).slice(11, 16) || "--:--";
+  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+};
+
+const replayDayKey = (race) => (race?.race_time || race?.market_start_time || "").slice(0, 10);
+
+export const SimulationFindings = ({ session }) => {
+  const [summary, setSummary] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.historicalReplaySummary()
+      .then((data) => {
+        if (!cancelled) setSummary(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.response?.data?.detail || err.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const evidence = useMemo(() => {
+    const races = (session?.races || []).filter((race) => race.source === "simulator" || race.race_time);
+    const byDay = new Map();
+    for (const race of races) {
+      const day = replayDayKey(race) || "unknown";
+      const current = byDay.get(day) || { date: day, races: 0, pnl: 0 };
+      current.races += 1;
+      current.pnl = Number((current.pnl + Number(race.pnl_change || 0)).toFixed(4));
+      byDay.set(day, current);
+    }
+    const days = [...byDay.values()].sort((a, b) => a.date.localeCompare(b.date));
+    const bestDay = days.length ? [...days].sort((a, b) => b.pnl - a.pnl)[0] : null;
+    const worstDay = days.length ? [...days].sort((a, b) => a.pnl - b.pnl)[0] : null;
+    const lastRace = races[races.length - 1] || null;
+    const currentDay = replayDayKey(lastRace) || session?.historical_replay_day || null;
+    return {
+      races,
+      days,
+      bestDay,
+      worstDay,
+      lastRace,
+      currentDay,
+      pnl: Number(session?.total_pnl || 0),
+    };
+  }, [session]);
+
+  const packLabel = summary?.source === "bundled_replay_pack"
+    ? "Bundled replay pack"
+    : summary?.source === "archive"
+      ? "Full archive"
+      : "Historical data";
+  const firstDay = summary?.first_day;
+  const lastDay = summary?.last_day;
+
+  return (
+    <div className="bg-[#141414] border border-[#2A2A2A]" data-testid="historical-replay-evidence">
+      <div className="flex items-center justify-between gap-3 bg-[#0A0A0A] border-b border-[#2A2A2A] p-4">
+        <div>
+          <div className="label-xs">Historical Replay Evidence</div>
+          <div className="font-display text-2xl uppercase tracking-tight">
+            Real Betfair race-card replay
+          </div>
+        </div>
+        <div className="w-10 h-10 bg-pink-600/15 border border-pink-500/30 grid place-items-center">
+          <BarChart3 className="w-5 h-5 text-pink-300" />
         </div>
       </div>
-      <div className="w-10 h-10 bg-pink-600/15 border border-pink-500/30 grid place-items-center">
-        <BarChart3 className="w-5 h-5 text-pink-300" />
+
+      <div className="p-4 space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <FindingStat label="Historical days" value={summary?.day_count ?? "--"} sub={packLabel} />
+          <FindingStat label="Historical races" value={summary?.race_count?.toLocaleString("en-GB") ?? "--"} sub="UK/IE markets" />
+          <FindingStat label="Current replay day" value={fmtDate(evidence.currentDay)} sub={`${evidence.races.length} races completed`} />
+          <FindingStat label="Session P&L" value={fmtMoney(evidence.pnl)} sub="current replay session" tone={evidence.pnl >= 0 ? "emerald" : "red"} />
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-3 text-sm">
+          <Note title="Replay source">
+            {error
+              ? `Could not load replay metadata: ${error}`
+              : summary?.available
+                ? `${packLabel} with ${summary.race_count.toLocaleString("en-GB")} historical races across ${summary.day_count} day${summary.day_count === 1 ? "" : "s"}.`
+                : "Historical replay metadata is not available yet."}
+          </Note>
+          <Note title="Date range">
+            {firstDay && lastDay
+              ? `${fmtDate(firstDay.date)} ${fmtTime(firstDay.first_race_time)} to ${fmtDate(lastDay.date)} ${fmtTime(lastDay.last_race_time)}.`
+              : "Waiting for historical replay data."}
+          </Note>
+          <Note title="Replay progress">
+            {evidence.lastRace
+              ? `Latest race: ${evidence.lastRace.venue} at ${evidence.lastRace.market_time_label || fmtTime(evidence.lastRace.race_time)}.`
+              : "Run the first historical race to start building session evidence."}
+          </Note>
+        </div>
+
+        <ResultTable
+          rows={[
+            { label: "Replay days completed", value: evidence.days.length || 0, note: "days with at least one race run" },
+            { label: "Best replay day so far", value: evidence.bestDay ? fmtMoney(evidence.bestDay.pnl) : "--", note: evidence.bestDay ? fmtDate(evidence.bestDay.date) : "not enough races yet" },
+            { label: "Worst replay day so far", value: evidence.worstDay ? fmtMoney(evidence.worstDay.pnl) : "--", note: evidence.worstDay ? fmtDate(evidence.worstDay.date) : "not enough races yet" },
+            { label: "Races completed today", value: evidence.currentDay ? (evidence.days.find((day) => day.date === evidence.currentDay)?.races || 0) : 0, note: "current historical card" },
+          ]}
+        />
+
+        <div className="text-xs text-zinc-500 leading-relaxed">
+          This panel describes the historical replay data and the current replay session. It is not a live Betfair forecast, and past historical results do not guarantee future live results.
+        </div>
       </div>
     </div>
+  );
+};
 
-    <div className="p-4 space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <FindingStat label="Latest sweep" value="40,500" sub="simulated days" />
-        <FindingStat label="Favourites" value="2 / 3 / 4" sub="compared" />
-        <FindingStat label="Recovery" value="L3 / L4 / L5" sub="compared" />
-        <FindingStat label="Caps" value="20 / 50 / 100" sub="liability" />
-      </div>
-
-      <ResultTable
-        title="Balanced profit projections"
-        rows={balancedRows}
-        columns={["Setup", "Avg Day", "5-Day Week", "20-Day Month", "Risk"]}
-      />
-
-      <ResultTable
-        title="Higher profit potential"
-        rows={potentialRows}
-        columns={["Setup", "20-Day Month", "95% Drawdown", "Note"]}
-        compact
-      />
-
-      <div className="grid md:grid-cols-3 gap-3 text-sm">
-        <Note title="Stake scaling">
-          Profit potential scales sharply with stake, but so does the bad-day drawdown.
-          The &pound;1.00 setup showed the biggest monthly average, but it needs a much
-          larger bank to absorb variance.
-        </Note>
-        <Note title="Cap effect">
-          Higher caps let recovery breathe and improve target capture, especially at
-          &pound;0.50 and &pound;1.00. Tight caps reduce exposure but interrupt recovery more often.
-        </Note>
-        <Note title="Profit projection">
-          The weekly and monthly numbers are averages from repeated simulator days, not
-          guarantees. The median often sits close to the full target, while loss clusters pull
-          down the average.
-        </Note>
-      </div>
-    </div>
-  </div>
-);
-
-const ResultTable = ({ title, rows, columns, compact = false }) => (
+const ResultTable = ({ rows }) => (
   <div>
-    <div className="label-xs mb-2">{title}</div>
+    <div className="label-xs mb-2">Current replay evidence</div>
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px]">
+      <table className="w-full min-w-[640px]">
         <thead>
           <tr className="text-xs uppercase tracking-wider text-zinc-500 border-b border-[#2A2A2A]">
-            {columns.map((col) => (
-              <th key={col} className={`py-2 ${col === "Setup" ? "text-left" : "text-right"}`}>
-                {col}
-              </th>
-            ))}
+            <th className="py-2 text-left">Metric</th>
+            <th className="py-2 text-right">Value</th>
+            <th className="py-2 text-right">Context</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.label || row.note} className="border-b border-[#2A2A2A]/70">
-              {compact ? (
-                <>
-                  <td className="py-3 pr-3 text-sm text-zinc-400 font-mono">{row.config}</td>
-                  <td className="py-3 pr-3 text-right text-emerald-400 font-mono">{row.month}</td>
-                  <td className="py-3 pr-3 text-right text-amber-300 font-mono">{row.drawdown}</td>
-                  <td className="py-3 text-right text-zinc-400 text-sm">{row.note}</td>
-                </>
-              ) : (
-                <>
-                  <td className="py-3 pr-3">
-                    <div className="font-bold text-sm text-white">{row.label}</div>
-                    <div className="text-xs text-zinc-500 font-mono">{row.config}</div>
-                  </td>
-                  <td className="py-3 pr-3 text-right text-emerald-400 font-mono">{row.day}</td>
-                  <td className="py-3 pr-3 text-right text-emerald-400 font-mono">{row.week}</td>
-                  <td className="py-3 pr-3 text-right text-emerald-400 font-mono">{row.month}</td>
-                  <td className="py-3 text-right text-amber-300 font-mono text-xs">{row.risk}</td>
-                </>
-              )}
+            <tr key={row.label} className="border-b border-[#2A2A2A]/70">
+              <td className="py-3 pr-3 text-sm text-white font-bold">{row.label}</td>
+              <td className="py-3 pr-3 text-right text-emerald-400 font-mono">{row.value}</td>
+              <td className="py-3 text-right text-zinc-400 text-sm">{row.note}</td>
             </tr>
           ))}
         </tbody>
@@ -148,10 +160,14 @@ const ResultTable = ({ title, rows, columns, compact = false }) => (
   </div>
 );
 
-const FindingStat = ({ label, value, sub }) => (
+const FindingStat = ({ label, value, sub, tone = "white" }) => (
   <div className="bg-[#0A0A0A] border border-[#2A2A2A] p-3">
     <div className="label-xs mb-1">{label}</div>
-    <div className="font-mono text-xl font-bold text-white">{value}</div>
+    <div className={`font-mono text-xl font-bold ${
+      tone === "emerald" ? "text-emerald-400" : tone === "red" ? "text-red-400" : "text-white"
+    }`}>
+      {value}
+    </div>
     <div className="text-xs text-zinc-500 font-mono">{sub}</div>
   </div>
 );

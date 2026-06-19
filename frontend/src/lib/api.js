@@ -40,6 +40,7 @@ export const api = {
   betfairStatus: () => axios.get(`${API}/betfair/status`).then((r) => r.data),
   currentBank: () => axios.get(`${API}/bank/current`).then((r) => r.data),
   dailyStats: () => axios.get(`${API}/daily-stats`).then((r) => r.data),
+  historicalReplaySummary: () => axios.get(`${API}/historical-replay/summary`).then((r) => r.data),
   previewCap: (params) => axios.post(`${API}/preview-cap`, params).then((r) => r.data),
   exportBacktestAnalysis: (params) => axios.get(`${API}/analysis/backtest.csv`, { params, responseType: "blob" }).then((r) => r.data),
   exportSessionAnalysis: (id) => axios.get(`${API}/sessions/${id}/analysis.csv`, { responseType: "blob" }).then((r) => r.data),

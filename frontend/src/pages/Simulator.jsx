@@ -626,7 +626,7 @@ export default function Simulator() {
 
               {/* Daily trading journal / cross-session P&L */}
               <DailyChart refreshKey={current.races_played + "_" + current.status} />
-              <SimulationFindings />
+              <SimulationFindings session={current} />
             </>
           )}
         </section>
