@@ -9,7 +9,11 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 from models import Greyhound, LayBet, Race, RecoveryChain, Session, SessionConfig
 from services.racing import generate_race, get_runner_by_rank, pick_winner
-from services.recovery import apply_settled_bet_to_chain, plan_recovery_bet, recovery_total
+from services.recovery import (
+    apply_settled_bet_to_chain,
+    recovery_total,
+    stake_for_liability_budget,
+)
 
 
 @dataclass(frozen=True)
@@ -245,17 +249,19 @@ def _simulate_filter(
                 skipped += 1
                 skip_reason = "stop-loss budget exhausted"
             else:
-                bet_plan = plan_recovery_bet(
-                    chain,
-                    fav.odds,
-                    config,
-                    stop_loss_budget=loss_budget,
-                )
-                stake = _floor_money(bet_plan.stake)
+                stake = _floor_money(chain.pending_stake)
                 liability = round(stake * (fav.odds - 1), 4)
+                if liability > loss_budget:
+                    stake = _floor_money(stake_for_liability_budget(fav.odds, loss_budget))
+                    liability = round(stake * (fav.odds - 1), 4)
                 if stake <= 0 or liability <= 0:
                     skipped += 1
                     skip_reason = "liability below usable stake"
+                elif config.max_liability_cap > 0 and liability > config.max_liability_cap:
+                    skipped += 1
+                    skip_reason = "max liability cap exceeded"
+                    chain.busted = True
+                    busts += 1
                 else:
                     bet_placed = True
                     bets_placed += 1

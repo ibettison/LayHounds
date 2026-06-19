@@ -27,7 +27,7 @@ from services.backtest_analysis import (
 )
 from services.favourite_risk import favourite_risk_bet_plan, format_skip_reasons
 from services.historical_replay import historical_replay_summary, next_historical_replay_race
-from services.recovery import apply_settled_bet_to_chain, plan_recovery_bet
+from services.recovery import apply_settled_bet_to_chain, stake_for_liability_budget
 from services.settlement import reconcile_live_settlements
 from services.session_status import apply_stop_conditions
 from session_events import (
@@ -269,14 +269,21 @@ async def next_race(session_id: str):
         # (skip in overrun mode too — if odds outside band, chain still pending next race)
         if runner.odds < session.config.odds_min or runner.odds > session.config.odds_max:
             continue
-        bet_plan = plan_recovery_bet(
-            chain,
-            runner.odds,
-            session.config,
-            stop_loss_budget=_remaining_stop_loss_budget(session),
-        )
-        stake = _floor_money(bet_plan.stake)
+        stake = round(chain.pending_stake, 4)
         liability = round(stake * (runner.odds - 1), 4)
+        loss_budget = _remaining_stop_loss_budget(session)
+        if loss_budget is not None and liability > loss_budget:
+            stake = _floor_money(stake_for_liability_budget(runner.odds, loss_budget))
+            liability = round(stake * (runner.odds - 1), 4)
+            if stake <= 0 or liability <= 0:
+                continue
+
+        # Liability cap applies to all modes and busts recovery chains whose
+        # next bet would exceed the safety cap, matching Licensing behaviour.
+        if session.config.max_liability_cap > 0 and liability > session.config.max_liability_cap:
+            chain.busted = True
+            continue
+
         if stake <= 0 or liability <= 0:
             continue
         new_bet = LayBet(
