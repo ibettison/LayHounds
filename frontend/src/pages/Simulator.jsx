@@ -157,9 +157,16 @@ export default function Simulator() {
     if (!current) return;
     const auto = opts.auto === true;
     const isBatchRun = current.config.mode === "simulator" && batchSize > 1;
+    const isHistoricalReplay = current.config.mode === "simulator";
+    let preparingToast = null;
     if (isBatchRun) suppressRaceToastsRef.current = true;
     setLoading(true);
     try {
+      if (isHistoricalReplay) {
+        preparingToast = toast.loading(
+          "Preparing historical Betfair race card. This can take a moment while archived markets are scanned.",
+        );
+      }
       if (current.config.mode === "live") {
         await reconcileLiveSettlement(current.id, { quiet: true });
       }
@@ -195,6 +202,7 @@ export default function Simulator() {
         } catch (refreshErr) { /* next poll/action will recover */ }
       }
     } finally {
+      if (preparingToast) toast.dismiss(preparingToast);
       setLoading(false);
       if (isBatchRun) {
         window.setTimeout(() => {
@@ -535,7 +543,11 @@ export default function Simulator() {
                     className="bg-pink-600 hover:bg-pink-500 text-white font-bold uppercase tracking-wider rounded-none border-b-2 border-pink-800 active:translate-y-[1px] active:border-b-0 disabled:opacity-40"
                   >
                     <Play className="w-4 h-4 mr-2" />
-                    {loading ? "Running…" : `Run ${batchSize === 1 ? "Next Race" : batchSize + " Races"}`}
+                    {loading && current.config.mode === "simulator"
+                      ? "Preparing historical day..."
+                      : loading
+                      ? "Running..."
+                      : `Run ${batchSize === 1 ? "Next Race" : batchSize + " Races"}`}
                   </Button>
                   <Button
                     data-testid="stop-session-btn"

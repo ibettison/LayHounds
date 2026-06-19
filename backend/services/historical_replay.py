@@ -44,8 +44,8 @@ class HistoricalRace:
 
 
 _loaded_archive: Optional[Path] = None
-ALL_RACES_KEY = "all"
 _days_by_key: Dict[str, List[HistoricalRace]] = {}
+_next_day_index = 0
 
 
 def _candidate_archives() -> List[Path]:
@@ -221,7 +221,8 @@ def _historical_race_from_definition(member_name: str, definition: dict) -> Opti
 
 
 def _load_days(path: Path) -> Dict[str, List[HistoricalRace]]:
-    races: List[HistoricalRace] = []
+    days: Dict[str, List[HistoricalRace]] = {}
+    loaded_count = 0
     with tarfile.open(path, "r") as tar:
         for member in tar:
             filename = Path(member.name).name
@@ -239,26 +240,31 @@ def _load_days(path: Path) -> Dict[str, List[HistoricalRace]]:
                 race.market_id,
                 race.race_time,
             )
-            races.append(race)
+            day_key = race.race_time[:10]
+            days.setdefault(day_key, []).append(race)
+            loaded_count += 1
 
-    races.sort(key=lambda race: race.race_time)
-    logger.info("Loaded %s historical markets", len(races))
-    logger.info(
-        "First 10 historical races after sorting: %s",
-        [
-            {
-                "market_id": race.market_id,
-                "race_time": race.race_time,
-                "venue": race.venue,
-            }
-            for race in races[:10]
-        ],
-    )
-    return {ALL_RACES_KEY: races} if races else {}
+    for day_key, races in days.items():
+        races.sort(key=lambda race: race.race_time)
+        logger.info(
+            "First 10 historical races after sorting for %s: %s",
+            day_key,
+            [
+                {
+                    "market_id": race.market_id,
+                    "race_time": race.race_time,
+                    "venue": race.venue,
+                }
+                for race in races[:10]
+            ],
+        )
+
+    logger.info("Loaded %s historical markets across %s historical days", loaded_count, len(days))
+    return {day: races for day, races in days.items() if races}
 
 
 def _ensure_loaded() -> Dict[str, List[HistoricalRace]]:
-    global _loaded_archive, _days_by_key
+    global _loaded_archive, _days_by_key, _next_day_index
     path = _archive_path()
     if not path:
         return {}
@@ -267,10 +273,12 @@ def _ensure_loaded() -> Dict[str, List[HistoricalRace]]:
     try:
         _days_by_key = _load_days(path)
         _loaded_archive = path
+        _next_day_index = 0
         logger.info(
-            "Loaded historical replay archive from %s with %s markets",
+            "Loaded historical replay archive from %s with %s markets across %s days",
             path,
-            len(_days_by_key.get(ALL_RACES_KEY, [])),
+            sum(len(races) for races in _days_by_key.values()),
+            len(_days_by_key),
         )
     except Exception:
         logger.exception("Could not load historical replay archive %s", path)
@@ -283,25 +291,58 @@ def historical_replay_available() -> bool:
     return bool(_ensure_loaded())
 
 
+def _select_next_day(day_keys: List[str], *, avoid_day: Optional[str] = None) -> str:
+    global _next_day_index
+    if not day_keys:
+        return ""
+    if len(day_keys) == 1:
+        return day_keys[0]
+
+    for _ in range(len(day_keys)):
+        day = day_keys[_next_day_index % len(day_keys)]
+        _next_day_index += 1
+        if day != avoid_day:
+            return day
+    return day_keys[0]
+
+
 def next_historical_replay_race(session: Session) -> Optional[HistoricalRace]:
     days = _ensure_loaded()
     if not days:
         return None
 
-    if session.historical_replay_day != ALL_RACES_KEY:
-        session.historical_replay_day = ALL_RACES_KEY
+    day_keys = sorted(days)
+    if session.historical_replay_day not in days:
+        session.historical_replay_day = _select_next_day(day_keys)
         session.historical_replay_cursor = 0
+        logger.info(
+            "Historical replay selected day=%s for session=%s (%s races)",
+            session.historical_replay_day,
+            session.id[:8],
+            len(days.get(session.historical_replay_day, [])),
+        )
 
-    races = days.get(ALL_RACES_KEY) or []
+    races = days.get(session.historical_replay_day or "") or []
     if session.historical_replay_cursor >= len(races):
+        previous_day = session.historical_replay_day
+        session.historical_replay_day = _select_next_day(day_keys, avoid_day=previous_day)
         session.historical_replay_cursor = 0
+        races = days.get(session.historical_replay_day or "") or []
+        logger.info(
+            "Historical replay moved from day=%s to day=%s for session=%s (%s races)",
+            previous_day,
+            session.historical_replay_day,
+            session.id[:8],
+            len(races),
+        )
 
     if not races:
         return None
 
     race = races[session.historical_replay_cursor]
     logger.info(
-        "Passing historical race into simulator: order=%s market_id=%s race_time=%s",
+        "Passing historical race into simulator: day=%s order=%s market_id=%s race_time=%s",
+        session.historical_replay_day,
         session.historical_replay_cursor + 1,
         race.market_id,
         race.race_time,
