@@ -4,8 +4,6 @@ import bz2
 import io
 import json
 import tarfile
-from datetime import datetime
-
 from models import Session, SessionConfig
 from services import historical_replay
 from services.historical_replay import next_historical_replay_race
@@ -64,7 +62,7 @@ def test_historical_replay_uses_real_market_and_rewrites_date(monkeypatch, tmp_p
         (3, "3. Honest Three", 5.0, 3),
     ]
     assert race.replay_start_time is not None
-    assert race.replay_start_time[:10] == datetime.now().date().isoformat()
+    assert race.replay_start_time[:10] == "2026-01-01"
     assert "19:24:00" in race.replay_start_time
     assert race.market_time_label == "19:24"
     assert session.historical_replay_day == "2026-01-01"
@@ -101,7 +99,7 @@ def test_historical_replay_converts_market_time_to_track_timezone(monkeypatch, t
 
     assert race is not None
     assert race.replay_start_time is not None
-    assert race.replay_start_time[:10] == datetime.now().date().isoformat()
+    assert race.replay_start_time[:10] == "2026-06-01"
     assert "16:16:00" in race.replay_start_time
     assert race.market_time_label == "16:16"
 

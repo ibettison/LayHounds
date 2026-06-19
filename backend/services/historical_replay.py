@@ -133,12 +133,10 @@ def _parse_iso_datetime(raw: Optional[str]) -> Optional[datetime]:
         return None
 
 
-def _today_with_historic_time(historic_start: Optional[datetime]) -> Optional[str]:
+def _historical_start_time(historic_start: Optional[datetime]) -> Optional[str]:
     if historic_start is None:
         return None
-    today = datetime.now().date()
-    replay_start = datetime.combine(today, historic_start.time().replace(tzinfo=None))
-    return replay_start.isoformat()
+    return historic_start.isoformat()
 
 
 def _time_label(historic_start: Optional[datetime]) -> Optional[str]:
@@ -214,7 +212,7 @@ def _historical_race_from_definition(member_name: str, definition: dict) -> Opti
         result=winning_trap,
         category=category,
         historic_start_time=historic_start_iso,
-        replay_start_time=_today_with_historic_time(historic_start),
+        replay_start_time=_historical_start_time(historic_start),
         market_time_label=_time_label(historic_start),
         commission_rate=float(definition.get("marketBaseRate") or 5.0) / 100.0,
     )
@@ -350,6 +348,6 @@ def next_historical_replay_race(session: Session) -> Optional[HistoricalRace]:
     session.historical_replay_cursor += 1
     return replace(
         race,
-        replay_start_time=_today_with_historic_time(_parse_iso_datetime(race.historic_start_time)),
+        replay_start_time=_historical_start_time(_parse_iso_datetime(race.historic_start_time)),
         market_time_label=_time_label(_parse_iso_datetime(race.historic_start_time)),
     )
