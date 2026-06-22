@@ -1,0 +1,4 @@
+rule_set,fav_busts,second_busts,total_busts,total_drawdown,average_bust_drawdown,worst_bust_drawdown,p95_bust_drawdown,max_liability_reached
+Current,6,8,14,770.6705,55.0479,122.2396,104.8184,136.8676
+Fav <=10%,2,8,10,668.5121,66.8512,122.2396,110.1788,136.8676
+Fav <=10% + 2nd 5-30%,2,4,6,169.9808,28.3301,40.5557,40.162,75.4987

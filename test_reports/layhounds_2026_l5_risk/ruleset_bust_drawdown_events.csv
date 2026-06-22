@@ -1,0 +1,31 @@
+rule_set,chain,date,venue,grade,market_id,bust_drawdown,max_leg_liability
+Current,second_favourite,2026-01-23,Oxford (GB),A9,1.253062621,66.9765,54.1608
+Current,favourite,2026-02-01,Yarmouth (GB),A8,1.253424645,36.8938,25.435
+Current,favourite,2026-02-08,Sunderland (GB),A4,1.253745151,31.7122,23.6924
+Current,second_favourite,2026-02-12,Valley (GB),D5,1.253933481,45.7764,36.2563
+Current,second_favourite,2026-03-05,Oxford (GB),A3,1.254805300,95.4378,73.0875
+Current,favourite,2026-03-08,Sheffield (GB),A4,1.254940847,27.3977,17.8242
+Current,second_favourite,2026-03-10,Romford (GB),A4,1.255064741,122.2396,85.9831
+Current,second_favourite,2026-03-28,Doncaster (GB),A4,1.255897791,85.6614,61.7608
+Current,favourite,2026-03-28,Romford (GB),A4,1.255902461,17.2355,12.8455
+Current,favourite,2026-04-06,Newcastle (GB),A7,1.256341841,22.69,15.6553
+Current,favourite,2026-04-07,Sheffield (GB),A7,1.256395267,33.085,23.6803
+Current,second_favourite,2026-04-12,Sunderland (GB),A1,1.256629574,55.6592,40.4556
+Current,second_favourite,2026-05-06,Romford (GB),A4,1.257820791,91.4151,71.018
+Current,second_favourite,2026-05-28,Newcastle (GB),A6,1.258668141,38.4903,28.0775
+Fav <=10%,favourite,2026-01-13,Monmore (GB),A9,1.252662487,40.5557,28.5491
+Fav <=10%,second_favourite,2026-01-23,Oxford (GB),A9,1.253062621,66.9765,54.1608
+Fav <=10%,second_favourite,2026-02-12,Valley (GB),D5,1.253933481,45.7764,36.2563
+Fav <=10%,second_favourite,2026-03-05,Oxford (GB),A3,1.254805300,95.4378,73.0875
+Fav <=10%,second_favourite,2026-03-10,Romford (GB),A4,1.255064741,122.2396,85.9831
+Fav <=10%,second_favourite,2026-03-28,Doncaster (GB),A4,1.255897791,85.6614,61.7608
+Fav <=10%,favourite,2026-04-07,Romford (GB),A7,1.256403577,26.3001,18.7856
+Fav <=10%,second_favourite,2026-04-12,Sunderland (GB),A1,1.256629574,55.6592,40.4556
+Fav <=10%,second_favourite,2026-05-06,Romford (GB),A4,1.257820791,91.4151,71.018
+Fav <=10%,second_favourite,2026-05-28,Newcastle (GB),A6,1.258668141,38.4903,28.0775
+Fav <=10% + 2nd 5-30%,favourite,2026-01-13,Monmore (GB),A9,1.252662487,40.5557,28.5491
+Fav <=10% + 2nd 5-30%,second_favourite,2026-01-23,Newcastle (GB),A8,1.253062695,38.9809,29.0615
+Fav <=10% + 2nd 5-30%,second_favourite,2026-03-12,Monmore (GB),A4,1.255161386,26.1294,20.0818
+Fav <=10% + 2nd 5-30%,favourite,2026-04-07,Romford (GB),A7,1.256403577,26.3001,18.7856
+Fav <=10% + 2nd 5-30%,second_favourite,2026-05-02,Towcester (GB),A4,1.257626037,26.3823,17.2662
+Fav <=10% + 2nd 5-30%,second_favourite,2026-06-04,Hove (GB),OR,1.258869574,11.6324,7.151

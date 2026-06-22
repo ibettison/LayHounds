@@ -1,0 +1,12 @@
+dimension,chain,rank,value,busts_after_both_rules,qualified_bets_after_both_rules,busts_per_1000_bets
+venue,favourite,1,Sheffield (GB),2,226,8.85
+venue,second_favourite,2,Oxford (GB),2,544,3.676
+venue,second_favourite,2,Romford (GB),2,1608,1.244
+venue,favourite,1,Yarmouth (GB),1,257,3.891
+venue,favourite,1,Sunderland (GB),1,347,2.882
+venue,favourite,1,Newcastle (GB),1,366,2.732
+venue,favourite,1,Romford (GB),1,441,2.268
+venue,second_favourite,2,Valley (GB),1,824,1.214
+venue,second_favourite,2,Doncaster (GB),1,1054,0.949
+venue,second_favourite,2,Sunderland (GB),1,1270,0.787
+venue,second_favourite,2,Newcastle (GB),1,1339,0.747

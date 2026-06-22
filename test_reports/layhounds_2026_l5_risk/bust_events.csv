@@ -1,0 +1,266 @@
+scenario,scenario_label,chain,rank,date,race_time,market_id,venue,grade,distance_band,distance_m,trap,odds,favourite_odds,second_favourite_odds,odds_gap,odds_gap_band,market_name,event_name
+no_filters,No filters,favourite,1,2026-01-02,2026-01-02T16:47:00,1.252250621,Newcastle (GB),A4,standard,480,2,3.44,3.44,3.65,0.061047,5-10%,HC 480m,Newcastle 2nd Jan
+no_filters,No filters,favourite,1,2026-01-05,2026-01-05T15:01:00,1.252352770,Monmore (GB),A6,standard,480,1,2.84,2.84,3.23,0.137324,10-15%,A6 480m,Monmore 5th Jan
+no_filters,No filters,favourite,1,2026-01-06,2026-01-06T16:18:00,1.252401491,Oxford (GB),A6,standard,450,4,3.01,3.01,3.84,0.275748,20%+,A6 450m,Oxford 6th Jan
+no_filters,No filters,favourite,1,2026-01-10,2026-01-10T17:24:00,1.252540120,Newcastle (GB),A4,standard,480,4,2.59,2.59,4.9,0.891892,20%+,A4 480m,Newcastle 10th Jan
+no_filters,No filters,favourite,1,2026-01-11,2026-01-11T13:47:00,1.252582639,Valley (GB),A2,standard,460,1,3.7,3.7,4.1,0.108108,10-15%,A2 460m,Valley 11th Jan
+no_filters,No filters,favourite,1,2026-01-11,2026-01-11T19:58:00,1.252583967,Star Pelaw (GB),OR,standard,435,6,3.1,3.1,3.7,0.193548,15-20%,OR 435m,Star Pelaw 11th Jan
+no_filters,No filters,favourite,1,2026-01-13,2026-01-13T12:51:00,1.252661131,Newcastle (GB),A8,standard,480,2,2.6,2.6,3.45,0.326923,20%+,A8 480m,Newcastle 13th Jan
+no_filters,No filters,favourite,1,2026-01-13,2026-01-13T19:31:00,1.252663460,Suffolk Downs (GB),OR,standard,388,6,1.77,1.77,6.6,2.728814,20%+,OR 388m,Suffolk Downs 13th Jan
+no_filters,No filters,favourite,1,2026-01-17,2026-01-17T19:58:00,1.252832248,Dunstall Park (GB),A1,standard,480,5,2.8,2.8,4.79,0.710714,20%+,A1 480m,Dunstall Park 17th Jan
+no_filters,No filters,second_favourite,2,2026-01-23,2026-01-23T17:56:00,1.253062489,Kinsley (GB),A8,standard,462,4,4.11,3.7,4.11,0.110811,10-15%,A8 462m,Kinsley 23rd Jan
+no_filters,No filters,favourite,1,2026-01-24,2026-01-24T18:43:00,1.253113936,Star Pelaw (GB),OR,standard,435,6,1.96,1.96,3.3,0.683673,20%+,OR 435m,Star Pelaw 24th Jan
+no_filters,No filters,second_favourite,2,2026-01-28,2026-01-28T15:49:00,1.253284565,Doncaster (GB),A4,standard,450,2,2.74,2.39,2.74,0.146444,10-15%,B3 450m,Doncaster 28th Jan
+no_filters,No filters,favourite,1,2026-01-29,2026-01-29T14:36:00,1.253319903,Towcester (GB),D1,sprint,270,2,3.05,3.05,3.25,0.065574,5-10%,D1 270m,Towcester 29th Jan
+no_filters,No filters,favourite,1,2026-02-01,2026-02-01T12:26:00,1.253424635,Yarmouth (GB),A6,standard,462,3,3.89,3.89,3.9,0.002571,0-5%,A6 462m,Yarmouth 1st Feb
+no_filters,No filters,favourite,1,2026-02-01,2026-02-01T13:59:00,1.253420836,Sunderland (GB),D3,sprint,261,1,3.43,3.43,4.39,0.279883,20%+,D3 261m,Sunderland 1st Feb
+no_filters,No filters,favourite,1,2026-02-01,2026-02-01T15:19:00,1.253425503,Hove (GB),A3,stayer,500,1,2.8,2.8,4.5,0.607143,20%+,A3 500m,Hove 1st Feb
+no_filters,No filters,favourite,1,2026-02-01,2026-02-01T17:21:00,1.253426817,Oxford (GB),D4,sprint,253,3,2.06,2.06,3.55,0.723301,20%+,D4 253m,Oxford 1st Feb
+no_filters,No filters,favourite,1,2026-02-02,2026-02-02T18:46:00,1.253496627,Harlow (GB),D3,sprint,238,6,2.02,2.02,4.42,1.188119,20%+,D3 238m,Harlow 2nd Feb
+no_filters,No filters,favourite,1,2026-02-04,2026-02-04T10:48:00,1.253575827,Harlow (GB),D5,sprint,238,3,2.98,2.98,4.32,0.449664,20%+,D5 238m,Harlow 4th Feb
+no_filters,No filters,favourite,1,2026-02-04,2026-02-04T15:01:00,1.253576894,Hove (GB),A4,stayer,500,3,2.34,2.34,3.8,0.623932,20%+,A4 500m,Hove 4th Feb
+no_filters,No filters,favourite,1,2026-02-05,2026-02-05T11:36:00,1.253609228,Sheffield (GB),D3,sprint,280,3,2.5,2.5,5.15,1.06,20%+,D3 280m,Sheffield 5th Feb
+no_filters,No filters,favourite,1,2026-02-06,2026-02-06T15:44:00,1.253650552,Kinsley (GB),A6,standard,462,6,4.15,4.15,4.7,0.13253,10-15%,A6 462m,Kinsley 6th Feb
+no_filters,No filters,favourite,1,2026-02-06,2026-02-06T16:53:00,1.253650212,Towcester (GB),D3,sprint,270,5,2.18,2.18,7.24,2.321101,20%+,D3 270m,Towcester 6th Feb
+no_filters,No filters,favourite,1,2026-02-08,2026-02-08T12:42:00,1.253752083,Yarmouth (GB),A6,standard,462,1,2.12,2.12,6.0,1.830189,20%+,A6 462m,Yarmouth 8th Feb
+no_filters,No filters,favourite,1,2026-02-08,2026-02-08T15:07:00,1.253749254,Sheffield (GB),A4,sprint,280,3,2.12,2.12,5.3,1.5,20%+,IV 280m,Sheffield 8th Feb
+no_filters,No filters,favourite,1,2026-02-09,2026-02-09T14:36:00,1.253800563,Central Park (GB),D3,sprint,277,3,3.0,3.0,3.4,0.133333,10-15%,D3 277m,Central Park 9th Feb
+no_filters,No filters,second_favourite,2,2026-02-12,2026-02-12T14:23:00,1.253933117,Central Park (GB),D1,sprint,277,3,3.54,2.9,3.54,0.22069,20%+,D1 277m,Central Park 12th Feb
+no_filters,No filters,favourite,1,2026-02-12,2026-02-12T19:11:00,1.253936408,Newcastle (GB),A4,standard,480,1,2.26,2.26,4.1,0.814159,20%+,OR1 480m,Newcastle 12th Feb
+no_filters,No filters,second_favourite,2,2026-02-13,2026-02-13T19:58:00,1.253967285,Harlow (GB),D5,sprint,238,1,2.94,2.72,2.94,0.080882,5-10%,D5 238m,Harlow 13th Feb
+no_filters,No filters,favourite,1,2026-02-13,2026-02-13T20:28:00,1.253965178,Nottingham (GB),A4,stayer,500,6,2.8,2.8,3.35,0.196429,15-20%,HC 500m,Nottingham 13th Feb
+no_filters,No filters,favourite,1,2026-02-14,2026-02-14T13:08:00,1.253997198,Romford (GB),A1,standard,400,3,2.06,2.06,4.11,0.995146,20%+,A1 400m,Romford 14th Feb
+no_filters,No filters,favourite,1,2026-02-17,2026-02-17T18:56:00,1.254155207,Suffolk Downs (GB),OR,standard,388,4,2.1,2.1,3.67,0.747619,20%+,OR 388m,Suffolk Downs 17th Feb
+no_filters,No filters,favourite,1,2026-02-19,2026-02-19T12:09:00,1.254236874,Sheffield (GB),A3,stayer,500,1,3.81,3.81,4.8,0.259843,20%+,A3 500m,Sheffield 19th Feb
+no_filters,No filters,favourite,1,2026-02-20,2026-02-20T12:51:00,1.254262711,Central Park (GB),D1,sprint,277,4,2.95,2.95,3.4,0.152542,15-20%,D1 277m,Central Park 20th Feb
+no_filters,No filters,favourite,1,2026-02-20,2026-02-20T16:56:00,1.254263407,Suffolk Downs (GB),A4,standard,388,5,3.2,3.2,4.3,0.34375,20%+,A4 388m,Suffolk Downs 20th Feb
+no_filters,No filters,favourite,1,2026-02-21,2026-02-21T14:14:00,1.254292274,Romford (GB),A6,standard,400,2,3.24,3.24,4.42,0.364198,20%+,A6 400m,Romford 21st Feb
+no_filters,No filters,favourite,1,2026-02-21,2026-02-21T20:16:00,1.254294144,Doncaster (GB),D3,sprint,275,2,3.17,3.17,3.27,0.031546,0-5%,D3 275m,Doncaster 21st Feb
+no_filters,No filters,favourite,1,2026-02-24,2026-02-24T14:31:00,1.254434297,Monmore (GB),A7,standard,480,3,2.24,2.24,5.07,1.263393,20%+,A7 480m,Monmore 24th Feb
+no_filters,No filters,favourite,1,2026-02-26,2026-02-26T19:42:00,1.254511530,Star Pelaw (GB),A2,standard,435,3,2.22,2.22,4.54,1.045045,20%+,A2 435m,Star Pelaw 26th Feb
+no_filters,No filters,favourite,1,2026-02-28,2026-02-28T18:01:00,1.254578833,Star Pelaw (GB),A4,standard,435,4,1.93,1.93,3.45,0.787565,20%+,A4 435m,Star Pelaw 28th Feb
+no_filters,No filters,favourite,1,2026-02-28,2026-02-28T20:39:00,1.254578851,Star Pelaw (GB),OR,standard,435,1,2.36,2.36,4.3,0.822034,20%+,OR 435m,Star Pelaw 28th Feb
+no_filters,No filters,second_favourite,2,2026-03-01,2026-03-01T12:54:00,1.254600761,Valley (GB),OR,sprint,260,4,3.95,1.99,3.95,0.984925,20%+,OR 260m,Valley 1st Mar
+no_filters,No filters,favourite,1,2026-03-06,2026-03-06T12:34:00,1.254850873,Central Park (GB),A3,standard,491,6,3.85,3.85,4.21,0.093506,5-10%,A3 491m,Central Park 6th Mar
+no_filters,No filters,favourite,1,2026-03-08,2026-03-08T15:57:00,1.254940177,Hove (GB),A6,stayer,500,3,3.24,3.24,3.65,0.126543,10-15%,A6 500m,Hove 8th Mar
+no_filters,No filters,favourite,1,2026-03-10,2026-03-10T12:42:00,1.255064425,Sheffield (GB),A4,stayer,500,4,3.09,3.09,3.4,0.100324,10-15%,A4 500m,Sheffield 10th Mar
+no_filters,No filters,second_favourite,2,2026-03-10,2026-03-10T17:49:00,1.255064741,Romford (GB),A4,standard,400,6,3.25,3.16,3.25,0.028481,0-5%,A12 400m,Romford 10th Mar
+no_filters,No filters,favourite,1,2026-03-11,2026-03-11T11:54:00,1.255115191,Harlow (GB),D5,sprint,238,4,4.37,4.37,5.2,0.189931,15-20%,D5 238m,Harlow 11th Mar
+no_filters,No filters,second_favourite,2,2026-03-14,2026-03-14T12:42:00,1.255250871,Monmore (GB),A10,standard,480,6,4.3,3.5,4.3,0.228571,20%+,A10 480m,Monmore 14th Mar
+no_filters,No filters,favourite,1,2026-03-14,2026-03-14T19:42:00,1.255252602,Doncaster (GB),OR,sprint,275,5,3.2,3.2,3.42,0.06875,5-10%,OR 275m,Doncaster 14th Mar
+no_filters,No filters,favourite,1,2026-03-14,2026-03-14T21:09:00,1.255252612,Doncaster (GB),OR,sprint,275,2,3.06,3.06,3.56,0.163399,15-20%,OR 275m,Doncaster 14th Mar
+no_filters,No filters,favourite,1,2026-03-17,2026-03-17T20:01:00,1.255418316,Sunderland (GB),D2,sprint,261,1,3.7,3.7,4.4,0.189189,15-20%,D2 261m,Sunderland 17th Mar
+no_filters,No filters,favourite,1,2026-03-21,2026-03-21T22:02:00,1.255590236,Romford (GB),S6,stayer,575,2,2.17,2.17,2.65,0.221198,20%+,S6 575m,Romford 21st Mar
+no_filters,No filters,favourite,1,2026-03-22,2026-03-22T16:41:00,1.255620760,Sheffield (GB),A5,stayer,500,4,2.3,2.3,3.36,0.46087,20%+,A5 500m,Sheffield 22nd Mar
+no_filters,No filters,favourite,1,2026-03-23,2026-03-23T15:59:00,1.255670928,Suffolk Downs (GB),A6,standard,388,6,2.64,2.64,2.87,0.087121,5-10%,A6 388m,Suffolk Downs 23rd Mar
+no_filters,No filters,favourite,1,2026-03-24,2026-03-24T18:42:00,1.255736722,Towcester (GB),D2,sprint,270,1,2.52,2.52,5.7,1.261905,20%+,D2 270m,Towcester 24th Mar
+no_filters,No filters,favourite,1,2026-03-26,2026-03-26T19:24:00,1.255818823,Star Pelaw (GB),D4,sprint,245,4,2.49,2.49,3.05,0.2249,20%+,D4 245m,Star Pelaw 26th Mar
+no_filters,No filters,second_favourite,2,2026-03-28,2026-03-28T10:41:00,1.255897789,Doncaster (GB),D3,sprint,275,4,3.36,2.24,3.36,0.5,20%+,D3 275m,Doncaster 28th Mar
+no_filters,No filters,favourite,1,2026-03-30,2026-03-30T16:56:00,1.256018341,Sunderland (GB),A4,standard,450,4,2.12,2.12,5.2,1.45283,20%+,A4 450m,Sunderland 30th Mar
+no_filters,No filters,favourite,1,2026-03-30,2026-03-30T19:52:00,1.256019567,Harlow (GB),D5,sprint,238,3,2.54,2.54,4.85,0.909449,20%+,D5 238m,Harlow 30th Mar
+no_filters,No filters,second_favourite,2,2026-03-31,2026-03-31T13:26:00,1.256061000,Oxford (GB),D2,sprint,253,1,2.98,2.79,2.98,0.0681,5-10%,D2 253m,Oxford 31st Mar
+no_filters,No filters,favourite,1,2026-04-01,2026-04-01T12:58:00,1.256100602,Towcester (GB),A5,stayer,500,1,2.52,2.52,3.74,0.484127,20%+,A5 500m,Towcester 1st Apr
+no_filters,No filters,favourite,1,2026-04-01,2026-04-01T18:49:00,1.256108190,Dunstall Park (GB),A7,standard,480,1,3.45,3.45,3.6,0.043478,0-5%,A7 480m,Dunstall Park 1st Apr
+no_filters,No filters,favourite,1,2026-04-03,2026-04-03T19:58:00,1.256195072,Sheffield (GB),A5,stayer,500,1,1.82,1.82,3.4,0.868132,20%+,A5 500m,Sheffield 3rd Apr
+no_filters,No filters,favourite,1,2026-04-06,2026-04-06T20:28:00,1.256346235,Nottingham (GB),OR,marathon,680,1,3.1,3.1,3.29,0.06129,5-10%,OR 680m,Nottingham 6th Apr
+no_filters,No filters,favourite,1,2026-04-07,2026-04-07T11:26:00,1.256395255,Sheffield (GB),A4,stayer,500,6,3.2,3.2,3.27,0.021875,0-5%,A4 500m,Sheffield 7th Apr
+no_filters,No filters,favourite,1,2026-04-08,2026-04-08T20:16:00,1.256452596,Dunstall Park (GB),D4,sprint,270,5,2.38,2.38,3.45,0.44958,20%+,D4 270m,Dunstall Park 8th Apr
+no_filters,No filters,favourite,1,2026-04-09,2026-04-09T10:41:00,1.256525667,Dunstall Park (GB),A7,standard,480,1,2.64,2.64,5.87,1.223485,20%+,A7 480m,Dunstall Park 9th Apr
+no_filters,No filters,favourite,1,2026-04-10,2026-04-10T21:13:00,1.256545345,Romford (GB),OR,marathon,750,3,1.37,1.37,5.58,3.072993,20%+,OR 750m,Romford 10th Apr
+no_filters,No filters,favourite,1,2026-04-11,2026-04-11T17:14:00,1.256591476,Monmore (GB),A5,standard,480,6,3.13,3.13,3.87,0.236422,20%+,A5 480m,Monmore 11th Apr
+no_filters,No filters,favourite,1,2026-04-12,2026-04-12T09:11:00,1.256629273,Valley (GB),D4,sprint,260,5,3.17,3.17,3.73,0.176656,15-20%,D4 260m,Valley 12th Apr
+no_filters,No filters,favourite,1,2026-04-12,2026-04-12T10:04:00,1.256629319,Doncaster (GB),A4,standard,450,1,2.65,2.65,3.24,0.222642,20%+,B5 450m,Doncaster 12th Apr
+no_filters,No filters,second_favourite,2,2026-04-12,2026-04-12T11:34:00,1.256629574,Sunderland (GB),A1,standard,450,1,3.52,3.3,3.52,0.066667,5-10%,A1 450m,Sunderland 12th Apr
+no_filters,No filters,favourite,1,2026-04-14,2026-04-14T16:57:00,1.256760755,Monmore (GB),A4,standard,480,2,3.15,3.15,3.6,0.142857,10-15%,A4 480m,Monmore 14th Apr
+no_filters,No filters,favourite,1,2026-04-14,2026-04-14T18:27:00,1.256762356,Sunderland (GB),D2,sprint,261,2,2.63,2.63,4.57,0.737643,20%+,D2 261m,Sunderland 14th Apr
+no_filters,No filters,favourite,1,2026-04-18,2026-04-18T18:42:00,1.256955204,Doncaster (GB),OR,standard,450,6,2.26,2.26,2.44,0.079646,5-10%,OR 450m,Doncaster 18th Apr
+no_filters,No filters,favourite,1,2026-04-18,2026-04-18T19:37:00,1.256959812,Yarmouth (GB),A4,standard,462,6,2.91,2.91,3.46,0.189003,15-20%,IT 462m,Yarmouth 18th Apr
+no_filters,No filters,favourite,1,2026-04-18,2026-04-18T20:48:00,1.256959820,Yarmouth (GB),OR,marathon,659,2,1.72,1.72,4.13,1.401163,20%+,OR 659m,Yarmouth 18th Apr
+no_filters,No filters,favourite,1,2026-04-20,2026-04-20T10:09:00,1.257041905,Romford (GB),A5,standard,400,6,2.88,2.88,4.65,0.614583,20%+,A5 400m,Romford 20th Apr
+no_filters,No filters,favourite,1,2026-04-22,2026-04-22T14:03:00,1.257157913,Valley (GB),A4,standard,460,3,2.04,2.04,5.1,1.5,20%+,IT 460m,Valley 22nd Apr
+no_filters,No filters,favourite,1,2026-04-23,2026-04-23T20:16:00,1.257199795,Hove (GB),A1,stayer,500,1,2.56,2.56,3.4,0.328125,20%+,A1 500m,Hove 23rd Apr
+no_filters,No filters,favourite,1,2026-04-24,2026-04-24T16:06:00,1.257239842,Newcastle (GB),D3,sprint,290,4,2.38,2.38,4.1,0.722689,20%+,D3 290m,Newcastle 24th Apr
+no_filters,No filters,favourite,1,2026-04-28,2026-04-28T15:16:00,1.257457920,Romford (GB),A4,standard,400,1,1.93,1.93,4.3,1.227979,20%+,A12 400m,Romford 28th Apr
+no_filters,No filters,favourite,1,2026-04-29,2026-04-29T10:54:00,1.257501372,Harlow (GB),D5,sprint,238,4,3.18,3.18,6.85,1.154088,20%+,D5 238m,Harlow 29th Apr
+no_filters,No filters,favourite,1,2026-04-29,2026-04-29T13:54:00,1.257502023,Sunderland (GB),A4,standard,450,4,2.82,2.82,3.3,0.170213,15-20%,HC 450m,Sunderland 29th Apr
+no_filters,No filters,favourite,1,2026-04-29,2026-04-29T14:19:00,1.257502415,Hove (GB),A1,stayer,500,2,3.56,3.56,4.11,0.154494,15-20%,A1 500m,Hove 29th Apr
+no_filters,No filters,favourite,1,2026-05-01,2026-05-01T13:44:00,1.257587149,Star Pelaw (GB),D4,sprint,245,3,1.71,1.71,4.1,1.397661,20%+,D4 245m,Star Pelaw 1st May
+no_filters,No filters,favourite,1,2026-05-01,2026-05-01T21:14:00,1.257592610,Towcester (GB),A4,stayer,500,5,1.5,1.5,4.2,1.8,20%+,OR1 500m,Towcester 1st May
+no_filters,No filters,favourite,1,2026-05-02,2026-05-02T20:14:00,1.257634678,Yarmouth (GB),A2,standard,462,5,2.54,2.54,5.49,1.161417,20%+,A2 462m,Yarmouth 2nd May
+no_filters,No filters,second_favourite,2,2026-05-04,2026-05-04T17:26:00,1.257708447,Kinsley (GB),A4,standard,462,1,3.4,2.58,3.4,0.317829,20%+,HC 462m,Kinsley 4th May
+no_filters,No filters,favourite,1,2026-05-06,2026-05-06T13:44:00,1.257818536,Valley (GB),D6,sprint,260,1,2.87,2.87,3.62,0.261324,20%+,D6 260m,Valley 6th May
+no_filters,No filters,second_favourite,2,2026-05-06,2026-05-06T17:53:00,1.257820791,Romford (GB),A4,standard,400,3,4.3,3.18,4.3,0.352201,20%+,A4 400m,Romford 6th May
+no_filters,No filters,favourite,1,2026-05-07,2026-05-07T11:31:00,1.257861331,Nottingham (GB),A2,stayer,500,5,2.14,2.14,5.5,1.570093,20%+,A2 500m,Nottingham 7th May
+no_filters,No filters,favourite,1,2026-05-13,2026-05-13T19:47:00,1.258131941,Yarmouth (GB),D2,sprint,277,6,2.97,2.97,3.3,0.111111,10-15%,D2 277m,Yarmouth 13th May
+no_filters,No filters,favourite,1,2026-05-14,2026-05-14T15:09:00,1.258162323,Towcester (GB),A3,stayer,500,2,3.35,3.35,4.17,0.244776,20%+,A3 500m,Towcester 14th May
+no_filters,No filters,favourite,1,2026-05-19,2026-05-19T13:44:00,1.258350701,Valley (GB),A4,standard,460,3,2.8,2.8,3.32,0.185714,15-20%,A4 460m,Valley 19th May
+no_filters,No filters,favourite,1,2026-05-19,2026-05-19T14:19:00,1.258348876,Romford (GB),A7,standard,400,1,1.67,1.67,8.84,4.293413,20%+,A7 400m,Romford 19th May
+no_filters,No filters,favourite,1,2026-05-20,2026-05-20T12:54:00,1.258385821,Harlow (GB),A7,standard,415,6,2.66,2.66,3.42,0.285714,20%+,A7 415m,Harlow 20th May
+no_filters,No filters,favourite,1,2026-05-22,2026-05-22T12:03:00,1.258473226,Harlow (GB),A7,standard,415,3,2.48,2.48,4.3,0.733871,20%+,A7 415m,Harlow 22nd May
+no_filters,No filters,favourite,1,2026-05-22,2026-05-22T19:28:00,1.258474689,Nottingham (GB),A2,stayer,500,6,3.65,3.65,4.1,0.123288,10-15%,A2 500m,Nottingham 22nd May
+no_filters,No filters,second_favourite,2,2026-05-24,2026-05-24T10:43:00,1.258527935,Sunderland (GB),A3,standard,450,2,4.2,3.65,4.2,0.150685,15-20%,A3 450m,Sunderland 24th May
+no_filters,No filters,favourite,1,2026-05-24,2026-05-24T14:13:00,1.258529129,Towcester (GB),A4,stayer,500,2,1.73,1.73,5.76,2.32948,20%+,OR2 500m,Towcester 24th May
+no_filters,No filters,favourite,1,2026-05-25,2026-05-25T16:59:00,1.258561560,Doncaster (GB),A2,standard,483,3,1.69,1.69,4.23,1.502959,20%+,A2 483m,Doncaster 25th May
+no_filters,No filters,favourite,1,2026-05-27,2026-05-27T16:14:00,1.258635851,Valley (GB),D2,sprint,260,5,2.68,2.68,3.75,0.399254,20%+,D2 260m,Valley 27th May
+no_filters,No filters,favourite,1,2026-05-27,2026-05-27T16:56:00,1.258634482,Newcastle (GB),A2,standard,480,4,2.4,2.4,3.85,0.604167,20%+,A2 480m,Newcastle 27th May
+no_filters,No filters,second_favourite,2,2026-05-28,2026-05-28T18:06:00,1.258667886,Monmore (GB),D4,sprint,264,5,3.71,3.5,3.71,0.06,5-10%,D4 264m,Monmore 28th May
+no_filters,No filters,favourite,1,2026-05-29,2026-05-29T18:33:00,1.258703189,Romford (GB),OR,sprint,225,3,1.53,1.53,8.04,4.254902,20%+,OR 225M,Romford 29th May
+no_filters,No filters,favourite,1,2026-05-30,2026-05-30T19:56:00,1.258726428,Yarmouth (GB),D3,sprint,277,2,1.9,1.9,4.8,1.526316,20%+,D3 277m,Yarmouth 30th May
+no_filters,No filters,favourite,1,2026-05-31,2026-05-31T10:13:00,1.258741684,Valley (GB),D2,sprint,260,2,2.32,2.32,6.42,1.767241,20%+,D2 260m,Valley 31st May
+no_filters,No filters,favourite,1,2026-06-03,2026-06-03T17:26:00,1.258839907,Dunstall Park (GB),D2,sprint,270,3,4.12,4.12,4.12,0.0,0-5%,D2 270m,Dunstall Park 3rd Jun
+no_filters,No filters,second_favourite,2,2026-06-04,2026-06-04T20:16:00,1.258869574,Hove (GB),OR,stayer,500,2,2.5,1.94,2.5,0.28866,20%+,OR 500m,Hove 4th Jun
+no_filters,No filters,favourite,1,2026-06-05,2026-06-05T17:46:00,1.258903098,Harlow (GB),A6,standard,415,1,2.62,2.62,4.09,0.561069,20%+,A6 415m,Harlow 5th Jun
+no_filters,No filters,favourite,1,2026-06-06,2026-06-06T09:32:00,1.258925128,Doncaster (GB),D3,sprint,275,2,2.33,2.33,4.9,1.103004,20%+,D3 275m,Doncaster 6th Jun
+no_filters,No filters,favourite,1,2026-06-09,2026-06-09T18:49:00,1.259012870,Towcester (GB),D5,sprint,270,1,1.99,1.99,5.2,1.613065,20%+,D5 270m,Towcester 9th Jun
+no_filters,No filters,favourite,1,2026-06-10,2026-06-10T11:12:00,1.259035041,Harlow (GB),A7,standard,415,2,3.64,3.64,3.65,0.002747,0-5%,A7 415m,Harlow 10th Jun
+variance_15_only,15% variance only,second_favourite,2,2026-01-23,2026-01-23T17:56:00,1.253062489,Kinsley (GB),A8,standard,462,4,4.11,3.7,4.11,0.110811,10-15%,A8 462m,Kinsley 23rd Jan
+variance_15_only,15% variance only,second_favourite,2,2026-01-28,2026-01-28T15:49:00,1.253284565,Doncaster (GB),A4,standard,450,2,2.74,2.39,2.74,0.146444,10-15%,B3 450m,Doncaster 28th Jan
+variance_15_only,15% variance only,favourite,1,2026-02-01,2026-02-01T13:51:00,1.253424645,Yarmouth (GB),A8,standard,462,2,3.1,3.1,3.47,0.119355,10-15%,A8 462m,Yarmouth 1st Feb
+variance_15_only,15% variance only,favourite,1,2026-02-08,2026-02-08T13:26:00,1.253745147,Sunderland (GB),A7,standard,450,4,4.06,4.06,4.38,0.078818,5-10%,A7 450m,Sunderland 8th Feb
+variance_15_only,15% variance only,second_favourite,2,2026-02-12,2026-02-12T14:23:00,1.253933117,Central Park (GB),D1,sprint,277,3,3.54,2.9,3.54,0.22069,20%+,D1 277m,Central Park 12th Feb
+variance_15_only,15% variance only,second_favourite,2,2026-02-13,2026-02-13T19:58:00,1.253967285,Harlow (GB),D5,sprint,238,1,2.94,2.72,2.94,0.080882,5-10%,D5 238m,Harlow 13th Feb
+variance_15_only,15% variance only,second_favourite,2,2026-03-01,2026-03-01T12:54:00,1.254600761,Valley (GB),OR,sprint,260,4,3.95,1.99,3.95,0.984925,20%+,OR 260m,Valley 1st Mar
+variance_15_only,15% variance only,favourite,1,2026-03-08,2026-03-08T16:22:00,1.254940847,Sheffield (GB),A4,standard,480,3,2.76,2.76,3.15,0.141304,10-15%,IV 480m,Sheffield 8th Mar
+variance_15_only,15% variance only,second_favourite,2,2026-03-10,2026-03-10T17:49:00,1.255064741,Romford (GB),A4,standard,400,6,3.25,3.16,3.25,0.028481,0-5%,A12 400m,Romford 10th Mar
+variance_15_only,15% variance only,second_favourite,2,2026-03-14,2026-03-14T12:42:00,1.255250871,Monmore (GB),A10,standard,480,6,4.3,3.5,4.3,0.228571,20%+,A10 480m,Monmore 14th Mar
+variance_15_only,15% variance only,second_favourite,2,2026-03-28,2026-03-28T10:41:00,1.255897789,Doncaster (GB),D3,sprint,275,4,3.36,2.24,3.36,0.5,20%+,D3 275m,Doncaster 28th Mar
+variance_15_only,15% variance only,favourite,1,2026-03-28,2026-03-28T20:02:00,1.255902461,Romford (GB),A4,standard,400,1,3.75,3.75,4.05,0.08,5-10%,A12 400m,Romford 28th Mar
+variance_15_only,15% variance only,second_favourite,2,2026-03-31,2026-03-31T13:26:00,1.256061000,Oxford (GB),D2,sprint,253,1,2.98,2.79,2.98,0.0681,5-10%,D2 253m,Oxford 31st Mar
+variance_15_only,15% variance only,favourite,1,2026-04-07,2026-04-07T12:08:00,1.256396183,Dunstall Park (GB),A3,standard,480,1,4.02,4.02,4.2,0.044776,0-5%,A3 480m,Dunstall Park 7th Apr
+variance_15_only,15% variance only,second_favourite,2,2026-04-12,2026-04-12T11:34:00,1.256629574,Sunderland (GB),A1,standard,450,1,3.52,3.3,3.52,0.066667,5-10%,A1 450m,Sunderland 12th Apr
+variance_15_only,15% variance only,second_favourite,2,2026-05-04,2026-05-04T17:26:00,1.257708447,Kinsley (GB),A4,standard,462,1,3.4,2.58,3.4,0.317829,20%+,HC 462m,Kinsley 4th May
+variance_15_only,15% variance only,second_favourite,2,2026-05-06,2026-05-06T17:53:00,1.257820791,Romford (GB),A4,standard,400,3,4.3,3.18,4.3,0.352201,20%+,A4 400m,Romford 6th May
+variance_15_only,15% variance only,second_favourite,2,2026-05-24,2026-05-24T10:43:00,1.258527935,Sunderland (GB),A3,standard,450,2,4.2,3.65,4.2,0.150685,15-20%,A3 450m,Sunderland 24th May
+variance_15_only,15% variance only,second_favourite,2,2026-05-28,2026-05-28T18:06:00,1.258667886,Monmore (GB),D4,sprint,264,5,3.71,3.5,3.71,0.06,5-10%,D4 264m,Monmore 28th May
+variance_15_only,15% variance only,second_favourite,2,2026-06-04,2026-06-04T20:16:00,1.258869574,Hove (GB),OR,stayer,500,2,2.5,1.94,2.5,0.28866,20%+,OR 500m,Hove 4th Jun
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-01-02,2026-01-02T16:47:00,1.252250621,Newcastle (GB),A4,standard,480,2,3.44,3.44,3.65,0.061047,5-10%,HC 480m,Newcastle 2nd Jan
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-01-05,2026-01-05T15:01:00,1.252352770,Monmore (GB),A6,standard,480,1,2.84,2.84,3.23,0.137324,10-15%,A6 480m,Monmore 5th Jan
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-01-06,2026-01-06T16:18:00,1.252401491,Oxford (GB),A6,standard,450,4,3.01,3.01,3.84,0.275748,20%+,A6 450m,Oxford 6th Jan
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-01-10,2026-01-10T17:24:00,1.252540120,Newcastle (GB),A4,standard,480,4,2.59,2.59,4.9,0.891892,20%+,A4 480m,Newcastle 10th Jan
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-01-11,2026-01-11T13:47:00,1.252582639,Valley (GB),A2,standard,460,1,3.7,3.7,4.1,0.108108,10-15%,A2 460m,Valley 11th Jan
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-01-11,2026-01-11T19:58:00,1.252583967,Star Pelaw (GB),OR,standard,435,6,3.1,3.1,3.7,0.193548,15-20%,OR 435m,Star Pelaw 11th Jan
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-01-13,2026-01-13T12:51:00,1.252661131,Newcastle (GB),A8,standard,480,2,2.6,2.6,3.45,0.326923,20%+,A8 480m,Newcastle 13th Jan
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-01-17,2026-01-17T19:58:00,1.252832248,Dunstall Park (GB),A1,standard,480,5,2.8,2.8,4.79,0.710714,20%+,A1 480m,Dunstall Park 17th Jan
+sprint_trap_1_2_only,Sprint Trap 1/2 only,second_favourite,2,2026-01-23,2026-01-23T17:54:00,1.253062621,Oxford (GB),A9,standard,450,2,5.0,1.84,5.0,1.717391,20%+,A9 450m,Oxford 23rd Jan
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-01-24,2026-01-24T18:43:00,1.253113936,Star Pelaw (GB),OR,standard,435,6,1.96,1.96,3.3,0.683673,20%+,OR 435m,Star Pelaw 24th Jan
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-01,2026-02-01T12:26:00,1.253424635,Yarmouth (GB),A6,standard,462,3,3.89,3.89,3.9,0.002571,0-5%,A6 462m,Yarmouth 1st Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-01,2026-02-01T17:21:00,1.253426817,Oxford (GB),D4,sprint,253,3,2.06,2.06,3.55,0.723301,20%+,D4 253m,Oxford 1st Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-02,2026-02-02T18:26:00,1.253495960,Kinsley (GB),A8,standard,462,3,3.55,3.55,4.2,0.183099,15-20%,A8 462m,Kinsley 2nd Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-02,2026-02-02T18:48:00,1.253496174,Yarmouth (GB),A2,standard,462,4,2.57,2.57,3.65,0.420233,20%+,A2 462m,Yarmouth 2nd Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-04,2026-02-04T15:01:00,1.253576894,Hove (GB),A4,stayer,500,3,2.34,2.34,3.8,0.623932,20%+,A4 500m,Hove 4th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-04,2026-02-04T16:37:00,1.253576505,Valley (GB),A2,standard,460,5,1.91,1.91,4.83,1.528796,20%+,A2 460m,Valley 4th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-06,2026-02-06T15:44:00,1.253650552,Kinsley (GB),A6,standard,462,6,4.15,4.15,4.7,0.13253,10-15%,A6 462m,Kinsley 6th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-06,2026-02-06T16:56:00,1.253650922,Suffolk Downs (GB),A4,standard,388,2,2.03,2.03,3.36,0.655172,20%+,A4 388m,Suffolk Downs 6th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-08,2026-02-08T15:07:00,1.253749254,Sheffield (GB),A4,sprint,280,3,2.12,2.12,5.3,1.5,20%+,IV 280m,Sheffield 8th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,second_favourite,2,2026-02-12,2026-02-12T14:16:00,1.253933481,Valley (GB),D5,sprint,260,6,4.6,4.4,4.6,0.045455,0-5%,D5 260m,Valley 12th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-12,2026-02-12T19:11:00,1.253936408,Newcastle (GB),A4,standard,480,1,2.26,2.26,4.1,0.814159,20%+,OR1 480m,Newcastle 12th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-13,2026-02-13T16:59:00,1.253964965,Kinsley (GB),A5,standard,462,4,3.8,3.8,4.5,0.184211,15-20%,A5 462m,Kinsley 13th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-14,2026-02-14T13:08:00,1.253997198,Romford (GB),A1,standard,400,3,2.06,2.06,4.11,0.995146,20%+,A1 400m,Romford 14th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-17,2026-02-17T18:56:00,1.254155207,Suffolk Downs (GB),OR,standard,388,4,2.1,2.1,3.67,0.747619,20%+,OR 388m,Suffolk Downs 17th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-19,2026-02-19T12:09:00,1.254236874,Sheffield (GB),A3,stayer,500,1,3.81,3.81,4.8,0.259843,20%+,A3 500m,Sheffield 19th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-20,2026-02-20T16:56:00,1.254263407,Suffolk Downs (GB),A4,standard,388,5,3.2,3.2,4.3,0.34375,20%+,A4 388m,Suffolk Downs 20th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-21,2026-02-21T14:14:00,1.254292274,Romford (GB),A6,standard,400,2,3.24,3.24,4.42,0.364198,20%+,A6 400m,Romford 21st Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-24,2026-02-24T14:31:00,1.254434297,Monmore (GB),A7,standard,480,3,2.24,2.24,5.07,1.263393,20%+,A7 480m,Monmore 24th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-26,2026-02-26T19:42:00,1.254511530,Star Pelaw (GB),A2,standard,435,3,2.22,2.22,4.54,1.045045,20%+,A2 435m,Star Pelaw 26th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-27,2026-02-27T17:03:00,1.254545313,Oxford (GB),A5,standard,450,4,2.04,2.04,3.15,0.544118,20%+,A5 450m,Oxford 27th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-28,2026-02-28T18:01:00,1.254578833,Star Pelaw (GB),A4,standard,435,4,1.93,1.93,3.45,0.787565,20%+,A4 435m,Star Pelaw 28th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-02-28,2026-02-28T20:39:00,1.254578851,Star Pelaw (GB),OR,standard,435,1,2.36,2.36,4.3,0.822034,20%+,OR 435m,Star Pelaw 28th Feb
+sprint_trap_1_2_only,Sprint Trap 1/2 only,second_favourite,2,2026-03-05,2026-03-05T11:21:00,1.254805300,Oxford (GB),A3,standard,450,1,4.1,3.7,4.1,0.108108,10-15%,A3 450m,Oxford 5th Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-03-06,2026-03-06T12:34:00,1.254850873,Central Park (GB),A3,standard,491,6,3.85,3.85,4.21,0.093506,5-10%,A3 491m,Central Park 6th Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-03-08,2026-03-08T15:57:00,1.254940177,Hove (GB),A6,stayer,500,3,3.24,3.24,3.65,0.126543,10-15%,A6 500m,Hove 8th Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-03-10,2026-03-10T12:42:00,1.255064425,Sheffield (GB),A4,stayer,500,4,3.09,3.09,3.4,0.100324,10-15%,A4 500m,Sheffield 10th Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,second_favourite,2,2026-03-10,2026-03-10T17:49:00,1.255064741,Romford (GB),A4,standard,400,6,3.25,3.16,3.25,0.028481,0-5%,A12 400m,Romford 10th Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-03-14,2026-03-14T19:42:00,1.255252602,Doncaster (GB),OR,sprint,275,5,3.2,3.2,3.42,0.06875,5-10%,OR 275m,Doncaster 14th Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-03-14,2026-03-14T21:10:00,1.255253965,Central Park (GB),OR,sprint,277,4,1.51,1.51,5.72,2.788079,20%+,OR 277m,Central Park 14th Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-03-21,2026-03-21T22:02:00,1.255590236,Romford (GB),S6,stayer,575,2,2.17,2.17,2.65,0.221198,20%+,S6 575m,Romford 21st Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-03-22,2026-03-22T16:41:00,1.255620760,Sheffield (GB),A5,stayer,500,4,2.3,2.3,3.36,0.46087,20%+,A5 500m,Sheffield 22nd Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-03-23,2026-03-23T15:59:00,1.255670928,Suffolk Downs (GB),A6,standard,388,6,2.64,2.64,2.87,0.087121,5-10%,A6 388m,Suffolk Downs 23rd Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-03-26,2026-03-26T19:22:00,1.255817609,Monmore (GB),A9,standard,480,5,2.34,2.34,3.25,0.388889,20%+,A9 480m,Monmore 26th Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,second_favourite,2,2026-03-28,2026-03-28T10:57:00,1.255897791,Doncaster (GB),A4,standard,450,4,3.45,2.62,3.45,0.316794,20%+,B2 450m,Doncaster 28th Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-03-30,2026-03-30T16:56:00,1.256018341,Sunderland (GB),A4,standard,450,4,2.12,2.12,5.2,1.45283,20%+,A4 450m,Sunderland 30th Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-03-30,2026-03-30T19:52:00,1.256019567,Harlow (GB),D5,sprint,238,3,2.54,2.54,4.85,0.909449,20%+,D5 238m,Harlow 30th Mar
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-01,2026-04-01T12:58:00,1.256100602,Towcester (GB),A5,stayer,500,1,2.52,2.52,3.74,0.484127,20%+,A5 500m,Towcester 1st Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-02,2026-04-02T14:26:00,1.256155287,Dunstall Park (GB),A7,standard,480,4,2.53,2.53,3.3,0.304348,20%+,A7 480m,Dunstall Park 2nd Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-02,2026-04-02T18:44:00,1.256155556,Newcastle (GB),OR,sprint,290,4,2.0,2.0,2.24,0.12,10-15%,OR 290m,Newcastle 2nd Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-03,2026-04-03T19:58:00,1.256195072,Sheffield (GB),A5,stayer,500,1,1.82,1.82,3.4,0.868132,20%+,A5 500m,Sheffield 3rd Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-05,2026-04-05T19:59:00,1.256291328,Kinsley (GB),A8,standard,462,1,2.4,2.4,5.3,1.208333,20%+,A8 462m,Kinsley 5th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-06,2026-04-06T20:28:00,1.256346235,Nottingham (GB),OR,marathon,680,1,3.1,3.1,3.29,0.06129,5-10%,OR 680m,Nottingham 6th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-07,2026-04-07T11:34:00,1.256396179,Dunstall Park (GB),D3,sprint,270,6,3.65,3.65,3.8,0.041096,0-5%,D3 270m,Dunstall Park 7th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-08,2026-04-08T20:16:00,1.256452596,Dunstall Park (GB),D4,sprint,270,5,2.38,2.38,3.45,0.44958,20%+,D4 270m,Dunstall Park 8th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-10,2026-04-10T21:13:00,1.256545345,Romford (GB),OR,marathon,750,3,1.37,1.37,5.58,3.072993,20%+,OR 750m,Romford 10th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-11,2026-04-11T14:48:00,1.256591427,Newcastle (GB),A2,standard,480,3,1.69,1.69,5.93,2.508876,20%+,A2 480m,Newcastle 11th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-11,2026-04-11T17:14:00,1.256591476,Monmore (GB),A5,standard,480,6,3.13,3.13,3.87,0.236422,20%+,A5 480m,Monmore 11th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-12,2026-04-12T09:11:00,1.256629273,Valley (GB),D4,sprint,260,5,3.17,3.17,3.73,0.176656,15-20%,D4 260m,Valley 12th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,second_favourite,2,2026-04-12,2026-04-12T11:34:00,1.256629574,Sunderland (GB),A1,standard,450,1,3.52,3.3,3.52,0.066667,5-10%,A1 450m,Sunderland 12th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-14,2026-04-14T16:57:00,1.256760755,Monmore (GB),A4,standard,480,2,3.15,3.15,3.6,0.142857,10-15%,A4 480m,Monmore 14th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-14,2026-04-14T18:39:00,1.256761607,Central Park (GB),A3,standard,491,1,1.6,1.6,3.95,1.46875,20%+,A3 491m,Central Park 14th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-18,2026-04-18T18:42:00,1.256955204,Doncaster (GB),OR,standard,450,6,2.26,2.26,2.44,0.079646,5-10%,OR 450m,Doncaster 18th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-18,2026-04-18T19:37:00,1.256959812,Yarmouth (GB),A4,standard,462,6,2.91,2.91,3.46,0.189003,15-20%,IT 462m,Yarmouth 18th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-18,2026-04-18T20:48:00,1.256959820,Yarmouth (GB),OR,marathon,659,2,1.72,1.72,4.13,1.401163,20%+,OR 659m,Yarmouth 18th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-20,2026-04-20T10:09:00,1.257041905,Romford (GB),A5,standard,400,6,2.88,2.88,4.65,0.614583,20%+,A5 400m,Romford 20th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-22,2026-04-22T14:03:00,1.257157913,Valley (GB),A4,standard,460,3,2.04,2.04,5.1,1.5,20%+,IT 460m,Valley 22nd Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-22,2026-04-22T19:19:00,1.257161242,Romford (GB),A11,standard,400,5,2.34,2.34,5.9,1.521368,20%+,A11 400m,Romford 22nd Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-23,2026-04-23T20:16:00,1.257199795,Hove (GB),A1,stayer,500,1,2.56,2.56,3.4,0.328125,20%+,A1 500m,Hove 23rd Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-24,2026-04-24T16:06:00,1.257239842,Newcastle (GB),D3,sprint,290,4,2.38,2.38,4.1,0.722689,20%+,D3 290m,Newcastle 24th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-29,2026-04-29T10:54:00,1.257501372,Harlow (GB),D5,sprint,238,4,3.18,3.18,6.85,1.154088,20%+,D5 238m,Harlow 29th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-29,2026-04-29T13:54:00,1.257502023,Sunderland (GB),A4,standard,450,4,2.82,2.82,3.3,0.170213,15-20%,HC 450m,Sunderland 29th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-29,2026-04-29T14:19:00,1.257502415,Hove (GB),A1,stayer,500,2,3.56,3.56,4.11,0.154494,15-20%,A1 500m,Hove 29th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-04-30,2026-04-30T19:41:00,1.257549936,Hove (GB),OR,marathon,695,3,1.72,1.72,6.2,2.604651,20%+,OR 695m,Hove 30th Apr
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-01,2026-05-01T12:58:00,1.257578806,Towcester (GB),D2,sprint,270,3,2.75,2.75,5.32,0.934545,20%+,D2 270m,Towcester 1st May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-01,2026-05-01T13:44:00,1.257587149,Star Pelaw (GB),D4,sprint,245,3,1.71,1.71,4.1,1.397661,20%+,D4 245m,Star Pelaw 1st May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-01,2026-05-01T21:20:00,1.257593291,Romford (GB),OR,stayer,575,4,3.2,3.2,4.7,0.46875,20%+,OR 575M,Romford 1st May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-02,2026-05-02T20:14:00,1.257634678,Yarmouth (GB),A2,standard,462,5,2.54,2.54,5.49,1.161417,20%+,A2 462m,Yarmouth 2nd May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-06,2026-05-06T13:48:00,1.257817105,Newcastle (GB),A4,standard,480,1,4.08,4.08,4.09,0.002451,0-5%,A4 480m,Newcastle 6th May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,second_favourite,2,2026-05-06,2026-05-06T17:53:00,1.257820791,Romford (GB),A4,standard,400,3,4.3,3.18,4.3,0.352201,20%+,A4 400m,Romford 6th May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-07,2026-05-07T11:31:00,1.257861331,Nottingham (GB),A2,stayer,500,5,2.14,2.14,5.5,1.570093,20%+,A2 500m,Nottingham 7th May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-08,2026-05-08T11:42:00,1.257896882,Hove (GB),A7,stayer,500,3,3.4,3.4,3.75,0.102941,10-15%,A7 500m,Hove 8th May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-14,2026-05-14T15:09:00,1.258162323,Towcester (GB),A3,stayer,500,2,3.35,3.35,4.17,0.244776,20%+,A3 500m,Towcester 14th May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-19,2026-05-19T13:44:00,1.258350701,Valley (GB),A4,standard,460,3,2.8,2.8,3.32,0.185714,15-20%,A4 460m,Valley 19th May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-19,2026-05-19T14:22:00,1.258350705,Valley (GB),A4,standard,460,3,2.26,2.26,3.55,0.570796,20%+,A4 460m,Valley 19th May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-20,2026-05-20T12:54:00,1.258385821,Harlow (GB),A7,standard,415,6,2.66,2.66,3.42,0.285714,20%+,A7 415m,Harlow 20th May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-22,2026-05-22T12:03:00,1.258473226,Harlow (GB),A7,standard,415,3,2.48,2.48,4.3,0.733871,20%+,A7 415m,Harlow 22nd May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-22,2026-05-22T13:29:00,1.258473643,Kinsley (GB),D2,sprint,268,3,3.63,3.63,5.21,0.435262,20%+,D2 268m,Kinsley 22nd May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-22,2026-05-22T19:28:00,1.258474689,Nottingham (GB),A2,stayer,500,6,3.65,3.65,4.1,0.123288,10-15%,A2 500m,Nottingham 22nd May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-25,2026-05-25T16:59:00,1.258561560,Doncaster (GB),A2,standard,483,3,1.69,1.69,4.23,1.502959,20%+,A2 483m,Doncaster 25th May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-27,2026-05-27T16:56:00,1.258634482,Newcastle (GB),A2,standard,480,4,2.4,2.4,3.85,0.604167,20%+,A2 480m,Newcastle 27th May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,second_favourite,2,2026-05-28,2026-05-28T18:11:00,1.258668141,Newcastle (GB),A6,standard,480,6,3.55,2.84,3.55,0.25,20%+,A6 480m,Newcastle 28th May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-05-29,2026-05-29T18:33:00,1.258703189,Romford (GB),OR,sprint,225,3,1.53,1.53,8.04,4.254902,20%+,OR 225M,Romford 29th May
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-06-05,2026-06-05T17:46:00,1.258903098,Harlow (GB),A6,standard,415,1,2.62,2.62,4.09,0.561069,20%+,A6 415m,Harlow 5th Jun
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,1,2026-06-10,2026-06-10T11:12:00,1.259035041,Harlow (GB),A7,standard,415,2,3.64,3.64,3.65,0.002747,0-5%,A7 415m,Harlow 10th Jun
+both_rules,15% variance + sprint Trap 1/2,second_favourite,2,2026-01-23,2026-01-23T17:54:00,1.253062621,Oxford (GB),A9,standard,450,2,5.0,1.84,5.0,1.717391,20%+,A9 450m,Oxford 23rd Jan
+both_rules,15% variance + sprint Trap 1/2,favourite,1,2026-02-01,2026-02-01T13:51:00,1.253424645,Yarmouth (GB),A8,standard,462,2,3.1,3.1,3.47,0.119355,10-15%,A8 462m,Yarmouth 1st Feb
+both_rules,15% variance + sprint Trap 1/2,favourite,1,2026-02-08,2026-02-08T13:59:00,1.253745151,Sunderland (GB),A4,standard,450,4,3.79,3.79,4.31,0.137203,10-15%,A4 450m,Sunderland 8th Feb
+both_rules,15% variance + sprint Trap 1/2,second_favourite,2,2026-02-12,2026-02-12T14:16:00,1.253933481,Valley (GB),D5,sprint,260,6,4.6,4.4,4.6,0.045455,0-5%,D5 260m,Valley 12th Feb
+both_rules,15% variance + sprint Trap 1/2,second_favourite,2,2026-03-05,2026-03-05T11:21:00,1.254805300,Oxford (GB),A3,standard,450,1,4.1,3.7,4.1,0.108108,10-15%,A3 450m,Oxford 5th Mar
+both_rules,15% variance + sprint Trap 1/2,favourite,1,2026-03-08,2026-03-08T16:22:00,1.254940847,Sheffield (GB),A4,standard,480,3,2.76,2.76,3.15,0.141304,10-15%,IV 480m,Sheffield 8th Mar
+both_rules,15% variance + sprint Trap 1/2,second_favourite,2,2026-03-10,2026-03-10T17:49:00,1.255064741,Romford (GB),A4,standard,400,6,3.25,3.16,3.25,0.028481,0-5%,A12 400m,Romford 10th Mar
+both_rules,15% variance + sprint Trap 1/2,second_favourite,2,2026-03-28,2026-03-28T10:57:00,1.255897791,Doncaster (GB),A4,standard,450,4,3.45,2.62,3.45,0.316794,20%+,B2 450m,Doncaster 28th Mar
+both_rules,15% variance + sprint Trap 1/2,favourite,1,2026-03-28,2026-03-28T20:02:00,1.255902461,Romford (GB),A4,standard,400,1,3.75,3.75,4.05,0.08,5-10%,A12 400m,Romford 28th Mar
+both_rules,15% variance + sprint Trap 1/2,favourite,1,2026-04-06,2026-04-06T10:34:00,1.256341841,Newcastle (GB),A7,standard,480,6,3.1,3.1,3.55,0.145161,10-15%,A7 480m,Newcastle 6th Apr
+both_rules,15% variance + sprint Trap 1/2,favourite,1,2026-04-07,2026-04-07T13:07:00,1.256395267,Sheffield (GB),A7,stayer,500,4,3.38,3.38,3.88,0.147929,10-15%,A7 500m,Sheffield 7th Apr
+both_rules,15% variance + sprint Trap 1/2,second_favourite,2,2026-04-12,2026-04-12T11:34:00,1.256629574,Sunderland (GB),A1,standard,450,1,3.52,3.3,3.52,0.066667,5-10%,A1 450m,Sunderland 12th Apr
+both_rules,15% variance + sprint Trap 1/2,second_favourite,2,2026-05-06,2026-05-06T17:53:00,1.257820791,Romford (GB),A4,standard,400,3,4.3,3.18,4.3,0.352201,20%+,A4 400m,Romford 6th May
+both_rules,15% variance + sprint Trap 1/2,second_favourite,2,2026-05-28,2026-05-28T18:11:00,1.258668141,Newcastle (GB),A6,standard,480,6,3.55,2.84,3.55,0.25,20%+,A6 480m,Newcastle 28th May
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,second_favourite,2,2026-01-23,2026-01-23T17:54:00,1.253062621,Oxford (GB),A9,standard,450,2,5.0,1.84,5.0,1.717391,20%+,A9 450m,Oxford 23rd Jan
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,favourite,1,2026-02-01,2026-02-01T13:51:00,1.253424645,Yarmouth (GB),A8,standard,462,2,3.1,3.1,3.47,0.119355,10-15%,A8 462m,Yarmouth 1st Feb
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,favourite,1,2026-02-08,2026-02-08T13:59:00,1.253745151,Sunderland (GB),A4,standard,450,4,3.79,3.79,4.31,0.137203,10-15%,A4 450m,Sunderland 8th Feb
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,second_favourite,2,2026-02-12,2026-02-12T14:16:00,1.253933481,Valley (GB),D5,sprint,260,6,4.6,4.4,4.6,0.045455,0-5%,D5 260m,Valley 12th Feb
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,second_favourite,2,2026-03-05,2026-03-05T11:21:00,1.254805300,Oxford (GB),A3,standard,450,1,4.1,3.7,4.1,0.108108,10-15%,A3 450m,Oxford 5th Mar
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,favourite,1,2026-03-08,2026-03-08T16:22:00,1.254940847,Sheffield (GB),A4,standard,480,3,2.76,2.76,3.15,0.141304,10-15%,IV 480m,Sheffield 8th Mar
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,second_favourite,2,2026-03-10,2026-03-10T17:49:00,1.255064741,Romford (GB),A4,standard,400,6,3.25,3.16,3.25,0.028481,0-5%,A12 400m,Romford 10th Mar
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,second_favourite,2,2026-03-28,2026-03-28T10:57:00,1.255897791,Doncaster (GB),A4,standard,450,4,3.45,2.62,3.45,0.316794,20%+,B2 450m,Doncaster 28th Mar
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,favourite,1,2026-03-28,2026-03-28T20:02:00,1.255902461,Romford (GB),A4,standard,400,1,3.75,3.75,4.05,0.08,5-10%,A12 400m,Romford 28th Mar
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,favourite,1,2026-04-06,2026-04-06T10:34:00,1.256341841,Newcastle (GB),A7,standard,480,6,3.1,3.1,3.55,0.145161,10-15%,A7 480m,Newcastle 6th Apr
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,favourite,1,2026-04-07,2026-04-07T13:07:00,1.256395267,Sheffield (GB),A7,stayer,500,4,3.38,3.38,3.88,0.147929,10-15%,A7 500m,Sheffield 7th Apr
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,second_favourite,2,2026-04-12,2026-04-12T11:34:00,1.256629574,Sunderland (GB),A1,standard,450,1,3.52,3.3,3.52,0.066667,5-10%,A1 450m,Sunderland 12th Apr
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,second_favourite,2,2026-05-06,2026-05-06T17:53:00,1.257820791,Romford (GB),A4,standard,400,3,4.3,3.18,4.3,0.352201,20%+,A4 400m,Romford 6th May
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,second_favourite,2,2026-05-28,2026-05-28T18:11:00,1.258668141,Newcastle (GB),A6,standard,480,6,3.55,2.84,3.55,0.25,20%+,A6 480m,Newcastle 28th May
+both_rules_plus_venue_filters,"Both rules + venue filters (Newcastle (GB), Sheffield (GB), Valley (GB), Yarmouth (GB))",second_favourite,2,2026-01-22,2026-01-22T20:31:00,1.253030044,Monmore (GB),OR,marathon,684,4,5.9,1.68,5.9,2.511905,20%+,OR 684m,Monmore 22nd Jan
+both_rules_plus_venue_filters,"Both rules + venue filters (Newcastle (GB), Sheffield (GB), Valley (GB), Yarmouth (GB))",second_favourite,2,2026-01-23,2026-01-23T17:56:00,1.253062489,Kinsley (GB),A8,standard,462,4,4.11,3.7,4.11,0.110811,10-15%,A8 462m,Kinsley 23rd Jan
+both_rules_plus_venue_filters,"Both rules + venue filters (Newcastle (GB), Sheffield (GB), Valley (GB), Yarmouth (GB))",favourite,1,2026-03-28,2026-03-28T20:02:00,1.255902461,Romford (GB),A4,standard,400,1,3.75,3.75,4.05,0.08,5-10%,A12 400m,Romford 28th Mar
+both_rules_plus_venue_filters,"Both rules + venue filters (Newcastle (GB), Sheffield (GB), Valley (GB), Yarmouth (GB))",second_favourite,2,2026-04-16,2026-04-16T14:26:00,1.256861622,Dunstall Park (GB),A5,standard,480,1,6.4,1.95,6.4,2.282051,20%+,A5 480m,Dunstall Park 16th Apr
+both_rules_plus_grade_filters,"Both rules + grade filters (A1, A7, A8, A9, D5)",favourite,1,2026-02-12,2026-02-12T18:37:00,1.253936404,Newcastle (GB),A2,standard,480,4,2.96,2.96,3.25,0.097973,5-10%,A2 480m,Newcastle 12th Feb
+both_rules_plus_grade_filters,"Both rules + grade filters (A1, A7, A8, A9, D5)",favourite,1,2026-03-28,2026-03-28T20:26:00,1.255905552,Hove (GB),A5,stayer,500,1,4.61,4.61,5.12,0.110629,10-15%,A5 500m,Hove 28th Mar
+both_rules_plus_grade_filters,"Both rules + grade filters (A1, A7, A8, A9, D5)",favourite,1,2026-04-07,2026-04-07T13:23:00,1.256403571,Romford (GB),A4,standard,400,3,2.93,2.93,3.05,0.040956,0-5%,A4 400m,Romford 7th Apr
+both_rules_plus_grade_filters,"Both rules + grade filters (A1, A7, A8, A9, D5)",second_favourite,2,2026-05-06,2026-05-06T17:53:00,1.257820791,Romford (GB),A4,standard,400,3,4.3,3.18,4.3,0.352201,20%+,A4 400m,Romford 6th May
+both_rules_plus_grade_filters,"Both rules + grade filters (A1, A7, A8, A9, D5)",second_favourite,2,2026-05-28,2026-05-28T18:11:00,1.258668141,Newcastle (GB),A6,standard,480,6,3.55,2.84,3.55,0.25,20%+,A6 480m,Newcastle 28th May

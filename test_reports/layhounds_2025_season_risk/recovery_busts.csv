@@ -1,0 +1,45 @@
+strategy,chain,date,race_time,venue,grade,distance_m,distance_band,favourite_odds,second_favourite_odds,gap_pct,drawdown,max_liability,duration,market_id
+current,second_favourite,2025-01-04,2025-01-04T18:11:00,Doncaster (GB),A4,483,standard,2.05,3.08,50.24,46.0821,31.6665,0h 15m,1.237823579
+current,second_favourite,2025-01-17,2025-01-17T12:09:00,Hove (GB),A3,500,stayer,2.77,4.17,50.54,54.8877,42.2681,0h 31m,1.238342479
+current,favourite,2025-01-19,2025-01-19T11:21:00,Doncaster (GB),D4,275,sprint,4.0,4.16,4.0,28.2029,21.456,13h 19m,1.238421500
+current,second_favourite,2025-02-07,2025-02-07T18:21:00,Oxford (GB),A8,450,standard,3.06,3.84,25.49,51.8137,38.8617,0h 17m,1.239250632
+current,second_favourite,2025-02-16,2025-02-16T12:04:00,Valley (GB),D4,260,sprint,3.32,3.56,7.23,32.8209,23.9724,0h 17m,1.239663012
+current,second_favourite,2025-02-22,2025-02-22T12:42:00,Monmore (GB),A4,480,standard,3.68,4.4,19.57,46.8481,36.654,0h 21m,1.239904232
+current,second_favourite,2025-03-20,2025-03-20T19:56:00,Monmore (GB),D3,264,sprint,3.25,3.35,3.08,71.8955,51.2321,0h 14m,1.241128171
+current,second_favourite,2025-03-23,2025-03-23T14:07:00,Yarmouth (GB),A3,462,standard,3.48,3.67,5.46,46.1987,34.1098,0h 25m,1.241255694
+current,second_favourite,2025-03-26,2025-03-26T17:56:00,Newcastle (GB),A3,480,standard,3.62,4.54,25.41,56.3308,44.4497,0h 17m,1.241398547
+current,second_favourite,2025-03-29,2025-03-29T18:37:00,Central Park (GB),A1,491,standard,2.06,3.51,70.39,66.8682,48.5429,0h 16m,1.241536202
+current,second_favourite,2025-04-05,2025-04-05T17:11:00,Doncaster (GB),D5,275,sprint,3.3,3.34,1.21,52.0819,37.0768,0h 22m,1.241890039
+current,favourite,2025-04-22,2025-04-22T15:16:00,Romford (GB),A2,400,standard,4.41,4.6,4.31,43.6999,34.2153,1h 53m,1.242729242
+current,second_favourite,2025-04-26,2025-04-26T10:43:00,Romford (GB),A5,400,standard,2.42,6.0,147.93,57.6092,48.451,0h 22m,1.242915941
+current,second_favourite,2025-05-04,2025-05-04T10:21:00,Doncaster (GB),A4,450,standard,3.2,4.3,34.37,83.2316,64.6638,0h 17m,1.243288860
+current,second_favourite,2025-05-15,2025-05-15T13:14:00,Nottingham (GB),A4,500,stayer,2.8,4.89,74.64,103.3185,83.0772,0h 23m,1.243793631
+current,favourite,2025-05-18,2025-05-18T12:59:00,Sunderland (GB),A5,450,standard,4.47,4.83,8.05,30.6357,24.0884,0h 40m,1.243891955
+current,second_favourite,2025-05-23,2025-05-23T10:01:00,Hove (GB),A8,500,stayer,1.96,4.36,122.45,104.3933,81.4202,13h 33m,1.244116376
+current,second_favourite,2025-06-11,2025-06-11T20:28:00,Romford (GB),A8,400,standard,3.3,4.36,32.12,111.2721,86.7828,0h 24m,1.244715350
+current,second_favourite,2025-06-15,2025-06-15T13:31:00,Sheffield (GB),OR,500,stayer,2.45,3.94,60.82,104.7347,79.1927,0h 32m,1.244810912
+current,favourite,2025-06-15,2025-06-15T15:42:00,Sheffield (GB),A4,660,marathon,3.36,3.8,13.1,21.0369,15.033,1h 53m,1.244810926
+current,second_favourite,2025-06-23,2025-06-23T13:26:00,Oxford (GB),D3,253,sprint,2.07,4.61,122.71,51.9671,41.1782,0h 27m,1.245024277
+current,favourite,2025-07-20,2025-07-20T18:33:00,Kinsley (GB),A5,462,standard,4.1,4.7,14.63,33.7725,25.8869,1h 25m,1.245796328
+current,favourite,2025-07-27,2025-07-27T14:01:00,Hove (GB),A5,500,stayer,3.31,3.67,10.88,15.2846,10.8642,1h 49m,1.246023651
+current,favourite,2025-08-10,2025-08-10T16:31:00,Hove (GB),A4,500,stayer,3.68,4.0,8.7,23.3755,17.293,1h 34m,1.246476297
+current,second_favourite,2025-08-11,2025-08-11T15:09:00,Central Park (GB),A1,491,standard,2.79,3.4,21.86,43.8107,31.4208,0h 20m,1.246515898
+current,favourite,2025-08-13,2025-08-13T18:11:00,Romford (GB),A6,400,standard,3.15,3.24,2.86,24.1672,16.7941,2h 12m,1.246616187
+current,second_favourite,2025-08-20,2025-08-20T15:22:00,Newcastle (GB),A2,480,standard,2.74,3.25,18.61,33.4709,23.5676,0h 23m,1.246862561
+current,second_favourite,2025-08-23,2025-08-23T19:32:00,Shelbourne Park (IE),A4,503,stayer,1.67,5.6,235.33,56.0863,46.5253,0h 7m,1.246952806
+current,second_favourite,2025-08-30,2025-08-30T20:39:00,Monmore (GB),D2,264,sprint,2.57,2.8,8.95,34.1081,22.3564,0h 14m,1.247220379
+current,second_favourite,2025-09-05,2025-09-05T13:54:00,Newcastle (GB),A4,480,standard,2.71,5.14,89.67,67.9687,55.3216,0h 21m,1.247430494
+current,second_favourite,2025-09-08,2025-09-08T13:09:00,Romford (GB),A9,400,standard,3.55,4.5,26.76,98.1796,77.2573,0h 33m,1.247528796
+current,second_favourite,2025-09-14,2025-09-14T13:07:00,Yarmouth (GB),A5,462,standard,1.94,6.2,219.59,86.6072,73.269,0h 20m,1.247733870
+current,favourite,2025-09-17,2025-09-17T14:03:00,Valley (GB),D3,260,sprint,3.4,3.89,14.41,29.3987,21.0958,0h 40m,1.247881564
+current,second_favourite,2025-09-23,2025-09-23T17:14:00,Central Park (GB),D1,277,sprint,3.35,3.55,5.97,25.5763,18.6688,0h 17m,1.248115799
+current,second_favourite,2025-10-01,2025-10-01T14:22:00,Valley (GB),A5,460,standard,3.3,3.75,13.64,67.4261,50.1493,0h 15m,1.248486873
+current,favourite,2025-10-15,2025-10-15T12:42:00,Nottingham (GB),A4,480,standard,3.0,3.0,0.0,30.7747,20.8964,1h 16m,1.249077255
+current,second_favourite,2025-10-25,2025-10-25T18:39:00,Monmore (GB),A3,480,standard,2.36,4.85,105.51,125.3972,100.6171,0h 12m,1.249563221
+current,second_favourite,2025-10-25,2025-10-25T19:25:00,Central Park (GB),OR,664,marathon,1.87,4.3,129.95,140.5565,109.1749,0h 9m,1.249562611
+current,second_favourite,2025-10-26,2025-10-26T12:12:00,Doncaster (GB),A4,450,standard,2.92,4.4,50.68,57.6596,45.1044,0h 18m,1.249586225
+current,favourite,2025-10-26,2025-10-26T17:37:00,Sheffield (GB),D2,280,sprint,4.03,4.4,9.18,20.7607,15.8414,1h 3m,1.249588451
+current,second_favourite,2025-10-31,2025-10-31T21:23:00,Dunstall Park (GB),A3,480,standard,2.33,4.96,112.88,99.1826,80.0308,0h 14m,1.249892123
+current,favourite,2025-11-03,2025-11-03T17:56:00,Sunderland (GB),A7,450,standard,4.5,4.7,4.44,41.8724,32.9707,0h 57m,1.250033065
+current,favourite,2025-11-11,2025-11-11T16:42:00,Monmore (GB),A6,480,standard,3.3,3.66,10.91,42.1977,29.8966,0h 26m,1.250386726
+current,second_favourite,2025-12-20,2025-12-20T15:01:00,Newcastle (GB),A9,480,standard,2.92,3.67,25.68,70.4444,51.9926,0h 25m,1.251871762

@@ -1,0 +1,15 @@
+scenario,scenario_label,chain,available_races,bets,skips,bet_retention_pct,busts,bust_reduction_vs_no_filters,bust_reduction_pct_vs_no_filters,bet_reduction_vs_no_filters,bet_reduction_pct_vs_no_filters
+no_filters,No filters,favourite,20806,20806,0,100.0,99,0,0.0,0,0.0
+no_filters,No filters,second_favourite,20806,20806,0,100.0,15,0,0.0,0,0.0
+variance_15_only,15% variance only,favourite,20806,5505,15301,26.46,5,94,94.95,15301,73.54
+variance_15_only,15% variance only,second_favourite,20806,20806,0,100.0,15,0,0.0,0,0.0
+sprint_trap_1_2_only,Sprint Trap 1/2 only,favourite,20806,18774,2032,90.23,86,13,13.13,2032,9.77
+sprint_trap_1_2_only,Sprint Trap 1/2 only,second_favourite,20806,18623,2183,89.51,8,7,46.67,2183,10.49
+both_rules,15% variance + sprint Trap 1/2,favourite,20806,4997,15809,24.02,6,93,93.94,15809,75.98
+both_rules,15% variance + sprint Trap 1/2,second_favourite,20806,18623,2183,89.51,8,7,46.67,2183,10.49
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,favourite,20806,4995,15811,24.01,6,93,93.94,15811,75.99
+both_rules_plus_odds_ge_2,Both rules + odds >= 2.0,second_favourite,20806,18623,2183,89.51,8,7,46.67,2183,10.49
+both_rules_plus_venue_filters,"Both rules + venue filters (Newcastle (GB), Sheffield (GB), Valley (GB), Yarmouth (GB))",favourite,20806,3960,16846,19.03,1,98,98.99,16846,80.97
+both_rules_plus_venue_filters,"Both rules + venue filters (Newcastle (GB), Sheffield (GB), Valley (GB), Yarmouth (GB))",second_favourite,20806,14581,6225,70.08,3,12,80.0,6225,29.92
+both_rules_plus_grade_filters,"Both rules + grade filters (A1, A7, A8, A9, D5)",favourite,20806,3813,16993,18.33,3,96,96.97,16993,81.67
+both_rules_plus_grade_filters,"Both rules + grade filters (A1, A7, A8, A9, D5)",second_favourite,20806,14512,6294,69.75,2,13,86.67,6294,30.25
