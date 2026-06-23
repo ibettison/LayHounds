@@ -16,7 +16,6 @@ import { Switch } from "../components/ui/switch";
 import { Plus, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
-import { CapPreview } from "./CapPreview";
 import { RiskScaledRecommendation } from "./RiskScaledRecommendation";
 
 const MODES = [
@@ -478,17 +477,6 @@ export const NewSessionDialog = ({ onCreated }) => {
             <div className="text-[10px] text-zinc-500 font-mono">
               Defaults are decimal gaps: favourite &lt;=0.10, second favourite 0.05-0.30.
             </div>
-          </div>
-          <div className="col-span-2">
-            <CapPreview
-              stake={form.stake}
-              maxLiabilityCap={form.max_liability_cap}
-              numFavourites={form.num_favourites}
-              commissionRate={form.commission_rate}
-              oddsMin={form.odds_min}
-              oddsMax={form.odds_max}
-              maxRecoveryLevel={form.max_recovery_level}
-            />
           </div>
             </div>
           </details>
