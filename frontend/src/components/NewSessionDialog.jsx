@@ -28,15 +28,15 @@ const MODES = [
 const STAKES = [0.05, 0.50, 1.00, 1.50, 2.00];
 
 const RISK_GUARDS = [
-  { id: "strict", label: "Strict", desc: "Uses Fav #2 for 15%+ gaps. Skips short sprint inside traps and short fields." },
-  { id: "balanced", label: "Balanced", desc: "Uses Fav #2 for 15%+ gaps. Allows short fields." },
+  { id: "strict", label: "Strict", desc: "Fav gap <=10%, second fav gap 5-30%, sprint Trap 1/2 off." },
+  { id: "balanced", label: "Balanced", desc: "Same V2.0 rules with normal opportunity count." },
   { id: "off", label: "Off", desc: "No favourite risk filter. Useful for comparison testing." },
 ];
 
 const RECOMMENDED_CONFIG = {
   stake: 0.05,
-  max_recovery_level: 3,
-  max_liability_cap: 5,
+  max_recovery_level: 5,
+  max_liability_cap: 75,
   stop_win: 0.5,
   stop_loss: 4,
   num_favourites: 2,
@@ -44,12 +44,18 @@ const RECOMMENDED_CONFIG = {
   odds_min: 1.01,
   odds_max: 10,
   favourite_risk_guard: "strict",
+  recovery_mode: "elastic",
+  favourite_gap_threshold: 0.10,
+  second_favourite_gap_min: 0.05,
+  second_favourite_gap_max: 0.30,
 };
+const RECOMMENDED_BANK = 40;
 
 export const NewSessionDialog = ({ onCreated }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [betfairOk, setBetfairOk] = useState(false);
+  const [resetBankWithRecommended, setResetBankWithRecommended] = useState(false);
   const [form, setForm] = useState({
     starting_bank: 10,
     num_favourites: 2,
@@ -57,14 +63,18 @@ export const NewSessionDialog = ({ onCreated }) => {
     stop_loss: 5,
     max_races: 20,
     mode: "simulator",
-    max_liability_cap: 5,
+    max_liability_cap: 75,
     risk_accepted: false,
     stake: 0.05,
     commission_rate: 0.05,
     odds_min: 1.01,
     odds_max: 10.0,
-    max_recovery_level: 3,
+    max_recovery_level: 5,
     favourite_risk_guard: "strict",
+    recovery_mode: "elastic",
+    favourite_gap_threshold: 0.10,
+    second_favourite_gap_min: 0.05,
+    second_favourite_gap_max: 0.30,
     auto_place: false,
     live_price_chase: true,
     live_price_chase_ticks: 6,
@@ -87,7 +97,11 @@ export const NewSessionDialog = ({ onCreated }) => {
   }, [open]);
 
   const update = (k, v) => setForm((p) => ({ ...p, [k]: v }));
-  const applyRecommended = () => setForm((p) => ({ ...p, ...RECOMMENDED_CONFIG }));
+  const applyRecommended = () => setForm((p) => ({
+    ...p,
+    ...RECOMMENDED_CONFIG,
+    ...(resetBankWithRecommended ? { starting_bank: RECOMMENDED_BANK } : {}),
+  }));
 
   const canSubmit = () => {
     if (form.mode === "live" && !form.risk_accepted) return false;
@@ -111,6 +125,10 @@ export const NewSessionDialog = ({ onCreated }) => {
         stop_loss: parseFloat(form.stop_loss),
         max_races: parseInt(form.max_races),
         max_liability_cap: parseFloat(form.max_liability_cap),
+        recovery_mode: form.recovery_mode,
+        favourite_gap_threshold: parseFloat(form.favourite_gap_threshold),
+        second_favourite_gap_min: parseFloat(form.second_favourite_gap_min),
+        second_favourite_gap_max: parseFloat(form.second_favourite_gap_max),
         live_price_chase_ticks: parseInt(form.live_price_chase_ticks),
         live_price_chase_seconds: parseInt(form.live_price_chase_seconds),
       });
@@ -199,6 +217,15 @@ export const NewSessionDialog = ({ onCreated }) => {
               <div className="text-[11px] text-zinc-400 mt-1">
                 Starter replay setup: stake £0.05, L3 recovery, £5 liability cap, £0.50 stop-win, £4 stop-loss.
               </div>
+              <label className="mt-2 flex items-start gap-2 text-[11px] text-zinc-300 leading-relaxed cursor-pointer">
+                <Checkbox
+                  data-testid="recommended-reset-bank-checkbox"
+                  checked={resetBankWithRecommended}
+                  onCheckedChange={(v) => setResetBankWithRecommended(!!v)}
+                  className="mt-0.5 rounded-none border-emerald-500/50 data-[state=checked]:bg-emerald-600"
+                />
+                <span>Also reset starting bank to &pound;{RECOMMENDED_BANK}. Leave unticked to keep the current bank.</span>
+              </label>
             </div>
             <Button
               type="button"
@@ -292,6 +319,36 @@ export const NewSessionDialog = ({ onCreated }) => {
             </summary>
             <div className="grid grid-cols-2 gap-4 pt-3">
           <div className="space-y-1.5 col-span-2">
+            <Label className="label-xs">Recovery Mode</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: "current", label: "Current", desc: "Full recovery. Preserves the existing production engine." },
+                { id: "elastic", label: "Elastic", desc: "Debt-band recovery with liability cap carry-forward." },
+              ].map((mode) => {
+                const active = form.recovery_mode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    data-testid={`recovery-mode-${mode.id}`}
+                    onClick={() => update("recovery_mode", mode.id)}
+                    className={`p-2 border text-left transition-colors ${
+                      active
+                        ? "border-pink-500 bg-pink-500/10"
+                        : "border-[#2A2A2A] hover:bg-[#1C1C1C]"
+                    }`}
+                  >
+                    <div className="font-display uppercase text-sm font-bold">{mode.label}</div>
+                    <div className="text-[10px] text-zinc-500 mt-1 leading-tight">{mode.desc}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-[10px] text-zinc-500 font-mono">
+              Backend default can also be controlled with RECOVERY_MODE=current or RECOVERY_MODE=elastic.
+            </div>
+          </div>
+          <div className="space-y-1.5 col-span-2">
             <Label className="label-xs">Betfair Commission %</Label>
             <div className="grid grid-cols-5 gap-1.5">
               {[0, 0.02, 0.05, 0.065, 0.10].map((c) => {
@@ -382,6 +439,44 @@ export const NewSessionDialog = ({ onCreated }) => {
             </div>
             <div className="text-[10px] text-zinc-500 font-mono">
               Based on 2026 UK/IE historical back-testing. This is a risk filter, not a profit guarantee.
+            </div>
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label className="label-xs">Balanced Gap Rules</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <Input
+                data-testid="input-favourite-gap-threshold"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.favourite_gap_threshold}
+                onChange={(e) => update("favourite_gap_threshold", e.target.value)}
+                placeholder="Fav max"
+                className={inputCls}
+              />
+              <Input
+                data-testid="input-second-favourite-gap-min"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.second_favourite_gap_min}
+                onChange={(e) => update("second_favourite_gap_min", e.target.value)}
+                placeholder="2nd min"
+                className={inputCls}
+              />
+              <Input
+                data-testid="input-second-favourite-gap-max"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.second_favourite_gap_max}
+                onChange={(e) => update("second_favourite_gap_max", e.target.value)}
+                placeholder="2nd max"
+                className={inputCls}
+              />
+            </div>
+            <div className="text-[10px] text-zinc-500 font-mono">
+              Defaults are decimal gaps: favourite &lt;=0.10, second favourite 0.05-0.30.
             </div>
           </div>
           <div className="col-span-2">

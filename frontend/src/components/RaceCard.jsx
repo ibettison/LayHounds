@@ -145,6 +145,16 @@ export const RaceCard = ({ race, layedRanks }) => {
                       <div className="text-amber-400/80 text-xs">
                         liab £{Number(bet.liability || 0).toFixed(2)}
                       </div>
+                      <div className="text-zinc-500 text-[10px] mt-0.5 font-mono">
+                        debt Â£{Number(bet.outstanding_debt_before || 0).toFixed(2)}
+                        {bet.outstanding_debt_after != null && ` → Â£${Number(bet.outstanding_debt_after || 0).toFixed(2)}`}
+                        {` · ${Number((bet.recovery_percentage_used ?? 1) * 100).toFixed(0)}%`}
+                      </div>
+                      {bet.recovery_state && (
+                        <div className="text-zinc-600 text-[9px] mt-0.5 font-mono uppercase tracking-wider">
+                          {bet.recovery_state}
+                        </div>
+                      )}
                       {bet.matched_size != null && bet.matched_price != null && (
                         <div className="text-emerald-400/70 text-[10px] mt-0.5 font-mono flex items-center gap-1.5">
                           <span>matched £{Number(bet.matched_size || 0).toFixed(2)} @{Number(bet.matched_price || 0).toFixed(2)}</span>

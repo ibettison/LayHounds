@@ -440,7 +440,12 @@ export default function Simulator() {
                 <ConfRow l="Stake" v={`£${current.config.stake.toFixed(2)}`} />
                 <ConfRow l="Commission" v={`${((current.config.commission_rate ?? 0.05) * 100).toFixed(1)}%`} />
                 <ConfRow l="Liab Cap" v={(current.config.max_liability_cap ?? 0) > 0 ? `£${current.config.max_liability_cap.toFixed(2)}` : "off"} />
+                <ConfRow l="Recovery" v={current.config.recovery_mode || "current"} />
                 <ConfRow l="Risk Guard" v={current.config.favourite_risk_guard || "strict"} />
+                <ConfRow
+                  l="Gap Rules"
+                  v={`F<=${(((current.config.favourite_gap_threshold ?? 0.10) * 100)).toFixed(0)}% · 2F ${(((current.config.second_favourite_gap_min ?? 0.05) * 100)).toFixed(0)}-${(((current.config.second_favourite_gap_max ?? 0.30) * 100)).toFixed(0)}%`}
+                />
                 {current.config.mode === "live" && (
                   <ConfRow l="Auto-place" v={current.config.auto_place ? "ON · T-60s" : "off"} />
                 )}
@@ -623,7 +628,7 @@ export default function Simulator() {
                   <RaceCard race={lastRace} layedRanks={layedRanks} />
                 </div>
                 <div className="col-span-12 xl:col-span-5 2xl:col-span-4 space-y-4">
-                  <RecoveryStatus chains={current.recovery_chains} maxRecoveryLevel={current.config.max_recovery_level || 3} />
+                  <RecoveryStatus chains={current.recovery_chains} maxRecoveryLevel={current.config.max_recovery_level || 5} />
                   <RaceHistory races={current.races} />
                 </div>
               </div>

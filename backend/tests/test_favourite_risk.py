@@ -1,5 +1,6 @@
 from models import Greyhound, SessionConfig
 from services.favourite_risk import (
+    favourite_odds_gap,
     favourite_probability_gap,
     favourite_risk_bet_plan,
     favourite_risk_skip_reasons,
@@ -22,12 +23,22 @@ def test_probability_gap_uses_implied_probabilities():
     assert favourite_probability_gap(fav, second) == 0.25
 
 
+def test_odds_gap_uses_bsp_style_gap():
+    fav, second = _runners(fav_odds=2.0, second_odds=2.2)[:2]
+
+    assert favourite_odds_gap(fav, second) == 0.1
+
+
 def test_strict_guard_reports_rank_specific_reasons():
     config = SessionConfig(favourite_risk_guard="strict")
 
     reasons = favourite_risk_skip_reasons(_runners(fav_trap=1, fav_odds=2.0, second_odds=4.0, count=5), config, distance_m=285)
 
-    assert reasons == ["strong_favourite_gap", "fav_inside_trap_sprint"]
+    assert reasons == [
+        "favourite_gap_above_threshold",
+        "second_favourite_gap_above_threshold",
+        "fav_inside_trap_sprint",
+    ]
 
 
 def test_strict_guard_allows_inside_traps_on_normal_and_longer_races():
@@ -49,13 +60,13 @@ def test_guard_off_never_skips():
     assert favourite_risk_skip_reasons(_runners(fav_trap=1, fav_odds=1.5, second_odds=5.0, count=5), config, distance_m=240) == []
 
 
-def test_strict_guard_places_second_favourite_for_gap_without_replacement():
+def test_strict_guard_filters_favourite_gap_without_replacement():
     config = SessionConfig(favourite_risk_guard="strict", num_favourites=1)
 
     ranks, reasons = favourite_risk_bet_plan(_runners(fav_trap=3, fav_odds=2.0, second_trap=4, second_odds=3.0), config, distance_m=480)
 
-    assert ranks == [2]
-    assert reasons == ["strong_favourite_gap"]
+    assert ranks == []
+    assert reasons == ["favourite_gap_above_threshold", "second_favourite_gap_above_threshold"]
 
 
 def test_guard_blocks_gap_fallback_when_second_favourite_is_inside_short_sprint():
@@ -64,7 +75,11 @@ def test_guard_blocks_gap_fallback_when_second_favourite_is_inside_short_sprint(
     ranks, reasons = favourite_risk_bet_plan(_runners(fav_trap=3, fav_odds=2.0, second_trap=1, second_odds=3.0), config, distance_m=285)
 
     assert ranks == []
-    assert reasons == ["strong_favourite_gap", "second_fav_inside_trap_sprint"]
+    assert reasons == [
+        "favourite_gap_above_threshold",
+        "second_favourite_gap_above_threshold",
+        "second_fav_inside_trap_sprint",
+    ]
 
 
 def test_guard_keeps_third_and_fourth_when_first_and_second_are_filtered():
@@ -73,7 +88,11 @@ def test_guard_keeps_third_and_fourth_when_first_and_second_are_filtered():
     ranks, reasons = favourite_risk_bet_plan(_runners(fav_trap=3, fav_odds=2.0, second_trap=1, second_odds=3.0), config, distance_m=285)
 
     assert ranks == [3, 4]
-    assert reasons == ["strong_favourite_gap", "second_fav_inside_trap_sprint"]
+    assert reasons == [
+        "favourite_gap_above_threshold",
+        "second_favourite_gap_above_threshold",
+        "second_fav_inside_trap_sprint",
+    ]
 
 
 def test_guard_does_not_skip_small_fields_by_itself():

@@ -11,8 +11,8 @@ from models import Greyhound, LayBet, Race, RecoveryChain, Session, SessionConfi
 from services.racing import generate_race, get_runner_by_rank, pick_winner
 from services.recovery import (
     apply_settled_bet_to_chain,
+    plan_recovery_bet,
     recovery_total,
-    stake_for_liability_budget,
 )
 
 
@@ -249,15 +249,17 @@ def _simulate_filter(
                 skipped += 1
                 skip_reason = "stop-loss budget exhausted"
             else:
-                stake = _floor_money(chain.pending_stake)
+                plan = plan_recovery_bet(chain, fav.odds, config, stop_loss_budget=loss_budget)
+                stake = _floor_money(plan.stake)
                 liability = round(stake * (fav.odds - 1), 4)
-                if liability > loss_budget:
-                    stake = _floor_money(stake_for_liability_budget(fav.odds, loss_budget))
-                    liability = round(stake * (fav.odds - 1), 4)
                 if stake <= 0 or liability <= 0:
                     skipped += 1
                     skip_reason = "liability below usable stake"
-                elif config.max_liability_cap > 0 and liability > config.max_liability_cap:
+                elif (
+                    config.recovery_mode == "current"
+                    and config.max_liability_cap > 0
+                    and liability > config.max_liability_cap
+                ):
                     skipped += 1
                     skip_reason = "max liability cap exceeded"
                     chain.busted = True

@@ -27,7 +27,11 @@ from services.backtest_analysis import (
 )
 from services.favourite_risk import favourite_risk_bet_plan, format_skip_reasons
 from services.historical_replay import historical_replay_summary, next_historical_replay_race
-from services.recovery import apply_settled_bet_to_chain, stake_for_liability_budget
+from services.recovery import (
+    apply_settled_bet_to_chain,
+    plan_recovery_bet,
+    recovery_chain_type,
+)
 from services.settlement import reconcile_live_settlements
 from services.session_status import apply_stop_conditions
 from session_events import (
@@ -101,7 +105,13 @@ async def create_session(config: SessionConfig):
             raise HTTPException(502, f"Betfair connectivity error: {type(e).__name__}: {e}")
 
     try:
-        chains = {str(i): RecoveryChain(pending_stake=config.stake) for i in range(1, config.num_favourites + 1)}
+        chains = {
+            str(i): RecoveryChain(
+                pending_stake=config.stake,
+                max_liability_allowed=config.max_liability_cap,
+            )
+            for i in range(1, config.num_favourites + 1)
+        }
         session = Session(config=config, bank=starting_bank, recovery_chains=chains)
         session.config.starting_bank = starting_bank
         await db.sessions.insert_one(session_to_doc(session))
@@ -246,7 +256,10 @@ async def next_race(session_id: str):
     for rank in bet_ranks:
         chain_key = str(rank)
         if chain_key not in session.recovery_chains:
-            session.recovery_chains[chain_key] = RecoveryChain(pending_stake=session.config.stake)
+            session.recovery_chains[chain_key] = RecoveryChain(
+                pending_stake=session.config.stake,
+                max_liability_allowed=session.config.max_liability_cap,
+            )
         chain = session.recovery_chains[chain_key]
         if chain.busted:
             continue
@@ -269,18 +282,21 @@ async def next_race(session_id: str):
         # (skip in overrun mode too — if odds outside band, chain still pending next race)
         if runner.odds < session.config.odds_min or runner.odds > session.config.odds_max:
             continue
-        stake = round(chain.pending_stake, 4)
-        liability = round(stake * (runner.odds - 1), 4)
         loss_budget = _remaining_stop_loss_budget(session)
-        if loss_budget is not None and liability > loss_budget:
-            stake = _floor_money(stake_for_liability_budget(runner.odds, loss_budget))
-            liability = round(stake * (runner.odds - 1), 4)
-            if stake <= 0 or liability <= 0:
-                continue
+        bet_plan = plan_recovery_bet(chain, runner.odds, session.config, stop_loss_budget=loss_budget)
+        stake = _floor_money(bet_plan.stake)
+        liability = round(stake * (runner.odds - 1), 4)
+        if stake <= 0 or liability <= 0:
+            continue
 
         # Liability cap applies to all modes and busts recovery chains whose
-        # next bet would exceed the safety cap, matching Licensing behaviour.
-        if session.config.max_liability_cap > 0 and liability > session.config.max_liability_cap:
+        # next bet would exceed the safety cap in current mode. Elastic mode
+        # reduces stake to the cap and carries the remaining debt forward.
+        if (
+            session.config.recovery_mode == "current"
+            and session.config.max_liability_cap > 0
+            and liability > session.config.max_liability_cap
+        ):
             chain.busted = True
             continue
 
@@ -290,6 +306,11 @@ async def next_race(session_id: str):
             favourite_rank=rank, dog_trap=runner.trap, dog_name=runner.name,
             odds=runner.odds, stake=stake, liability=liability,
             recovery_level=chain.level,
+            outstanding_debt_before=bet_plan.recovery_before,
+            recovery_percentage_used=bet_plan.recovery_percentage,
+            recovery_state=bet_plan.recovery_state,
+            liability_used=liability,
+            recovery_chain_type=recovery_chain_type(rank),
         )
         bets.append(new_bet)
 
@@ -377,6 +398,11 @@ async def next_race(session_id: str):
                 "rank": b.favourite_rank, "trap": b.dog_trap, "name": b.dog_name,
                 "odds": b.odds, "stake": b.stake, "liability": b.liability,
                 "recovery_level": b.recovery_level,
+                "outstanding_debt_before": b.outstanding_debt_before,
+                "recovery_percentage_used": b.recovery_percentage_used,
+                "recovery_state": b.recovery_state,
+                "liability_used": b.liability_used,
+                "recovery_chain_type": b.recovery_chain_type,
             } for b in bets],
             "betfair_bet_ids": betfair_bet_ids,
             "total_stake": round(sum(b.stake for b in bets), 4),
@@ -473,6 +499,12 @@ async def next_race(session_id: str):
             "bets": [{
                 "rank": b.favourite_rank, "trap": b.dog_trap, "name": b.dog_name,
                 "pnl": b.pnl, "result": b.result, "recovery_level": b.recovery_level,
+                "outstanding_debt_before": b.outstanding_debt_before,
+                "outstanding_debt_after": b.outstanding_debt_after,
+                "recovery_percentage_used": b.recovery_percentage_used,
+                "recovery_state": b.recovery_state,
+                "liability_used": b.liability_used,
+                "recovery_chain_type": b.recovery_chain_type,
             } for b in bets],
         })
         await sse_publish(session_id, "bank_updated", {
@@ -621,6 +653,7 @@ def _analysis_config(
         max_liability_cap=max_liability_cap,
         commission_rate=commission_rate,
         max_recovery_level=max_recovery_level,
+        recovery_mode="current",
     )
 
 
