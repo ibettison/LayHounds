@@ -20,7 +20,7 @@ import { RiskScaledRecommendation } from "./RiskScaledRecommendation";
 
 const MODES = [
   { id: "simulator", label: "Historical Replay", desc: "Historical Betfair UK/IE replay when available. No real money." },
-  { id: "paper_live", label: "Paper-Live", desc: "Real Betfair odds + races, bets simulated. No real money." },
+  { id: "paper_live", label: "Paper-Live", desc: "Real Betfair odds + races, paper bets settle from Betfair results. No real money." },
   { id: "live", label: "Live", desc: "REAL LAY BETS placed on Betfair. Real money at risk." },
 ];
 
@@ -482,35 +482,47 @@ export const NewSessionDialog = ({ onCreated }) => {
           </details>
         </div>
 
-        {form.mode === "live" && (
-          <div className="space-y-3 pt-2 border-t border-red-500/30">
-            <div className="flex items-center gap-2 text-red-400">
-              <AlertTriangle className="w-4 h-4" />
-              <div className="font-display uppercase text-sm font-bold">Live Mode Warning</div>
-            </div>
-            <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/30">
-              <Checkbox
-                data-testid="risk-accept-checkbox"
-                id="risk"
-                checked={form.risk_accepted}
-                onCheckedChange={(v) => update("risk_accepted", !!v)}
-                className="mt-0.5 rounded-none border-red-500/50 data-[state=checked]:bg-red-600"
-              />
-              <label htmlFor="risk" className="text-xs leading-relaxed cursor-pointer">
-                I accept that real lay bets will be placed on my Betfair account and real money is at risk.
-                I understand the recovery system can lose money and agree to use a max liability cap.
-              </label>
-            </div>
+        {(form.mode === "paper_live" || form.mode === "live") && (
+          <div className={`space-y-3 pt-2 border-t ${form.mode === "live" ? "border-red-500/30" : "border-pink-500/30"}`}>
+            {form.mode === "live" && (
+              <>
+                <div className="flex items-center gap-2 text-red-400">
+                  <AlertTriangle className="w-4 h-4" />
+                  <div className="font-display uppercase text-sm font-bold">Live Mode Warning</div>
+                </div>
+                <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/30">
+                  <Checkbox
+                    data-testid="risk-accept-checkbox"
+                    id="risk"
+                    checked={form.risk_accepted}
+                    onCheckedChange={(v) => update("risk_accepted", !!v)}
+                    className="mt-0.5 rounded-none border-red-500/50 data-[state=checked]:bg-red-600"
+                  />
+                  <label htmlFor="risk" className="text-xs leading-relaxed cursor-pointer">
+                    I accept that real lay bets will be placed on my Betfair account and real money is at risk.
+                    I understand the recovery system can lose money and agree to use a max liability cap.
+                  </label>
+                </div>
+              </>
+            )}
 
-            {/* Auto-place toggle */}
             <div className="flex items-start justify-between gap-3 p-3 bg-[#141414] border border-[#2A2A2A]" data-testid="auto-place-row">
               <div>
                 <div className="font-display font-bold text-sm uppercase tracking-wider text-white">
-                  Auto-place bets
+                  {form.mode === "paper_live" ? "Paper-live auto-run" : "Auto-place bets"}
                 </div>
                 <div className="text-[11px] text-zinc-500 leading-relaxed mt-1 max-w-md">
-                  Automatically fire the lay bets <span className="text-pink-400 font-bold">60 seconds before</span> each
-                  upcoming UK greyhound race. Leave OFF to place each race manually.
+                  {form.mode === "paper_live" ? (
+                    <>
+                      Automatically record intended paper lays <span className="text-pink-400 font-bold">60 seconds before</span> each
+                      upcoming UK greyhound race, then settle them from Betfair results when available.
+                    </>
+                  ) : (
+                    <>
+                      Automatically fire the lay bets <span className="text-pink-400 font-bold">60 seconds before</span> each
+                      upcoming UK greyhound race. Leave OFF to place each race manually.
+                    </>
+                  )}
                 </div>
               </div>
               <Switch
@@ -521,6 +533,14 @@ export const NewSessionDialog = ({ onCreated }) => {
               />
             </div>
 
+            {form.mode === "paper_live" && (
+              <div className="p-3 bg-pink-500/5 border border-pink-500/30 text-[11px] text-zinc-400 leading-relaxed">
+                No Betfair orders are placed. Races may remain pending until Betfair publishes the closed-market winner.
+              </div>
+            )}
+
+            {form.mode === "live" && (
+            <>
             <div className="p-3 bg-[#141414] border border-[#2A2A2A] space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -582,6 +602,8 @@ export const NewSessionDialog = ({ onCreated }) => {
                 targeting. <span className="text-amber-300">Works transparently for every L0–L5 bet — no parked orders, no residue.</span>
               </div>
             </div>
+            </>
+            )}
           </div>
         )}
 

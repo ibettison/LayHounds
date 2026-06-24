@@ -80,6 +80,27 @@ export default function Simulator() {
     }
   }, [refreshList]);
 
+  const reconcilePaperLiveSettlement = useCallback(async (sessionId, { quiet = false } = {}) => {
+    try {
+      const result = await api.refreshPaperLiveSettlement(sessionId);
+      if (result.settled > 0) {
+        const fresh = await api.getSession(sessionId);
+        setCurrent(fresh);
+        await refreshList();
+        if (!quiet) toast.success(`Paper-live result updated - ${result.settled} race${result.settled === 1 ? "" : "s"}`);
+      } else if (!quiet && result.pending > 0) {
+        toast.message("Betfair has not published that race result yet", { duration: 3500 });
+      }
+      return result;
+    } catch (e) {
+      const status = e.response?.status;
+      if (status !== 404 && !quiet) {
+        toast.error(`Paper-live result check failed: ${e.response?.data?.detail || e.message}`);
+      }
+      return null;
+    }
+  }, [refreshList]);
+
   useEffect(() => {
     if (current?.config?.mode !== "live") return;
     const hasPendingLive = (current.races || []).some(
@@ -87,6 +108,19 @@ export default function Simulator() {
     );
     if (hasPendingLive) reconcileLiveSettlement(current.id, { quiet: true });
   }, [current?.id, current?.config?.mode, reconcileLiveSettlement]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (current?.config?.mode !== "paper_live") return undefined;
+    const check = () => {
+      const hasPendingPaper = (current.races || []).some(
+        (r) => r.source === "paper_live" && r.bets?.length > 0 && !r.winning_trap
+      );
+      if (hasPendingPaper) reconcilePaperLiveSettlement(current.id, { quiet: true });
+    };
+    check();
+    const id = window.setInterval(check, 30000);
+    return () => window.clearInterval(id);
+  }, [current?.id, current?.config?.mode, current?.races_played, reconcilePaperLiveSettlement]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Subscribe to live SSE events for the active session: bet placed, settlement
   // polling, race resolved, bank updates. The hook surfaces toasts for each
@@ -169,6 +203,8 @@ export default function Simulator() {
       }
       if (current.config.mode === "live") {
         await reconcileLiveSettlement(current.id, { quiet: true });
+      } else if (current.config.mode === "paper_live") {
+        await reconcilePaperLiveSettlement(current.id, { quiet: true });
       }
       const updated = batchSize === 1
         ? await api.nextRace(current.id)
@@ -229,6 +265,12 @@ export default function Simulator() {
   // Auto-fire callback used by LiveCountdown at T-60s
   const onAutoFire = useCallback((market) => {
     if (!current || current.status !== "active") return;
+    if (current.config.mode === "paper_live") {
+      const venue = market.venue || market.event?.name || "next race";
+      toast.message(`Paper-live recording intended lays for ${venue}...`, { duration: 3000 });
+      runNextRace({ auto: true });
+      return;
+    }
     toast.message(`Auto-placing lays for ${market.venue}…`, { duration: 3000 });
     runNextRace({ auto: true });
   }, [current, runNextRace]);
@@ -294,6 +336,36 @@ export default function Simulator() {
     }
   };
 
+  const exportPaperLiveReport = async () => {
+    if (!current) return;
+    setExporting(true);
+    try {
+      await reconcilePaperLiveSettlement(current.id, { quiet: true });
+      const blob = await api.exportPaperLiveReport(current.id);
+      downloadBlob(blob, `layhounds-paper-live-${current.id.slice(0, 8)}-report.csv`);
+      toast.success("Paper-live report CSV exported");
+    } catch (e) {
+      toast.error(`Paper-live report failed: ${e.response?.data?.detail || e.message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportLiveAudit = async () => {
+    if (!current) return;
+    setExporting(true);
+    try {
+      await reconcileLiveSettlement(current.id, { quiet: true });
+      const blob = await api.exportLiveAudit(current.id);
+      downloadBlob(blob, `layhounds-live-${current.id.slice(0, 8)}-audit.csv`);
+      toast.success("Live audit CSV exported");
+    } catch (e) {
+      toast.error(`Live audit export failed: ${e.response?.data?.detail || e.message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const lastRace = current?.races?.[current.races.length - 1];
   const layedRanks = lastRace ? lastRace.bets.map((b) => b.favourite_rank) : [];
 
@@ -341,15 +413,31 @@ export default function Simulator() {
             <div className="hidden sm:block">
               <BetfairStatusBadge />
             </div>
-            {current && current.config.mode === "live" && (
+            {current && ["live", "paper_live"].includes(current.config.mode) && (
               <Button
                 data-testid="refresh-settlement-btn"
                 variant="ghost"
-                onClick={() => reconcileLiveSettlement(current.id)}
+                onClick={() => current.config.mode === "paper_live"
+                  ? reconcilePaperLiveSettlement(current.id)
+                  : reconcileLiveSettlement(current.id)}
                 className="rounded-none border border-[#2A2A2A] text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/40 font-bold uppercase tracking-wider text-xs"
-                title="Check Betfair settled bet history and update race results"
+                title={current.config.mode === "paper_live"
+                  ? "Check closed Betfair market results and update paper-live P&L"
+                  : "Check Betfair settled bet history and update race results"}
               >
-                <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Settle
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> {current.config.mode === "paper_live" ? "Results" : "Settle"}
+              </Button>
+            )}
+            {current && current.config.mode === "live" && (
+              <Button
+                data-testid="export-live-audit-btn"
+                variant="ghost"
+                onClick={exportLiveAudit}
+                disabled={exporting || !current.races?.length}
+                className="rounded-none border border-[#2A2A2A] text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/40 font-bold uppercase tracking-wider text-xs disabled:opacity-30"
+                title="Export live bets and skipped-market audit rows as CSV"
+              >
+                <Download className="w-3.5 h-3.5 mr-1.5" /> Live Audit
               </Button>
             )}
             {current && current.config.mode === "live" && (
@@ -408,8 +496,8 @@ export default function Simulator() {
         </div>
       </header>
 
-      {/* Live race countdown + 5-min runners preview (live mode only) */}
-      {current && current.config.mode === "live" && current.status === "active" && (
+      {/* Betfair race countdown + 5-min runners preview (live and paper-live) */}
+      {current && ["live", "paper_live"].includes(current.config.mode) && current.status === "active" && (
         <div className="max-w-[1600px] mx-auto px-6 pt-4 space-y-3">
           <LiveCountdown
             session={current}
@@ -567,6 +655,50 @@ export default function Simulator() {
                       : loading
                       ? "Running..."
                       : `Run ${batchSize === 1 ? "Next Race" : batchSize + " Races"}`}
+                  </Button>
+                  <Button
+                    data-testid="stop-session-btn"
+                    onClick={stopSession}
+                    disabled={current.status !== "active"}
+                    variant="ghost"
+                    className="bg-[#1C1C1C] hover:bg-[#2A2A2A] text-white border border-[#2A2A2A] rounded-none disabled:opacity-30"
+                  >
+                    <Square className="w-4 h-4 mr-2" />
+                    Stop
+                  </Button>
+                </div>
+                )}
+                {current.config.mode === "paper_live" && (
+                <div className="flex items-center justify-end gap-2 flex-wrap">
+                  <Button
+                    data-testid="export-paper-live-report-btn"
+                    onClick={exportPaperLiveReport}
+                    disabled={exporting || !current.races?.length}
+                    variant="ghost"
+                    className="bg-[#1C1C1C] hover:bg-[#2A2A2A] text-white border border-[#2A2A2A] rounded-none disabled:opacity-30"
+                    title="Export intended paper bets, Betfair result settlement and recovery behaviour as CSV"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Paper Report
+                  </Button>
+                  <Button
+                    data-testid="paper-live-refresh-results-btn"
+                    onClick={() => reconcilePaperLiveSettlement(current.id)}
+                    disabled={exporting}
+                    variant="ghost"
+                    className="bg-[#1C1C1C] hover:bg-[#2A2A2A] text-white border border-[#2A2A2A] rounded-none disabled:opacity-30"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Check Results
+                  </Button>
+                  <Button
+                    data-testid="next-race-btn"
+                    onClick={runNextRace}
+                    disabled={loading || current.status !== "active"}
+                    className="bg-pink-600 hover:bg-pink-500 text-white font-bold uppercase tracking-wider rounded-none border-b-2 border-pink-800 active:translate-y-[1px] active:border-b-0 disabled:opacity-40"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    {loading ? "Recording..." : "Record Next"}
                   </Button>
                   <Button
                     data-testid="stop-session-btn"

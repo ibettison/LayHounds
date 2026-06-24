@@ -12,6 +12,9 @@ const formatRaceTime = (race) => {
   return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 };
 
+const fmtOdds = (value) => (value === null || value === undefined ? "-" : Number(value).toFixed(2));
+const fmtPct = (value) => (value === null || value === undefined ? "-" : `${Number(value).toFixed(2)}%`);
+
 export const RaceHistory = ({ races }) => {
   const uniqueRaces = [];
   const seen = new Set();
@@ -42,6 +45,7 @@ export const RaceHistory = ({ races }) => {
           );
           const livePending = race.source === "live" && !liveSettled;
           const skippedBets = race.skipped_bets || [];
+          const skippedAudit = race.skipped_audit || [];
           const hasBets = (race.bets || []).length > 0;
           return (
             <div
@@ -132,6 +136,33 @@ export const RaceHistory = ({ races }) => {
                   <div className="text-[10px] text-amber-100/75 mt-0.5">
                     {skippedBets.join(" · ")}
                   </div>
+                </div>
+              )}
+              {skippedAudit.length > 0 && (
+                <div className="mt-2 space-y-1" data-testid={`history-skip-audit-${race.race_num}`}>
+                  {skippedAudit.map((audit, idx) => (
+                    <div key={`${audit.market_id || race.race_id}-${idx}`} className="bg-[#0A0A0A] border border-amber-500/20 px-2 py-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-[9px] font-mono font-bold uppercase tracking-wider text-amber-300">
+                          {String(audit.decision || "skipped_race").replaceAll("_", " ")}
+                        </div>
+                        <div className="text-[9px] font-mono text-zinc-600 truncate">
+                          {audit.market_id || race.market_id}
+                        </div>
+                      </div>
+                      <div className="text-[10px] text-amber-100/75 mt-0.5">
+                        {audit.skip_reason}
+                      </div>
+                      <div className="text-[9px] font-mono text-zinc-500 mt-0.5">
+                        Fav T{audit.favourite_trap || "-"} @{fmtOdds(audit.favourite_odds)}
+                        {" "}· 2nd T{audit.second_favourite_trap || "-"} @{fmtOdds(audit.second_favourite_odds)}
+                        {" "}· gap {fmtPct(audit.favourite_gap_pct)}
+                        {audit.distance_m ? ` · ${audit.distance_m}m` : ""}
+                        {audit.grade ? ` · ${audit.grade}` : ""}
+                        {audit.sprint_rule_applied ? " · sprint rule" : ""}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
               <div className="text-xs text-zinc-500 mt-1 font-mono">

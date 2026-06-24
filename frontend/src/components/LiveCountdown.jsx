@@ -21,7 +21,7 @@ const normalizeMarket = (market) => {
 };
 
 /**
- * LiveCountdown — for live sessions only.
+ * LiveCountdown — for live and paper-live sessions.
  *
  *   • Adaptively polls /api/betfair/races: 30s cadence normally, 8s once we're
  *     within 5 minutes of the next race (so we never miss the hand-off between
@@ -159,7 +159,7 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
     return () => clearInterval(id);
   }, [nextMarket]);
 
-  if (session?.config?.mode !== "live") return null;
+  if (!["live", "paper_live"].includes(session?.config?.mode)) return null;
 
   const fmt = (s) => {
     if (s == null) return "—:—";
@@ -173,6 +173,7 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
 
   const urgent = secsToStart != null && secsToStart <= TRIGGER_AT_SECS && secsToStart > 0;
   const past = secsToStart != null && secsToStart <= 0;
+  const isPaperLive = session?.config?.mode === "paper_live";
   const tone = error
     ? "border-red-500/40 bg-red-500/5"
     : urgent
@@ -196,7 +197,7 @@ export const LiveCountdown = ({ session, autoPlace, onAutoFire }) => {
           <Wifi className="w-3 h-3" /> Next Betfair Race
           {autoPlace && (
             <span className="text-pink-400 font-bold ml-1.5" data-testid="auto-place-on-indicator">
-              · AUTO-PLACE ON
+              {isPaperLive ? "· PAPER AUTO-RUN ON" : "· AUTO-PLACE ON"}
             </span>
           )}
         </div>

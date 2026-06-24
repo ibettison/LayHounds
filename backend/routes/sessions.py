@@ -1,4 +1,6 @@
 import asyncio
+import csv
+import io
 import logging
 import math
 import random
@@ -11,7 +13,7 @@ from pydantic import BaseModel, Field
 from betfair_client import betfair, BetfairError
 from db import db
 from licence_client import LICENCE_SERVER_URL, is_licence_active
-from models import LayBet, Race, RecoveryChain, Session, SessionConfig
+from models import LayBet, Race, RecoveryChain, Session, SessionConfig, SkippedRaceAudit
 from services.racing import (
     doc_to_session,
     fetch_live_race,
@@ -25,14 +27,14 @@ from services.backtest_analysis import (
     generated_race_snapshots,
     session_race_snapshots,
 )
-from services.favourite_risk import favourite_risk_bet_plan, format_skip_reasons
+from services.favourite_risk import FAVOURITE_RISK_LABELS, favourite_odds_gap, favourite_risk_bet_plan, format_skip_reasons
 from services.historical_replay import historical_replay_summary, next_historical_replay_race
 from services.recovery import (
     apply_settled_bet_to_chain,
     plan_recovery_bet,
     recovery_chain_type,
 )
-from services.settlement import reconcile_live_settlements
+from services.settlement import reconcile_live_settlements, reconcile_paper_live_settlements
 from services.session_status import apply_stop_conditions
 from session_events import (
     clear_session as sse_clear_session,
@@ -70,6 +72,84 @@ def _has_unsettled_live_recovery_bet(session: Session, rank: int) -> bool:
             if not bet.settled_at and not bet.result:
                 return True
     return False
+
+
+def _market_audit_context(
+    *,
+    runners: List,
+    venue: str,
+    market_id: Optional[str],
+    market_start_time: Optional[str],
+    category,
+) -> dict:
+    favourite = None
+    second_favourite = None
+    try:
+        favourite = get_runner_by_rank(runners, 1)
+        second_favourite = get_runner_by_rank(runners, 2)
+    except ValueError:
+        pass
+
+    gap_pct = None
+    if favourite and second_favourite:
+        gap_pct = round(favourite_odds_gap(favourite, second_favourite) * 100.0, 2)
+
+    distance_m = category.distance_m if category else None
+    return {
+        "race_time": market_start_time,
+        "venue": venue,
+        "market_id": market_id,
+        "favourite_name": favourite.name if favourite else None,
+        "favourite_trap": favourite.trap if favourite else None,
+        "favourite_odds": favourite.odds if favourite else None,
+        "second_favourite_name": second_favourite.name if second_favourite else None,
+        "second_favourite_trap": second_favourite.trap if second_favourite else None,
+        "second_favourite_odds": second_favourite.odds if second_favourite else None,
+        "favourite_gap_pct": gap_pct,
+        "distance_m": distance_m,
+        "grade": category.grade if category else None,
+        "sprint_rule_applied": bool(
+            distance_m is not None
+            and distance_m <= 320
+            and (
+                (favourite and favourite.trap in (1, 2))
+                or (second_favourite and second_favourite.trap in (1, 2))
+            )
+        ),
+    }
+
+
+def _audit_decision_for_rank(rank: int) -> str:
+    if rank == 1:
+        return "skipped_favourite"
+    if rank == 2:
+        return "skipped_second_favourite"
+    return "skipped_race"
+
+
+def _add_skip_audit(
+    audit_rows: List[SkippedRaceAudit],
+    context: dict,
+    *,
+    rank: Optional[int],
+    reason: str,
+    reason_code: Optional[str] = None,
+    decision: Optional[str] = None,
+) -> None:
+    audit_rows.append(
+        SkippedRaceAudit(
+            **context,
+            decision=decision or (_audit_decision_for_rank(rank or 0)),
+            skip_reason=reason,
+            skip_reason_code=reason_code,
+            skipped_rank=rank,
+        )
+    )
+
+
+def _mark_audit_as_skipped_race(audit_rows: List[SkippedRaceAudit]) -> None:
+    for row in audit_rows:
+        row.decision = "skipped_race"
 
 
 @router.get("/")
@@ -222,6 +302,18 @@ async def next_race(session_id: str):
                 if session.status != "active":
                     await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
                     raise HTTPException(400, f"Session is {session.status}")
+        elif mode == "paper_live":
+            try:
+                await reconcile_paper_live_settlements(session_id)
+            except BetfairError as e:
+                raise HTTPException(502, f"Could not check Betfair paper-live market results: {e}")
+            doc2 = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+            if doc2:
+                session = doc_to_session(doc2)
+                apply_stop_conditions(session, allow_recovery_overrun=False)
+                if session.status != "active":
+                    await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
+                    raise HTTPException(400, f"Session is {session.status}")
         live = await fetch_live_race()
         runners = live["runners"]
         venue = live["venue"]
@@ -229,14 +321,15 @@ async def next_race(session_id: str):
         market_start_time = live["market_start_time"]
         selection_by_rank = live["selection_by_rank"]
         category = live["category"]
-        if mode == "live" and market_id:
+        if mode in ("paper_live", "live") and market_id:
             existing_live_market = next(
-                (r for r in session.races if r.source == "live" and r.market_id == market_id),
+                (r for r in session.races if r.source == mode and r.market_id == market_id),
                 None,
             )
             if existing_live_market:
                 logger.info(
-                    "Skipping duplicate live placement for session=%s market=%s race=%s",
+                    "Skipping duplicate %s placement for session=%s market=%s race=%s",
+                    mode,
                     session_id[:8],
                     market_id,
                     existing_live_market.race_num,
@@ -249,6 +342,28 @@ async def next_race(session_id: str):
         distance_m=category.distance_m if category else None,
     )
     skipped_bets = format_skip_reasons(risk_skip_reasons)
+    skip_audit_context = _market_audit_context(
+        runners=runners,
+        venue=venue,
+        market_id=market_id,
+        market_start_time=market_start_time,
+        category=category,
+    )
+    skipped_audit: List[SkippedRaceAudit] = []
+    for reason_code in risk_skip_reasons:
+        reason = FAVOURITE_RISK_LABELS.get(reason_code, reason_code)
+        if reason_code in {"favourite_gap_above_threshold", "fav_inside_trap_sprint"} and session.config.num_favourites >= 1:
+            _add_skip_audit(skipped_audit, skip_audit_context, rank=1, reason=reason, reason_code=reason_code)
+        if (
+            reason_code
+            in {
+                "second_favourite_gap_below_threshold",
+                "second_favourite_gap_above_threshold",
+                "second_fav_inside_trap_sprint",
+            }
+            and session.config.num_favourites >= 2
+        ):
+            _add_skip_audit(skipped_audit, skip_audit_context, rank=2, reason=reason, reason_code=reason_code)
 
     # Place lay bets for each favourite slot
     overrun_mode = session.races_played >= session.config.max_races
@@ -262,6 +377,13 @@ async def next_race(session_id: str):
             )
         chain = session.recovery_chains[chain_key]
         if chain.busted:
+            _add_skip_audit(
+                skipped_audit,
+                skip_audit_context,
+                rank=rank,
+                reason=f"Recovery chain for rank {rank} is already busted",
+                reason_code="recovery_chain_busted",
+            )
             continue
         if mode == "live" and chain.level > 0 and _has_unsettled_live_recovery_bet(session, rank):
             logger.warning(
@@ -270,23 +392,58 @@ async def next_race(session_id: str):
                 rank,
                 chain.level,
             )
+            _add_skip_audit(
+                skipped_audit,
+                skip_audit_context,
+                rank=rank,
+                reason=f"Previous live recovery bet for rank {rank} is still unsettled",
+                reason_code="unsettled_live_recovery_bet",
+            )
             continue
         # In overrun mode (past max_races), only bet on chains in active recovery
         if overrun_mode and chain.level == 0:
+            _add_skip_audit(
+                skipped_audit,
+                skip_audit_context,
+                rank=rank,
+                reason=f"Session is past max races and rank {rank} has no active recovery debt",
+                reason_code="max_races_overrun_no_recovery",
+            )
             continue
         try:
             runner = get_runner_by_rank(runners, rank)
         except ValueError:
+            _add_skip_audit(
+                skipped_audit,
+                skip_audit_context,
+                rank=rank,
+                reason=f"No runner found at favourite rank {rank}",
+                reason_code="missing_rank_runner",
+            )
             continue
         # Odds range filter: skip favs outside the configured band
         # (skip in overrun mode too — if odds outside band, chain still pending next race)
         if runner.odds < session.config.odds_min or runner.odds > session.config.odds_max:
+            _add_skip_audit(
+                skipped_audit,
+                skip_audit_context,
+                rank=rank,
+                reason=f"Rank {rank} odds {runner.odds:.2f} outside configured range {session.config.odds_min:.2f}-{session.config.odds_max:.2f}",
+                reason_code="odds_outside_range",
+            )
             continue
         loss_budget = _remaining_stop_loss_budget(session)
         bet_plan = plan_recovery_bet(chain, runner.odds, session.config, stop_loss_budget=loss_budget)
         stake = _floor_money(bet_plan.stake)
         liability = round(stake * (runner.odds - 1), 4)
         if stake <= 0 or liability <= 0:
+            _add_skip_audit(
+                skipped_audit,
+                skip_audit_context,
+                rank=rank,
+                reason=f"Rank {rank} stake/liability reduced to zero by remaining stop-loss budget",
+                reason_code="zero_stake_or_liability",
+            )
             continue
 
         # Liability cap applies to all modes and busts recovery chains whose
@@ -298,9 +455,23 @@ async def next_race(session_id: str):
             and liability > session.config.max_liability_cap
         ):
             chain.busted = True
+            _add_skip_audit(
+                skipped_audit,
+                skip_audit_context,
+                rank=rank,
+                reason=f"Rank {rank} liability £{liability:.2f} exceeded current-mode cap £{session.config.max_liability_cap:.2f}",
+                reason_code="liability_cap_bust",
+            )
             continue
 
         if stake <= 0 or liability <= 0:
+            _add_skip_audit(
+                skipped_audit,
+                skip_audit_context,
+                rank=rank,
+                reason=f"Rank {rank} stake/liability was not positive after cap and budget checks",
+                reason_code="zero_stake_or_liability_after_cap",
+            )
             continue
         new_bet = LayBet(
             favourite_rank=rank, dog_trap=runner.trap, dog_name=runner.name,
@@ -368,8 +539,14 @@ async def next_race(session_id: str):
                 # Surface the precise Betfair error so the user knows WHY it failed.
                 raise HTTPException(502, f"Betfair bet placement failed: {e}")
 
-    # Live mode: bet placed on real Betfair, no simulated settlement
-    if mode == "live":
+    # Live mode places real Betfair bets. Paper-live records intended bets only,
+    # then waits for the real market result before settling recovery.
+    if mode in ("paper_live", "live"):
+        if not bets and skipped_audit:
+            _mark_audit_as_skipped_race(skipped_audit)
+        for bet in bets:
+            if mode == "paper_live":
+                bet.placement_status = "paper_pending"
         race = Race(
             race_num=session.races_played + 1, venue=venue, runners=runners,
             bets=bets, winning_trap=0, pnl_change=0.0, bank_after=session.bank,
@@ -377,9 +554,13 @@ async def next_race(session_id: str):
             market_time_label=market_time_label,
             betfair_bet_ids=betfair_bet_ids, category=category,
             skipped_bets=skipped_bets,
+            skipped_audit=skipped_audit,
         )
         session.races_played += 1
         session.races.append(race)
+        if mode == "paper_live":
+            session.total_staked = round(session.total_staked + sum(b.stake for b in bets), 4)
+            session.total_liability_risked = round(session.total_liability_risked + sum(b.liability for b in bets), 4)
         apply_stop_conditions(session, allow_recovery_overrun=False)
         await db.sessions.replace_one({"id": session_id}, session_to_doc(session))
         # ---- SSE: push the placed bet to any connected listeners ----
@@ -408,10 +589,13 @@ async def next_race(session_id: str):
             "total_stake": round(sum(b.stake for b in bets), 4),
             "total_liability": round(sum(b.liability for b in bets), 4),
             "skipped_bets": skipped_bets,
+            "skipped_audit": [row.model_dump() for row in skipped_audit],
+            "source": "paper_live_placed" if mode == "paper_live" else "live_placed",
         })
         return session
 
-    # Simulator + paper_live: simulate outcome (blended category win-rates)
+    # Simulator: settle immediately from the historical winner when available,
+    # otherwise use the local synthetic winner model.
     winning_trap = historical_winning_trap or pick_winner(runners, category)
 
     total_staked = 0.0
@@ -475,6 +659,7 @@ async def next_race(session_id: str):
         second_favourite_odds=historical_second_favourite_odds,
         category=category,
         skipped_bets=skipped_bets,
+        skipped_audit=skipped_audit,
     )
     session.races.append(race)
 
@@ -496,6 +681,7 @@ async def next_race(session_id: str):
             "market_time_label": market_time_label,
             "category": category.model_dump() if category else None,
             "skipped_bets": skipped_bets,
+            "skipped_audit": [row.model_dump() for row in skipped_audit],
             "bets": [{
                 "rank": b.favourite_rank, "trap": b.dog_trap, "name": b.dog_name,
                 "pnl": b.pnl, "result": b.result, "recovery_level": b.recovery_level,
@@ -554,6 +740,21 @@ async def refresh_live_settlement(session_id: str, race_id: Optional[str] = None
         raise HTTPException(502, f"Betfair listClearedOrders failed: {e}")
     if not result["found"]:
         raise HTTPException(404, "No live race with placed bets found")
+    return result
+
+
+@router.post("/sessions/{session_id}/refresh-paper-live-settlement")
+async def refresh_paper_live_settlement(session_id: str, race_id: Optional[str] = None):
+    """Settle paper-live intended bets from the real closed Betfair market result."""
+    doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Session not found")
+    try:
+        result = await reconcile_paper_live_settlements(session_id, race_id=race_id)
+    except BetfairError as e:
+        raise HTTPException(502, f"Betfair paper-live settlement check failed: {e}")
+    if not result["found"]:
+        raise HTTPException(404, "No paper-live race awaiting a Betfair result")
     return result
 
 
@@ -619,6 +820,146 @@ def _csv_response(csv_body: str, filename: str) -> Response:
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+def _paper_live_report_csv(session: Session) -> str:
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=[
+        "row_type",
+        "session_id",
+        "mode",
+        "status",
+        "recovery_mode",
+        "stake",
+        "max_liability_cap",
+        "starting_bank",
+        "current_bank",
+        "total_pnl",
+        "total_staked",
+        "total_liability_risked",
+        "races_recorded",
+        "unresolved_races",
+        "race_num",
+        "timestamp",
+        "market_start_time",
+        "venue",
+        "market_id",
+        "grade",
+        "distance_m",
+        "winning_trap",
+        "skipped_bets",
+        "audit_decision",
+        "audit_reason",
+        "audit_reason_code",
+        "audit_skipped_rank",
+        "audit_favourite_name",
+        "audit_favourite_trap",
+        "audit_favourite_odds",
+        "audit_second_favourite_name",
+        "audit_second_favourite_trap",
+        "audit_second_favourite_odds",
+        "audit_favourite_gap_pct",
+        "audit_sprint_rule_applied",
+        "chain",
+        "rank",
+        "trap",
+        "dog_name",
+        "odds",
+        "stake_used",
+        "liability",
+        "result",
+        "pnl",
+        "recovery_level",
+        "debt_before",
+        "debt_after",
+        "recovery_percentage",
+        "recovery_state",
+        "placement_status",
+        "settled_at",
+    ])
+    writer.writeheader()
+
+    unresolved = [
+        r for r in session.races
+        if r.source in ("paper_live", "live") and r.bets and not r.winning_trap
+    ]
+    writer.writerow({
+        "row_type": "summary",
+        "session_id": session.id,
+        "mode": session.config.mode,
+        "status": session.status,
+        "recovery_mode": session.config.recovery_mode,
+        "stake": session.config.stake,
+        "max_liability_cap": session.config.max_liability_cap,
+        "starting_bank": session.config.starting_bank,
+        "current_bank": session.bank,
+        "total_pnl": session.total_pnl,
+        "total_staked": session.total_staked,
+        "total_liability_risked": session.total_liability_risked,
+        "races_recorded": len([r for r in session.races if r.source in ("paper_live", "live")]),
+        "unresolved_races": len(unresolved),
+    })
+
+    for race in session.races:
+        if race.source not in ("paper_live", "live"):
+            continue
+        category = race.category
+        base = {
+            "session_id": session.id,
+            "mode": session.config.mode,
+            "status": session.status,
+            "race_num": race.race_num,
+            "timestamp": race.timestamp,
+            "market_start_time": race.market_start_time,
+            "venue": race.venue,
+            "market_id": race.market_id,
+            "grade": category.grade if category else "",
+            "distance_m": category.distance_m if category else "",
+            "winning_trap": race.winning_trap or "",
+            "skipped_bets": "; ".join(race.skipped_bets or []),
+        }
+        for audit in race.skipped_audit or []:
+            writer.writerow({
+                **base,
+                "row_type": "skip_audit",
+                "audit_decision": audit.decision,
+                "audit_reason": audit.skip_reason,
+                "audit_reason_code": audit.skip_reason_code or "",
+                "audit_skipped_rank": audit.skipped_rank or "",
+                "audit_favourite_name": audit.favourite_name or "",
+                "audit_favourite_trap": audit.favourite_trap or "",
+                "audit_favourite_odds": audit.favourite_odds or "",
+                "audit_second_favourite_name": audit.second_favourite_name or "",
+                "audit_second_favourite_trap": audit.second_favourite_trap or "",
+                "audit_second_favourite_odds": audit.second_favourite_odds or "",
+                "audit_favourite_gap_pct": audit.favourite_gap_pct if audit.favourite_gap_pct is not None else "",
+                "audit_sprint_rule_applied": audit.sprint_rule_applied,
+            })
+        if not race.bets:
+            writer.writerow({**base, "row_type": "race", "result": "no_bet"})
+            continue
+        for bet in race.bets:
+            writer.writerow({
+                **base,
+                "row_type": "bet",
+                "chain": bet.recovery_chain_type,
+                "rank": bet.favourite_rank,
+                "trap": bet.dog_trap,
+                "dog_name": bet.dog_name,
+                "odds": bet.odds,
+                "stake_used": bet.stake,
+                "liability": bet.liability,
+                "result": bet.result or "pending",
+                "pnl": bet.pnl if bet.pnl is not None else "",
+                "recovery_level": bet.recovery_level,
+                "debt_before": bet.outstanding_debt_before,
+                "debt_after": bet.outstanding_debt_after if bet.outstanding_debt_after is not None else "",
+                "recovery_percentage": bet.recovery_percentage_used,
+                "recovery_state": bet.recovery_state,
+                "placement_status": bet.placement_status,
+                "settled_at": bet.settled_at,
+            })
+    return output.getvalue()
 
 
 def _analysis_config(
@@ -716,6 +1057,28 @@ async def session_analysis_csv(
         seed=None,
     )
     return _csv_response(csv_body, f"layhounds-session-{session_id[:8]}-analysis.csv")
+
+
+@router.get("/sessions/{session_id}/paper-live-report.csv")
+async def paper_live_report_csv(session_id: str):
+    doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Session not found")
+    session = Session(**doc)
+    if session.config.mode != "paper_live":
+        raise HTTPException(400, "Paper-live report only applies to paper-live sessions")
+    return _csv_response(_paper_live_report_csv(session), f"layhounds-paper-live-{session_id[:8]}-report.csv")
+
+
+@router.get("/sessions/{session_id}/live-audit.csv")
+async def live_audit_csv(session_id: str):
+    doc = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Session not found")
+    session = Session(**doc)
+    if session.config.mode != "live":
+        raise HTTPException(400, "Live audit report only applies to live sessions")
+    return _csv_response(_paper_live_report_csv(session), f"layhounds-live-{session_id[:8]}-audit.csv")
 
 
 class CapPreviewInput(BaseModel):

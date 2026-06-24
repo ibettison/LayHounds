@@ -109,6 +109,26 @@ class LayBet(BaseModel):
     slippage_ticks: Optional[int] = None
 
 
+class SkippedRaceAudit(BaseModel):
+    race_time: Optional[str] = None
+    venue: str = ""
+    market_id: Optional[str] = None
+    favourite_name: Optional[str] = None
+    favourite_trap: Optional[int] = None
+    favourite_odds: Optional[float] = None
+    second_favourite_name: Optional[str] = None
+    second_favourite_trap: Optional[int] = None
+    second_favourite_odds: Optional[float] = None
+    favourite_gap_pct: Optional[float] = None
+    distance_m: Optional[int] = None
+    grade: Optional[str] = None
+    sprint_rule_applied: bool = False
+    decision: Literal["skipped_favourite", "skipped_second_favourite", "skipped_race"] = "skipped_race"
+    skip_reason: str
+    skip_reason_code: Optional[str] = None
+    skipped_rank: Optional[int] = None
+
+
 class Race(BaseModel):
     race_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     race_num: int
@@ -130,6 +150,7 @@ class Race(BaseModel):
     betfair_bet_ids: List[str] = Field(default_factory=list)
     category: Optional[RaceCategory] = None
     skipped_bets: List[str] = Field(default_factory=list)
+    skipped_audit: List[SkippedRaceAudit] = Field(default_factory=list)
 
 
 class RecoveryChain(BaseModel):
