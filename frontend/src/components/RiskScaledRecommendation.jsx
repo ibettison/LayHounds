@@ -86,6 +86,11 @@ export const RiskScaledRecommendation = ({ form, update, inputCls }) => {
     update("max_races", 200);
   };
 
+  const updateBankroll = (value) => {
+    setBankroll(value);
+    update("starting_bank", value);
+  };
+
   return (
     <div className="col-span-2 border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-3" data-testid="risk-scaled-recommendation">
       <div>
@@ -167,7 +172,7 @@ export const RiskScaledRecommendation = ({ form, update, inputCls }) => {
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label className="label-xs">Bankroll / live bank £</Label>
-          <Input data-testid="risk-bankroll-input" type="number" step="0.01" value={bankroll} onChange={(e) => setBankroll(e.target.value)} className={inputCls} />
+          <Input data-testid="risk-bankroll-input" type="number" step="0.01" value={bankroll} onChange={(e) => updateBankroll(e.target.value)} className={inputCls} />
         </div>
         <div className="space-y-1">
           <Label className="label-xs">Acceptable worst day £</Label>
