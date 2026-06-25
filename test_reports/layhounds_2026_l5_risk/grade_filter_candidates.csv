@@ -1,0 +1,10 @@
+dimension,chain,rank,value,busts_after_both_rules,qualified_bets_after_both_rules,busts_per_1000_bets
+grade,favourite,1,A4,3,986,3.043
+grade,second_favourite,2,A4,3,3890,0.771
+grade,favourite,1,A7,2,433,4.619
+grade,favourite,1,A8,1,243,4.115
+grade,second_favourite,2,A9,1,405,2.469
+grade,second_favourite,2,A1,1,688,1.453
+grade,second_favourite,2,D5,1,708,1.412
+grade,second_favourite,2,A3,1,1363,0.734
+grade,second_favourite,2,A6,1,1561,0.641

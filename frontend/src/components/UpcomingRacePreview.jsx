@@ -15,6 +15,8 @@ const normalizeMarket = (market) => {
   };
 };
 
+const isBetfairMode = (mode) => ["live", "paper_live"].includes(mode);
+
 export const UpcomingRacePreview = ({ session }) => {
   const [nextMarket, setNextMarket] = useState(null);
   const [snapshot, setSnapshot] = useState(null);
@@ -22,16 +24,17 @@ export const UpcomingRacePreview = ({ session }) => {
   const [now, setNow] = useState(Date.now());
   const prevOddsRef = useRef(new Map());
 
+  const mode = session?.config?.mode;
   const numFavs = session?.config?.num_favourites || 1;
 
   useEffect(() => {
-    if (session?.config?.mode !== "live") return undefined;
+    if (!isBetfairMode(mode)) return undefined;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [session?.config?.mode]);
+  }, [mode]);
 
   useEffect(() => {
-    if (session?.config?.mode !== "live") return undefined;
+    if (!isBetfairMode(mode)) return undefined;
     let cancelled = false;
     let timer = null;
 
@@ -67,7 +70,7 @@ export const UpcomingRacePreview = ({ session }) => {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [session?.config?.mode]);
+  }, [mode]);
 
   const marketId = nextMarket?.market_id;
   const startMs = nextMarket?.startMs;
@@ -120,11 +123,11 @@ export const UpcomingRacePreview = ({ session }) => {
     };
   }, [marketId, startMs, inPreviewWindow]);
 
-  if (session?.config?.mode !== "live") return null;
+  if (!isBetfairMode(mode)) return null;
   if (error && !nextMarket) {
     return (
       <div className="bg-[#141414] border border-red-500/30 p-3 text-xs text-red-400" data-testid="upcoming-race-preview">
-        Live races unreachable: {error}
+        Betfair races unreachable: {error}
       </div>
     );
   }

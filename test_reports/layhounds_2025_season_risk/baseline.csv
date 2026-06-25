@@ -1,0 +1,3 @@
+rule_set,total_races,favourite_opportunities,second_favourite_opportunities,total_opportunities,favourite_win_rate_pct,second_favourite_win_rate_pct,total_profit,total_loss,net_pl,roi_pct,total_liability_risked,l5_busts,favourite_busts,second_favourite_busts,worst_bust_drawdown,worst_equity_drawdown,max_liability_reached,runaway_chains
+No filters,49353,49353,49353,98706,36.63,23.56,12286.5049,12938.6116,-652.1067,-1.3,50315.0795,232,203,29,175.9535,946.4855,192.443,0
+Current LayHounds rules,49353,12621,44622,57243,28.42,23.63,7975.1985,8461.3862,-486.1877,-1.35,35949.9003,44,13,31,140.5565,885.3789,159.7198,0

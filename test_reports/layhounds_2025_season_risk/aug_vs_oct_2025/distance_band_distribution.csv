@@ -1,0 +1,5 @@
+category,aug_count,aug_pct,oct_count,oct_pct,pct_point_diff_oct_minus_aug,oct_std_residual
+stayer,723,17.251,703,16.475,-0.776,-0.612
+standard,2193,52.326,2264,53.058,0.732,0.326
+sprint,1181,28.179,1217,28.521,0.342,0.208
+marathon,94,2.243,83,1.945,-0.298,-0.666

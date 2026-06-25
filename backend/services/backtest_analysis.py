@@ -9,7 +9,11 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 from models import Greyhound, LayBet, Race, RecoveryChain, Session, SessionConfig
 from services.racing import generate_race, get_runner_by_rank, pick_winner
-from services.recovery import apply_settled_bet_to_chain, stake_for_liability_budget
+from services.recovery import (
+    apply_settled_bet_to_chain,
+    plan_recovery_bet,
+    recovery_total,
+)
 
 
 @dataclass(frozen=True)
@@ -224,7 +228,7 @@ def _simulate_filter(
         if fav_won:
             favourite_wins += 1
 
-        recovery_before = round(chain.accumulated_loss, 4)
+        recovery_before = round(recovery_total(chain), 4)
         skip_reason = ""
         bet_placed = False
         stake = 0.0
@@ -240,24 +244,26 @@ def _simulate_filter(
             skip_reason = "recovery chain busted"
             current_losing_run = 0
         else:
-            stake = round(chain.pending_stake, 4)
-            liability = round(stake * (fav.odds - 1), 4)
             loss_budget = _remaining_stop_loss_budget(total_pnl, config)
             if loss_budget <= 0:
                 skipped += 1
                 skip_reason = "stop-loss budget exhausted"
             else:
-                if liability > loss_budget:
-                    stake = _floor_money(stake_for_liability_budget(fav.odds, loss_budget))
-                    liability = round(stake * (fav.odds - 1), 4)
+                plan = plan_recovery_bet(chain, fav.odds, config, stop_loss_budget=loss_budget)
+                stake = _floor_money(plan.stake)
+                liability = round(stake * (fav.odds - 1), 4)
                 if stake <= 0 or liability <= 0:
                     skipped += 1
                     skip_reason = "liability below usable stake"
-                elif config.max_liability_cap > 0 and liability > config.max_liability_cap:
+                elif (
+                    config.recovery_mode == "current"
+                    and config.max_liability_cap > 0
+                    and liability > config.max_liability_cap
+                ):
                     skipped += 1
+                    skip_reason = "max liability cap exceeded"
+                    chain.busted = True
                     busts += 1
-                    skip_reason = "liability cap bust"
-                    chain = RecoveryChain(pending_stake=config.stake)
                 else:
                     bet_placed = True
                     bets_placed += 1
@@ -287,15 +293,20 @@ def _simulate_filter(
                         pnl=lay_pnl,
                     )
                     before_busted = chain.busted
-                    apply_settled_bet_to_chain(chain, bet, config, lay_pnl)
+                    apply_settled_bet_to_chain(
+                        chain,
+                        bet,
+                        config,
+                        lay_pnl,
+                        session_profit=round(total_pnl + lay_pnl, 4),
+                    )
                     if chain.busted and not before_busted:
                         busts += 1
-                        chain = RecoveryChain(pending_stake=config.stake)
                     total_pnl = round(total_pnl + lay_pnl, 4)
                     peak_pnl = max(peak_pnl, total_pnl)
                     max_drawdown = max(max_drawdown, round(peak_pnl - total_pnl, 4))
 
-        recovery_after = round(chain.accumulated_loss, 4)
+        recovery_after = round(recovery_total(chain), 4)
         highest_recovery = max(highest_recovery, recovery_before, recovery_after)
 
         if include_races:

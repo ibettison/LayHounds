@@ -1,5 +1,6 @@
 import random
 import re
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException
@@ -204,6 +205,40 @@ async def fetch_live_race() -> Dict[str, Any]:
             "category": category,
         }
     raise HTTPException(400, "No markets with live prices available")
+
+
+async def fetch_market_result(market_id: str) -> Optional[Dict[str, Any]]:
+    """Return the winning trap for a settled Betfair market when available."""
+    book = await betfair.get_market_book(market_id)
+    if not book:
+        return None
+    market_status = book.get("status")
+    winner = next((r for r in book.get("runners", []) if r.get("status") == "WINNER"), None)
+    if market_status != "CLOSED" or not winner:
+        return None
+
+    try:
+        cats = await betfair.list_market_catalogue(market_ids=[market_id])
+    except Exception:
+        cats = []
+    market = cats[0] if cats else {}
+    runner_meta = {r.get("selectionId"): r for r in market.get("runners", [])}
+    selection_id = winner.get("selectionId")
+    meta = runner_meta.get(selection_id, {})
+    name = meta.get("runnerName", f"Runner {selection_id}")
+    trap = int(
+        meta.get("metadata", {}).get("CLOTH_NUMBER")
+        or meta.get("metadata", {}).get("TRAP_NUMBER")
+        or 0
+    )
+    return {
+        "market_id": market_id,
+        "market_status": market_status,
+        "selection_id": selection_id,
+        "winner_name": name,
+        "winning_trap": trap or trap_from_runner_name(name),
+        "settled_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 def session_to_doc(s: Session) -> dict:

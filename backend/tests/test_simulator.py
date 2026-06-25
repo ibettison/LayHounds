@@ -122,8 +122,8 @@ def test_recovery_chain_transitions(client, cleanup_sessions):
     cleanup_sessions.append(sid)
 
     prev_chains = {
-        "1": {"level": 0, "pending_stake": 0.05, "accumulated_loss": 0.0, "busted": False},
-        "2": {"level": 0, "pending_stake": 0.05, "accumulated_loss": 0.0, "busted": False},
+        "1": {"level": 0, "pending_stake": 0.05, "normal_recovery_balance": 0.0, "overflow_recovery_balance": 0.0, "accumulated_loss": 0.0, "busted": False},
+        "2": {"level": 0, "pending_stake": 0.05, "normal_recovery_balance": 0.0, "overflow_recovery_balance": 0.0, "accumulated_loss": 0.0, "busted": False},
     }
 
     for _ in range(40):
@@ -166,8 +166,13 @@ def test_recovery_chain_transitions(client, cleanup_sessions):
                 else:
                     assert new_chain["level"] == prev["level"] + 1
                     target = round(0.05 * (1 - 0.05), 4)
-                    shortfall = round(prev.get("accumulated_loss", 0.0) + bet["liability"], 4)
-                    expected = round((shortfall + target) / (1 - 0.05), 4)
+                    prev_total = round(
+                        prev.get("normal_recovery_balance", prev.get("accumulated_loss", 0.0))
+                        + prev.get("overflow_recovery_balance", 0.0),
+                        4,
+                    )
+                    shortfall = round(prev_total + bet["liability"] + target, 4)
+                    expected = round(shortfall / (1 - 0.05), 4)
                     assert abs(new_chain["pending_stake"] - expected) < 1e-3
             prev_chains[rank_str] = new_chain
 

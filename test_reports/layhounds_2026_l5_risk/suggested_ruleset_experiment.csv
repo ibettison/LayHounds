@@ -1,0 +1,4 @@
+rule_set,fav_opportunities,fav_retained_pct,fav_busts,second_opportunities,second_retained_pct,second_busts,total_opportunities,total_busts
+Current,4997,24.02,6,18623,89.51,8,23620,14
+Fav <=10%,3544,17.03,2,18623,89.51,8,22167,10
+Fav <=10% + 2nd 5-30%,3544,17.03,2,6289,30.23,4,9833,6

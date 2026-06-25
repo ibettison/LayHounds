@@ -1,0 +1,257 @@
+dimension,excluded_values,filter_count,bets,busts,bust_reduction_vs_both_rules,bust_reduction_pct_vs_both_rules,bet_reduction_vs_both_rules,bet_reduction_pct_vs_both_rules
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),7,14516,3,11,78.57,9104,38.54
+venue,Newcastle (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),4,18541,4,10,71.43,5079,21.5
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),6,15811,4,10,71.43,7809,33.06
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),7,14194,4,10,71.43,9426,39.91
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),8,12899,4,10,71.43,10721,45.39
+venue,Newcastle (GB); Oxford (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),5,17860,5,9,64.29,5760,24.39
+venue,Newcastle (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),5,16924,5,9,64.29,6696,28.35
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),6,16565,5,9,64.29,7055,29.87
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB),6,15377,5,9,64.29,8243,34.9
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),6,15206,5,9,64.29,8414,35.62
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),6,15197,5,9,64.29,8423,35.66
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),7,14948,5,9,64.29,8672,36.71
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),7,13580,5,9,64.29,10040,42.51
+venue,Sheffield (GB); Valley (GB); Yarmouth (GB),3,20246,6,8,57.14,3374,14.28
+venue,Newcastle (GB); Sheffield (GB); Sunderland (GB); Valley (GB),4,18107,6,8,57.14,5513,23.34
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Sheffield (GB); Yarmouth (GB),5,17577,6,8,57.14,6043,25.58
+venue,Doncaster (GB); Newcastle (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),5,17246,6,8,57.14,6374,26.99
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Sunderland (GB); Yarmouth (GB),5,17139,6,8,57.14,6481,27.44
+venue,Newcastle (GB); Romford (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),5,16492,6,8,57.14,7128,30.18
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB),5,16389,6,8,57.14,7231,30.61
+venue,Newcastle (GB); Oxford (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),6,16243,6,8,57.14,7377,31.23
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),6,16221,6,8,57.14,7399,31.33
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),6,15960,6,8,57.14,7660,32.43
+venue,Doncaster (GB); Newcastle (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),6,15629,6,8,57.14,7991,33.83
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Yarmouth (GB),6,15528,6,8,57.14,8092,34.26
+venue,Newcastle (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),6,14875,6,8,57.14,8745,37.02
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB),7,14082,6,8,57.14,9538,40.38
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),7,13911,6,8,57.14,9709,41.1
+venue,Newcastle (GB); Sheffield (GB); Valley (GB),3,19724,7,7,50.0,3896,16.49
+venue,Newcastle (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),4,17936,7,7,50.0,5684,24.06
+venue,Oxford (GB); Romford (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),5,17516,7,7,50.0,6104,25.84
+venue,Newcastle (GB); Oxford (GB); Sheffield (GB); Sunderland (GB); Valley (GB),5,17426,7,7,50.0,6194,26.22
+venue,Newcastle (GB); Oxford (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),5,17255,7,7,50.0,6365,26.95
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Valley (GB),5,16994,7,7,50.0,6626,28.05
+venue,Doncaster (GB); Romford (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),5,16902,7,7,50.0,6718,28.44
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Sunderland (GB); Yarmouth (GB),5,16385,7,7,50.0,7235,30.63
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Sheffield (GB); Yarmouth (GB),5,16209,7,7,50.0,7411,31.38
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Sheffield (GB); Sunderland (GB); Valley (GB),6,16131,7,7,50.0,7489,31.71
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),6,16127,7,7,50.0,7493,31.72
+venue,Newcastle (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB),5,16058,7,7,50.0,7562,32.02
+venue,Newcastle (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),5,15887,7,7,50.0,7733,32.74
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB),6,14763,7,7,50.0,8857,37.5
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),6,14592,7,7,50.0,9028,38.22
+venue,Sheffield (GB); Valley (GB),2,21429,8,6,42.86,2191,9.28
+venue,Newcastle (GB); Valley (GB); Yarmouth (GB),3,19720,8,6,42.86,3900,16.51
+venue,Oxford (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),4,19565,8,6,42.86,4055,17.17
+venue,Newcastle (GB); Sheffield (GB); Sunderland (GB),3,19119,8,6,42.86,4501,19.06
+venue,Newcastle (GB); Sunderland (GB); Yarmouth (GB),3,19115,8,6,42.86,4505,19.07
+venue,Newcastle (GB); Oxford (GB); Sheffield (GB); Valley (GB),4,19043,8,6,42.86,4577,19.38
+venue,Doncaster (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),4,18951,8,6,42.86,4669,19.77
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Yarmouth (GB),4,18756,8,6,42.86,4864,20.59
+venue,Newcastle (GB); Oxford (GB); Sheffield (GB); Sunderland (GB),4,18438,8,6,42.86,5182,21.94
+venue,Newcastle (GB); Oxford (GB); Sunderland (GB); Yarmouth (GB),4,18434,8,6,42.86,5186,21.96
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Sunderland (GB),4,18322,8,6,42.86,5298,22.43
+venue,Doncaster (GB); Oxford (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),5,18270,8,6,42.86,5350,22.65
+venue,Doncaster (GB); Newcastle (GB); Sheffield (GB); Yarmouth (GB),4,18258,8,6,42.86,5362,22.7
+venue,Romford (GB); Sheffield (GB); Valley (GB); Yarmouth (GB),4,18197,8,6,42.86,5423,22.96
+venue,Newcastle (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),4,18103,8,6,42.86,5517,23.36
+venue,Doncaster (GB); Newcastle (GB); Sunderland (GB); Yarmouth (GB),4,17820,8,6,42.86,5800,24.56
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Sunderland (GB),4,17568,8,6,42.86,6052,25.62
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Sheffield (GB); Sunderland (GB),5,17143,8,6,42.86,6477,27.42
+venue,Newcastle (GB); Romford (GB); Sheffield (GB); Sunderland (GB),4,17070,8,6,42.86,6550,27.73
+venue,Newcastle (GB); Romford (GB); Sunderland (GB); Yarmouth (GB),4,17066,8,6,42.86,6554,27.75
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Valley (GB); Yarmouth (GB),5,16990,8,6,42.86,6630,28.07
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Yarmouth (GB),5,16823,8,6,42.86,6797,28.78
+venue,Doncaster (GB); Newcastle (GB); Sheffield (GB); Sunderland (GB); Valley (GB),5,16812,8,6,42.86,6808,28.82
+venue,Doncaster (GB); Newcastle (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),5,16808,8,6,42.86,6812,28.84
+venue,Doncaster (GB); Newcastle (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),5,16641,8,6,42.86,6979,29.55
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Sheffield (GB); Sunderland (GB),5,15775,8,6,42.86,7845,33.21
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Sunderland (GB); Yarmouth (GB),5,15771,8,6,42.86,7849,33.23
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Valley (GB); Yarmouth (GB),6,15695,8,6,42.86,7925,33.55
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),6,15373,8,6,42.86,8247,34.92
+venue,Doncaster (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),6,15285,8,6,42.86,8335,35.29
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB),6,15094,8,6,42.86,8526,36.1
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Sunderland (GB); Yarmouth (GB),6,15090,8,6,42.86,8530,36.11
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),6,14759,8,6,42.86,8861,37.51
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),7,14604,8,6,42.86,9016,38.17
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),7,14078,8,6,42.86,9542,40.4
+venue,Valley (GB); Yarmouth (GB),2,21425,9,5,35.71,2195,9.29
+venue,Newcastle (GB); Sunderland (GB),2,20298,9,5,35.71,3322,14.06
+venue,Sheffield (GB); Sunderland (GB); Valley (GB),3,19812,9,5,35.71,3808,16.12
+venue,Newcastle (GB); Oxford (GB); Sunderland (GB),3,19617,9,5,35.71,4003,16.95
+venue,Newcastle (GB); Sheffield (GB); Yarmouth (GB),3,19553,9,5,35.71,4067,17.22
+venue,Newcastle (GB); Sunderland (GB); Valley (GB),3,19286,9,5,35.71,4334,18.35
+venue,Newcastle (GB); Oxford (GB); Valley (GB); Yarmouth (GB),4,19039,9,5,35.71,4581,19.39
+venue,Newcastle (GB); Oxford (GB); Sheffield (GB); Yarmouth (GB),4,18872,9,5,35.71,4748,20.1
+venue,Oxford (GB); Romford (GB); Sheffield (GB); Valley (GB),4,18699,9,5,35.71,4921,20.83
+venue,Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),4,18629,9,5,35.71,4991,21.13
+venue,Newcastle (GB); Romford (GB); Sunderland (GB),3,18249,9,5,35.71,5371,22.74
+venue,Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB),4,18094,9,5,35.71,5526,23.4
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB),4,18006,9,5,35.71,5614,23.77
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Valley (GB); Yarmouth (GB),5,17744,9,5,35.71,5876,24.88
+venue,Newcastle (GB); Romford (GB); Sheffield (GB); Valley (GB),4,17675,9,5,35.71,5945,25.17
+venue,Newcastle (GB); Romford (GB); Valley (GB); Yarmouth (GB),4,17671,9,5,35.71,5949,25.19
+venue,Newcastle (GB); Oxford (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),5,17422,9,5,35.71,6198,26.24
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Yarmouth (GB),4,17388,9,5,35.71,6232,26.38
+venue,Doncaster (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),5,17334,9,5,35.71,6286,26.61
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Sunderland (GB); Valley (GB),5,17310,9,5,35.71,6310,26.71
+venue,Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB),5,17082,9,5,35.71,6538,27.68
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Sunderland (GB),4,16954,9,5,35.71,6666,28.22
+venue,Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),5,16911,9,5,35.71,6709,28.4
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Yarmouth (GB),5,16707,9,5,35.71,6913,29.27
+venue,Doncaster (GB); Oxford (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),6,16653,9,5,35.71,6967,29.5
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Sunderland (GB); Valley (GB),5,16556,9,5,35.71,7064,29.91
+venue,Doncaster (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB),5,16468,9,5,35.71,7152,30.28
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Sheffield (GB); Valley (GB),5,16380,9,5,35.71,7240,30.65
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Valley (GB); Yarmouth (GB),5,16376,9,5,35.71,7244,30.67
+venue,Newcastle (GB); Romford (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),5,16054,9,5,35.71,7566,32.03
+venue,Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),6,15899,9,5,35.71,7721,32.69
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB),6,15787,9,5,35.71,7833,33.16
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB); Valley (GB),6,15699,9,5,35.71,7921,33.54
+venue,Sheffield (GB); Sunderland (GB),2,20824,10,4,28.57,2796,11.84
+venue,Sunderland (GB); Yarmouth (GB),2,20820,10,4,28.57,2800,11.85
+venue,Oxford (GB); Sheffield (GB); Valley (GB),3,20748,10,4,28.57,2872,12.16
+venue,Newcastle (GB); Sheffield (GB),2,20736,10,4,28.57,2884,12.21
+venue,Newcastle (GB); Oxford (GB); Sheffield (GB),3,20055,10,4,28.57,3565,15.09
+venue,Sheffield (GB); Sunderland (GB); Yarmouth (GB),3,19641,10,4,28.57,3979,16.85
+venue,Doncaster (GB); Newcastle (GB); Yarmouth (GB),3,19437,10,4,28.57,4183,17.71
+venue,Romford (GB); Sheffield (GB); Valley (GB),3,19380,10,4,28.57,4240,17.95
+venue,Romford (GB); Valley (GB); Yarmouth (GB),3,19376,10,4,28.57,4244,17.97
+venue,Doncaster (GB); Oxford (GB); Sheffield (GB); Yarmouth (GB),4,19282,10,4,28.57,4338,18.37
+venue,Doncaster (GB); Newcastle (GB); Sunderland (GB),3,19003,10,4,28.57,4617,19.55
+venue,Doncaster (GB); Oxford (GB); Sunderland (GB); Yarmouth (GB),4,18844,10,4,28.57,4776,20.22
+venue,Romford (GB); Sheffield (GB); Sunderland (GB),3,18775,10,4,28.57,4845,20.51
+venue,Romford (GB); Sunderland (GB); Yarmouth (GB),3,18771,10,4,28.57,4849,20.53
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Sheffield (GB),4,18760,10,4,28.57,4860,20.58
+venue,Oxford (GB); Romford (GB); Valley (GB); Yarmouth (GB),4,18695,10,4,28.57,4925,20.85
+venue,Newcastle (GB); Oxford (GB); Sunderland (GB); Valley (GB),4,18605,10,4,28.57,5015,21.23
+venue,Doncaster (GB); Sheffield (GB); Sunderland (GB); Valley (GB),4,18517,10,4,28.57,5103,21.6
+venue,Doncaster (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),4,18513,10,4,28.57,5107,21.62
+venue,Doncaster (GB); Newcastle (GB); Valley (GB); Yarmouth (GB),4,18425,10,4,28.57,5195,21.99
+venue,Oxford (GB); Romford (GB); Sunderland (GB); Yarmouth (GB),4,18090,10,4,28.57,5530,23.41
+venue,Doncaster (GB); Romford (GB); Sheffield (GB); Valley (GB),4,18085,10,4,28.57,5535,23.43
+venue,Doncaster (GB); Romford (GB); Valley (GB); Yarmouth (GB),4,18081,10,4,28.57,5539,23.45
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Yarmouth (GB),4,18002,10,4,28.57,5618,23.78
+venue,Doncaster (GB); Newcastle (GB); Sunderland (GB); Valley (GB),4,17991,10,4,28.57,5629,23.83
+venue,Doncaster (GB); Romford (GB); Sheffield (GB); Yarmouth (GB),4,17914,10,4,28.57,5706,24.16
+venue,Doncaster (GB); Oxford (GB); Sheffield (GB); Sunderland (GB); Valley (GB),5,17836,10,4,28.57,5784,24.49
+venue,Doncaster (GB); Oxford (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),5,17832,10,4,28.57,5788,24.5
+venue,Doncaster (GB); Newcastle (GB); Sheffield (GB); Sunderland (GB),4,17824,10,4,28.57,5796,24.54
+venue,Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB),4,17763,10,4,28.57,5857,24.8
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Sheffield (GB); Valley (GB),5,17748,10,4,28.57,5872,24.86
+venue,Romford (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),4,17592,10,4,28.57,6028,25.52
+venue,Newcastle (GB); Romford (GB); Sheffield (GB); Yarmouth (GB),4,17504,10,4,28.57,6116,25.89
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Valley (GB); Yarmouth (GB),5,17400,10,4,28.57,6220,26.33
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Sheffield (GB),4,17392,10,4,28.57,6228,26.37
+venue,Newcastle (GB); Romford (GB); Sunderland (GB); Valley (GB),4,17237,10,4,28.57,6383,27.02
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Sheffield (GB); Yarmouth (GB),5,17233,10,4,28.57,6387,27.04
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Sheffield (GB),5,16711,10,4,28.57,6909,29.25
+venue,Romford (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),5,16580,10,4,28.57,7040,29.81
+venue,Doncaster (GB); Romford (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),5,16464,10,4,28.57,7156,30.3
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Sunderland (GB),5,16273,10,4,28.57,7347,31.1
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Sunderland (GB); Valley (GB),5,15942,10,4,28.57,7678,32.51
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Sunderland (GB); Valley (GB),6,15261,10,4,28.57,8359,35.39
+venue,Sheffield (GB),1,22441,11,3,21.43,1179,4.99
+venue,Sunderland (GB),1,22003,11,3,21.43,1617,6.85
+venue,Sheffield (GB); Yarmouth (GB),2,21258,11,3,21.43,2362,10.0
+venue,Oxford (GB); Valley (GB); Yarmouth (GB),3,20744,11,3,21.43,2876,12.18
+venue,Newcastle (GB); Yarmouth (GB),2,20732,11,3,21.43,2888,12.23
+venue,Doncaster (GB); Oxford (GB); Yarmouth (GB),3,20461,11,3,21.43,3159,13.37
+venue,Oxford (GB); Sheffield (GB); Sunderland (GB),3,20143,11,3,21.43,3477,14.72
+venue,Oxford (GB); Sunderland (GB); Yarmouth (GB),3,20139,11,3,21.43,3481,14.74
+venue,Doncaster (GB); Valley (GB); Yarmouth (GB),3,20130,11,3,21.43,3490,14.78
+venue,Newcastle (GB); Oxford (GB); Yarmouth (GB),3,20051,11,3,21.43,3569,15.11
+venue,Doncaster (GB); Sheffield (GB); Yarmouth (GB),3,19963,11,3,21.43,3657,15.48
+venue,Romford (GB); Sunderland (GB),2,19954,11,3,21.43,3666,15.52
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB),3,19939,11,3,21.43,3681,15.58
+venue,Sunderland (GB); Valley (GB); Yarmouth (GB),3,19808,11,3,21.43,3812,16.14
+venue,Oxford (GB); Romford (GB); Sheffield (GB),3,19711,11,3,21.43,3909,16.55
+venue,Doncaster (GB); Sunderland (GB); Yarmouth (GB),3,19525,11,3,21.43,4095,17.34
+venue,Doncaster (GB); Oxford (GB); Valley (GB); Yarmouth (GB),4,19449,11,3,21.43,4171,17.66
+venue,Oxford (GB); Romford (GB); Sunderland (GB),3,19273,11,3,21.43,4347,18.4
+venue,Oxford (GB); Sheffield (GB); Sunderland (GB); Valley (GB),4,19131,11,3,21.43,4489,19.01
+venue,Doncaster (GB); Romford (GB); Yarmouth (GB),3,19093,11,3,21.43,4527,19.17
+venue,Oxford (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),4,18960,11,3,21.43,4660,19.73
+venue,Newcastle (GB); Romford (GB); Sheffield (GB),3,18687,11,3,21.43,4933,20.88
+venue,Newcastle (GB); Romford (GB); Yarmouth (GB),3,18683,11,3,21.43,4937,20.9
+venue,Doncaster (GB); Newcastle (GB); Romford (GB),3,18571,11,3,21.43,5049,21.38
+venue,Oxford (GB); Romford (GB); Sheffield (GB); Yarmouth (GB),4,18528,11,3,21.43,5092,21.56
+venue,Doncaster (GB); Newcastle (GB); Sheffield (GB); Valley (GB),4,18429,11,3,21.43,5191,21.98
+venue,Oxford (GB); Sheffield (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),5,17948,11,3,21.43,5672,24.01
+venue,Doncaster (GB); Oxford (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),5,17665,11,3,21.43,5955,25.21
+venue,Doncaster (GB); Romford (GB); Sheffield (GB); Sunderland (GB),4,17480,11,3,21.43,6140,25.99
+venue,Doncaster (GB); Romford (GB); Sunderland (GB); Yarmouth (GB),4,17476,11,3,21.43,6144,26.01
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Sheffield (GB); Valley (GB),5,17404,11,3,21.43,6216,26.32
+venue,Doncaster (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),5,16297,11,3,21.43,7323,31.0
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),6,15783,11,3,21.43,7837,33.18
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),6,15616,11,3,21.43,8004,33.89
+venue,Yarmouth (GB),1,22437,12,2,14.29,1183,5.01
+venue,Oxford (GB); Sheffield (GB),2,21760,12,2,14.29,1860,7.87
+venue,Oxford (GB); Sunderland (GB),2,21322,12,2,14.29,2298,9.73
+venue,Doncaster (GB); Yarmouth (GB),2,21142,12,2,14.29,2478,10.49
+venue,Sunderland (GB); Valley (GB),2,20991,12,2,14.29,2629,11.13
+venue,Newcastle (GB); Valley (GB),2,20903,12,2,14.29,2717,11.5
+venue,Oxford (GB); Sheffield (GB); Yarmouth (GB),3,20577,12,2,14.29,3043,12.88
+venue,Romford (GB); Sheffield (GB),2,20392,12,2,14.29,3228,13.67
+venue,Romford (GB); Yarmouth (GB),2,20388,12,2,14.29,3232,13.68
+venue,Doncaster (GB); Sheffield (GB); Valley (GB),3,20134,12,2,14.29,3486,14.76
+venue,Doncaster (GB); Oxford (GB); Sunderland (GB),3,20027,12,2,14.29,3593,15.21
+venue,Oxford (GB); Romford (GB); Yarmouth (GB),3,19707,12,2,14.29,3913,16.57
+venue,Doncaster (GB); Sunderland (GB); Valley (GB),3,19696,12,2,14.29,3924,16.61
+venue,Doncaster (GB); Oxford (GB); Sheffield (GB); Valley (GB),4,19453,12,2,14.29,4167,17.64
+venue,Doncaster (GB); Newcastle (GB); Sheffield (GB),3,19441,12,2,14.29,4179,17.69
+venue,Romford (GB); Sheffield (GB); Yarmouth (GB),3,19209,12,2,14.29,4411,18.67
+venue,Newcastle (GB); Oxford (GB); Romford (GB),3,19185,12,2,14.29,4435,18.78
+venue,Doncaster (GB); Romford (GB); Sheffield (GB),3,19097,12,2,14.29,4523,19.15
+venue,Doncaster (GB); Oxford (GB); Sunderland (GB); Valley (GB),4,19015,12,2,14.29,4605,19.5
+venue,Doncaster (GB); Oxford (GB); Sheffield (GB); Sunderland (GB),4,18848,12,2,14.29,4772,20.2
+venue,Doncaster (GB); Romford (GB); Sunderland (GB),3,18659,12,2,14.29,4961,21.0
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Yarmouth (GB),4,18412,12,2,14.29,5208,22.05
+venue,Doncaster (GB); Sheffield (GB); Sunderland (GB); Yarmouth (GB),4,18346,12,2,14.29,5274,22.33
+venue,Newcastle (GB); Oxford (GB); Romford (GB); Valley (GB),4,18173,12,2,14.29,5447,23.06
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB),4,17890,12,2,14.29,5730,24.26
+venue,Romford (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),4,17759,12,2,14.29,5861,24.81
+venue,Doncaster (GB); Romford (GB); Sunderland (GB); Valley (GB),4,17647,12,2,14.29,5973,25.29
+venue,Doncaster (GB); Newcastle (GB); Romford (GB); Valley (GB),4,17559,12,2,14.29,6061,25.66
+venue,Oxford (GB); Romford (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),5,17078,12,2,14.29,6542,27.7
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Sheffield (GB); Sunderland (GB),5,16799,12,2,14.29,6821,28.88
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Sunderland (GB); Yarmouth (GB),5,16795,12,2,14.29,6825,28.9
+venue,Valley (GB),1,22608,13,1,7.14,1012,4.28
+venue,Newcastle (GB),1,21915,13,1,7.14,1705,7.22
+venue,Oxford (GB); Yarmouth (GB),2,21756,13,1,7.14,1864,7.89
+venue,Newcastle (GB); Oxford (GB),2,21234,13,1,7.14,2386,10.1
+venue,Doncaster (GB); Sunderland (GB),2,20708,13,1,7.14,2912,12.33
+venue,Doncaster (GB); Newcastle (GB),2,20620,13,1,7.14,3000,12.7
+venue,Doncaster (GB); Oxford (GB); Sheffield (GB),3,20465,13,1,7.14,3155,13.36
+venue,Doncaster (GB); Romford (GB),2,20276,13,1,7.14,3344,14.16
+venue,Newcastle (GB); Oxford (GB); Valley (GB),3,20222,13,1,7.14,3398,14.39
+venue,Newcastle (GB); Romford (GB),2,19866,13,1,7.14,3754,15.89
+venue,Doncaster (GB); Sheffield (GB); Sunderland (GB),3,19529,13,1,7.14,4091,17.32
+venue,Doncaster (GB); Romford (GB); Valley (GB),3,19264,13,1,7.14,4356,18.44
+venue,Oxford (GB); Sunderland (GB); Valley (GB); Yarmouth (GB),4,19127,13,1,7.14,4493,19.02
+venue,Romford (GB); Sunderland (GB); Valley (GB),3,18942,13,1,7.14,4678,19.81
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Valley (GB),4,18927,13,1,7.14,4693,19.87
+venue,Newcastle (GB); Romford (GB); Valley (GB),3,18854,13,1,7.14,4766,20.18
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Sheffield (GB),4,18416,13,1,7.14,5204,22.03
+venue,Oxford (GB); Romford (GB); Sunderland (GB); Valley (GB),4,18261,13,1,7.14,5359,22.69
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Sunderland (GB); Valley (GB),5,16966,13,1,7.14,6654,28.17
+venue,Doncaster (GB); Newcastle (GB); Oxford (GB); Romford (GB); Valley (GB),5,16878,13,1,7.14,6742,28.54
+venue,,0,23620,14,0,0.0,0,0.0
+venue,Doncaster (GB); Oxford (GB),2,21644,14,0,0.0,1976,8.37
+venue,Romford (GB),1,21571,14,0,0.0,2049,8.67
+venue,Doncaster (GB); Sheffield (GB),2,21146,14,0,0.0,2474,10.47
+venue,Oxford (GB); Romford (GB),2,20890,14,0,0.0,2730,11.56
+venue,Romford (GB); Valley (GB),2,20559,14,0,0.0,3061,12.96
+venue,Oxford (GB); Sunderland (GB); Valley (GB),3,20310,14,0,0.0,3310,14.01
+venue,Oxford (GB); Romford (GB); Valley (GB),3,19878,14,0,0.0,3742,15.84
+venue,Doncaster (GB); Newcastle (GB); Valley (GB),3,19608,14,0,0.0,4012,16.99
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Sunderland (GB),4,17978,14,0,0.0,5642,23.89
+venue,Oxford (GB),1,22939,15,-1,-7.14,681,2.88
+venue,Doncaster (GB),1,22325,15,-1,-7.14,1295,5.48
+venue,Oxford (GB); Valley (GB),2,21927,15,-1,-7.14,1693,7.17
+venue,Doncaster (GB); Valley (GB),2,21313,15,-1,-7.14,2307,9.77
+venue,Doncaster (GB); Oxford (GB); Valley (GB),3,20632,15,-1,-7.14,2988,12.65
+venue,Doncaster (GB); Oxford (GB); Romford (GB),3,19595,15,-1,-7.14,4025,17.04
+venue,Doncaster (GB); Oxford (GB); Romford (GB); Valley (GB),4,18583,15,-1,-7.14,5037,21.33

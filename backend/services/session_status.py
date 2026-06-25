@@ -1,4 +1,5 @@
 from models import Session
+from services.recovery import recovery_total
 
 
 def apply_stop_conditions(session: Session, *, allow_recovery_overrun: bool = True) -> None:
@@ -12,7 +13,7 @@ def apply_stop_conditions(session: Session, *, allow_recovery_overrun: bool = Tr
         return
     if allow_recovery_overrun:
         has_recovery = any(
-            (c.level > 0 and not c.busted)
+            (recovery_total(c) > 0 and not c.busted)
             for c in session.recovery_chains.values()
         )
         if has_recovery:

@@ -1,0 +1,99 @@
+scenario,chain,venue,busts
+no_filters,favourite,Harlow (GB),9
+sprint_trap_1_2_only,favourite,Newcastle (GB),9
+no_filters,favourite,Romford (GB),8
+no_filters,favourite,Towcester (GB),8
+sprint_trap_1_2_only,favourite,Romford (GB),8
+no_filters,favourite,Doncaster (GB),7
+no_filters,favourite,Sheffield (GB),7
+no_filters,favourite,Star Pelaw (GB),7
+no_filters,favourite,Valley (GB),7
+no_filters,favourite,Yarmouth (GB),7
+no_filters,favourite,Newcastle (GB),6
+sprint_trap_1_2_only,favourite,Harlow (GB),6
+sprint_trap_1_2_only,favourite,Hove (GB),6
+sprint_trap_1_2_only,favourite,Star Pelaw (GB),6
+sprint_trap_1_2_only,favourite,Valley (GB),6
+no_filters,favourite,Dunstall Park (GB),5
+no_filters,favourite,Hove (GB),5
+no_filters,favourite,Sunderland (GB),5
+sprint_trap_1_2_only,favourite,Kinsley (GB),5
+sprint_trap_1_2_only,favourite,Monmore (GB),5
+sprint_trap_1_2_only,favourite,Sheffield (GB),5
+sprint_trap_1_2_only,favourite,Yarmouth (GB),5
+no_filters,favourite,Monmore (GB),4
+no_filters,favourite,Nottingham (GB),4
+no_filters,favourite,Suffolk Downs (GB),4
+sprint_trap_1_2_only,favourite,Dunstall Park (GB),4
+sprint_trap_1_2_only,favourite,Suffolk Downs (GB),4
+no_filters,favourite,Central Park (GB),3
+sprint_trap_1_2_only,favourite,Central Park (GB),3
+sprint_trap_1_2_only,favourite,Doncaster (GB),3
+sprint_trap_1_2_only,favourite,Nottingham (GB),3
+sprint_trap_1_2_only,favourite,Oxford (GB),3
+sprint_trap_1_2_only,favourite,Towcester (GB),3
+both_rules,favourite,Sheffield (GB),2
+both_rules,second_favourite,Oxford (GB),2
+both_rules,second_favourite,Romford (GB),2
+both_rules_plus_odds_ge_2,favourite,Sheffield (GB),2
+both_rules_plus_odds_ge_2,second_favourite,Oxford (GB),2
+both_rules_plus_odds_ge_2,second_favourite,Romford (GB),2
+no_filters,favourite,Oxford (GB),2
+no_filters,second_favourite,Doncaster (GB),2
+no_filters,second_favourite,Kinsley (GB),2
+no_filters,second_favourite,Monmore (GB),2
+no_filters,second_favourite,Romford (GB),2
+no_filters,second_favourite,Sunderland (GB),2
+sprint_trap_1_2_only,favourite,Sunderland (GB),2
+sprint_trap_1_2_only,second_favourite,Oxford (GB),2
+sprint_trap_1_2_only,second_favourite,Romford (GB),2
+variance_15_only,second_favourite,Doncaster (GB),2
+variance_15_only,second_favourite,Kinsley (GB),2
+variance_15_only,second_favourite,Monmore (GB),2
+variance_15_only,second_favourite,Romford (GB),2
+variance_15_only,second_favourite,Sunderland (GB),2
+both_rules,favourite,Newcastle (GB),1
+both_rules,favourite,Romford (GB),1
+both_rules,favourite,Sunderland (GB),1
+both_rules,favourite,Yarmouth (GB),1
+both_rules,second_favourite,Doncaster (GB),1
+both_rules,second_favourite,Newcastle (GB),1
+both_rules,second_favourite,Sunderland (GB),1
+both_rules,second_favourite,Valley (GB),1
+both_rules_plus_grade_filters,favourite,Hove (GB),1
+both_rules_plus_grade_filters,favourite,Newcastle (GB),1
+both_rules_plus_grade_filters,favourite,Romford (GB),1
+both_rules_plus_grade_filters,second_favourite,Newcastle (GB),1
+both_rules_plus_grade_filters,second_favourite,Romford (GB),1
+both_rules_plus_odds_ge_2,favourite,Newcastle (GB),1
+both_rules_plus_odds_ge_2,favourite,Romford (GB),1
+both_rules_plus_odds_ge_2,favourite,Sunderland (GB),1
+both_rules_plus_odds_ge_2,favourite,Yarmouth (GB),1
+both_rules_plus_odds_ge_2,second_favourite,Doncaster (GB),1
+both_rules_plus_odds_ge_2,second_favourite,Newcastle (GB),1
+both_rules_plus_odds_ge_2,second_favourite,Sunderland (GB),1
+both_rules_plus_odds_ge_2,second_favourite,Valley (GB),1
+both_rules_plus_venue_filters,favourite,Romford (GB),1
+both_rules_plus_venue_filters,second_favourite,Dunstall Park (GB),1
+both_rules_plus_venue_filters,second_favourite,Kinsley (GB),1
+both_rules_plus_venue_filters,second_favourite,Monmore (GB),1
+no_filters,favourite,Kinsley (GB),1
+no_filters,second_favourite,Central Park (GB),1
+no_filters,second_favourite,Harlow (GB),1
+no_filters,second_favourite,Hove (GB),1
+no_filters,second_favourite,Oxford (GB),1
+no_filters,second_favourite,Valley (GB),1
+sprint_trap_1_2_only,second_favourite,Doncaster (GB),1
+sprint_trap_1_2_only,second_favourite,Newcastle (GB),1
+sprint_trap_1_2_only,second_favourite,Sunderland (GB),1
+sprint_trap_1_2_only,second_favourite,Valley (GB),1
+variance_15_only,favourite,Dunstall Park (GB),1
+variance_15_only,favourite,Romford (GB),1
+variance_15_only,favourite,Sheffield (GB),1
+variance_15_only,favourite,Sunderland (GB),1
+variance_15_only,favourite,Yarmouth (GB),1
+variance_15_only,second_favourite,Central Park (GB),1
+variance_15_only,second_favourite,Harlow (GB),1
+variance_15_only,second_favourite,Hove (GB),1
+variance_15_only,second_favourite,Oxford (GB),1
+variance_15_only,second_favourite,Valley (GB),1

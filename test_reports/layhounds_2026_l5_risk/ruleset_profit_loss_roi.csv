@@ -1,0 +1,4 @@
+rule_set,bets,winning_lays,losing_lays,total_profit,total_loss,net_pl,roi_on_liability_pct,roi_on_stake_pct,total_liability_risked,bust_count,fav_busts,second_busts,worst_drawdown,max_liability
+Current,23620,17775,5845,3314.2577,3240.6157,73.642,0.5,1.6,14750.1119,14,6,8,256.6457,136.8676
+Fav <=10%,22167,16766,5401,3096.7569,2968.884,127.8729,0.92,3.0,13904.2332,10,2,8,195.0301,136.8676
+Fav <=10% + 2nd 5-30%,9833,7260,2573,1157.1756,982.3064,174.8692,4.01,10.97,4364.6626,6,2,4,65.1248,75.4987

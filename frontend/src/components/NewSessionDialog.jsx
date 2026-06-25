@@ -16,38 +16,45 @@ import { Switch } from "../components/ui/switch";
 import { Plus, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
-import { CapPreview } from "./CapPreview";
+import { RiskScaledRecommendation } from "./RiskScaledRecommendation";
 
 const MODES = [
-  { id: "simulator", label: "Simulator", desc: "Historical Betfair UK/IE replay when available. No real money." },
-  { id: "paper_live", label: "Paper-Live", desc: "Real Betfair odds + races, bets simulated. No real money." },
+  { id: "simulator", label: "Historical Replay", desc: "Historical Betfair UK/IE replay when available. No real money." },
+  { id: "paper_live", label: "Paper-Live", desc: "Real Betfair odds + races, paper bets settle from Betfair results. No real money." },
   { id: "live", label: "Live", desc: "REAL LAY BETS placed on Betfair. Real money at risk." },
 ];
 
 const STAKES = [0.05, 0.50, 1.00, 1.50, 2.00];
 
 const RISK_GUARDS = [
-  { id: "strict", label: "Strict", desc: "Skips risky favourites: 15%+ gaps, short sprint inside traps, and short fields." },
-  { id: "balanced", label: "Balanced", desc: "Skips 15%+ gaps and short sprint inside traps. Allows short fields." },
+  { id: "strict", label: "Strict", desc: "Fav gap <=10%, second fav gap 5-30%, sprint Trap 1/2 off." },
+  { id: "balanced", label: "Balanced", desc: "Same V2.0 rules with normal opportunity count." },
   { id: "off", label: "Off", desc: "No favourite risk filter. Useful for comparison testing." },
 ];
 
 const RECOMMENDED_CONFIG = {
   stake: 0.05,
   max_recovery_level: 5,
-  max_liability_cap: 10,
-  stop_win: 5,
-  stop_loss: 10,
-  num_favourites: 1,
+  max_liability_cap: 75,
+  stop_win: 0.5,
+  stop_loss: 4,
+  num_favourites: 2,
+  max_races: 200,
   odds_min: 1.01,
   odds_max: 10,
   favourite_risk_guard: "strict",
+  recovery_mode: "elastic",
+  favourite_gap_threshold: 0.10,
+  second_favourite_gap_min: 0.05,
+  second_favourite_gap_max: 0.30,
 };
+const RECOMMENDED_BANK = 40;
 
 export const NewSessionDialog = ({ onCreated }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [betfairOk, setBetfairOk] = useState(false);
+  const [resetBankWithRecommended, setResetBankWithRecommended] = useState(false);
   const [form, setForm] = useState({
     starting_bank: 10,
     num_favourites: 2,
@@ -55,14 +62,18 @@ export const NewSessionDialog = ({ onCreated }) => {
     stop_loss: 5,
     max_races: 20,
     mode: "simulator",
-    max_liability_cap: 5,
+    max_liability_cap: 75,
     risk_accepted: false,
     stake: 0.05,
     commission_rate: 0.05,
     odds_min: 1.01,
     odds_max: 10.0,
-    max_recovery_level: 3,
+    max_recovery_level: 5,
     favourite_risk_guard: "strict",
+    recovery_mode: "elastic",
+    favourite_gap_threshold: 0.10,
+    second_favourite_gap_min: 0.05,
+    second_favourite_gap_max: 0.30,
     auto_place: false,
     live_price_chase: true,
     live_price_chase_ticks: 6,
@@ -85,7 +96,11 @@ export const NewSessionDialog = ({ onCreated }) => {
   }, [open]);
 
   const update = (k, v) => setForm((p) => ({ ...p, [k]: v }));
-  const applyRecommended = () => setForm((p) => ({ ...p, ...RECOMMENDED_CONFIG }));
+  const applyRecommended = () => setForm((p) => ({
+    ...p,
+    ...RECOMMENDED_CONFIG,
+    ...(resetBankWithRecommended ? { starting_bank: RECOMMENDED_BANK } : {}),
+  }));
 
   const canSubmit = () => {
     if (form.mode === "live" && !form.risk_accepted) return false;
@@ -94,7 +109,13 @@ export const NewSessionDialog = ({ onCreated }) => {
 
   const submit = async () => {
     setLoading(true);
+    let replayToast = null;
     try {
+      if (form.mode === "simulator") {
+        replayToast = toast.loading(
+          "Preparing Historical Replay mode. Archived Betfair markets may take a moment to scan.",
+        );
+      }
       const session = await api.createSession({
         ...form,
         starting_bank: parseFloat(form.starting_bank),
@@ -103,14 +124,27 @@ export const NewSessionDialog = ({ onCreated }) => {
         stop_loss: parseFloat(form.stop_loss),
         max_races: parseInt(form.max_races),
         max_liability_cap: parseFloat(form.max_liability_cap),
+        recovery_mode: form.recovery_mode,
+        favourite_gap_threshold: parseFloat(form.favourite_gap_threshold),
+        second_favourite_gap_min: parseFloat(form.second_favourite_gap_min),
+        second_favourite_gap_max: parseFloat(form.second_favourite_gap_max),
         live_price_chase_ticks: parseInt(form.live_price_chase_ticks),
         live_price_chase_seconds: parseInt(form.live_price_chase_seconds),
       });
-      toast.success("Session created");
+      if (replayToast) {
+        toast.success("Historical Replay session ready", { id: replayToast, duration: 3500 });
+        replayToast = null;
+      } else {
+        toast.success("Session created");
+      }
       setOpen(false);
       onCreated?.(session);
     } catch (e) {
-      toast.error(`Failed: ${e.response?.data?.detail || e.message}`);
+      if (replayToast) {
+        toast.error(`Failed: ${e.response?.data?.detail || e.message}`, { id: replayToast, duration: 6000 });
+      } else {
+        toast.error(`Failed: ${e.response?.data?.detail || e.message}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -180,8 +214,17 @@ export const NewSessionDialog = ({ onCreated }) => {
             <div>
               <div className="font-display uppercase text-sm font-bold text-emerald-200">Recommended setup</div>
               <div className="text-[11px] text-zinc-400 mt-1">
-                Stake £0.05, L5 recovery, £10 liability cap, £5 stop-win, £10 stop-loss, strict risk guard.
+                Starter replay setup: stake £0.05, L3 recovery, £5 liability cap, £0.50 stop-win, £4 stop-loss.
               </div>
+              <label className="mt-2 flex items-start gap-2 text-[11px] text-zinc-300 leading-relaxed cursor-pointer">
+                <Checkbox
+                  data-testid="recommended-reset-bank-checkbox"
+                  checked={resetBankWithRecommended}
+                  onCheckedChange={(v) => setResetBankWithRecommended(!!v)}
+                  className="mt-0.5 rounded-none border-emerald-500/50 data-[state=checked]:bg-emerald-600"
+                />
+                <span>Also reset starting bank to &pound;{RECOMMENDED_BANK}. Leave unticked to keep the current bank.</span>
+              </label>
             </div>
             <Button
               type="button"
@@ -219,6 +262,9 @@ export const NewSessionDialog = ({ onCreated }) => {
               Each favourite has its own recovery chain. A winning bet clears that chain.
             </div>
           </div>
+
+          <RiskScaledRecommendation form={form} update={update} inputCls={inputCls} />
+
           <div className="space-y-1.5">
             <Label className="label-xs">
               Starting Bank £
@@ -271,6 +317,36 @@ export const NewSessionDialog = ({ onCreated }) => {
               Advanced controls
             </summary>
             <div className="grid grid-cols-2 gap-4 pt-3">
+          <div className="space-y-1.5 col-span-2">
+            <Label className="label-xs">Recovery Mode</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: "current", label: "Current", desc: "Full recovery. Preserves the existing production engine." },
+                { id: "elastic", label: "Elastic", desc: "Debt-band recovery with liability cap carry-forward." },
+              ].map((mode) => {
+                const active = form.recovery_mode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    data-testid={`recovery-mode-${mode.id}`}
+                    onClick={() => update("recovery_mode", mode.id)}
+                    className={`p-2 border text-left transition-colors ${
+                      active
+                        ? "border-pink-500 bg-pink-500/10"
+                        : "border-[#2A2A2A] hover:bg-[#1C1C1C]"
+                    }`}
+                  >
+                    <div className="font-display uppercase text-sm font-bold">{mode.label}</div>
+                    <div className="text-[10px] text-zinc-500 mt-1 leading-tight">{mode.desc}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-[10px] text-zinc-500 font-mono">
+              Backend default can also be controlled with RECOVERY_MODE=current or RECOVERY_MODE=elastic.
+            </div>
+          </div>
           <div className="space-y-1.5 col-span-2">
             <Label className="label-xs">Betfair Commission %</Label>
             <div className="grid grid-cols-5 gap-1.5">
@@ -364,50 +440,89 @@ export const NewSessionDialog = ({ onCreated }) => {
               Based on 2026 UK/IE historical back-testing. This is a risk filter, not a profit guarantee.
             </div>
           </div>
-          <div className="col-span-2">
-            <CapPreview
-              stake={form.stake}
-              maxLiabilityCap={form.max_liability_cap}
-              numFavourites={form.num_favourites}
-              commissionRate={form.commission_rate}
-              oddsMin={form.odds_min}
-              oddsMax={form.odds_max}
-              maxRecoveryLevel={form.max_recovery_level}
-            />
+          <div className="space-y-1.5 col-span-2">
+            <Label className="label-xs">Balanced Gap Rules</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <Input
+                data-testid="input-favourite-gap-threshold"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.favourite_gap_threshold}
+                onChange={(e) => update("favourite_gap_threshold", e.target.value)}
+                placeholder="Fav max"
+                className={inputCls}
+              />
+              <Input
+                data-testid="input-second-favourite-gap-min"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.second_favourite_gap_min}
+                onChange={(e) => update("second_favourite_gap_min", e.target.value)}
+                placeholder="2nd min"
+                className={inputCls}
+              />
+              <Input
+                data-testid="input-second-favourite-gap-max"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.second_favourite_gap_max}
+                onChange={(e) => update("second_favourite_gap_max", e.target.value)}
+                placeholder="2nd max"
+                className={inputCls}
+              />
+            </div>
+            <div className="text-[10px] text-zinc-500 font-mono">
+              Defaults are decimal gaps: favourite &lt;=0.10, second favourite 0.05-0.30.
+            </div>
           </div>
             </div>
           </details>
         </div>
 
-        {form.mode === "live" && (
-          <div className="space-y-3 pt-2 border-t border-red-500/30">
-            <div className="flex items-center gap-2 text-red-400">
-              <AlertTriangle className="w-4 h-4" />
-              <div className="font-display uppercase text-sm font-bold">Live Mode Warning</div>
-            </div>
-            <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/30">
-              <Checkbox
-                data-testid="risk-accept-checkbox"
-                id="risk"
-                checked={form.risk_accepted}
-                onCheckedChange={(v) => update("risk_accepted", !!v)}
-                className="mt-0.5 rounded-none border-red-500/50 data-[state=checked]:bg-red-600"
-              />
-              <label htmlFor="risk" className="text-xs leading-relaxed cursor-pointer">
-                I accept that real lay bets will be placed on my Betfair account and real money is at risk.
-                I understand the recovery system can lose money and agree to use a max liability cap.
-              </label>
-            </div>
+        {(form.mode === "paper_live" || form.mode === "live") && (
+          <div className={`space-y-3 pt-2 border-t ${form.mode === "live" ? "border-red-500/30" : "border-pink-500/30"}`}>
+            {form.mode === "live" && (
+              <>
+                <div className="flex items-center gap-2 text-red-400">
+                  <AlertTriangle className="w-4 h-4" />
+                  <div className="font-display uppercase text-sm font-bold">Live Mode Warning</div>
+                </div>
+                <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/30">
+                  <Checkbox
+                    data-testid="risk-accept-checkbox"
+                    id="risk"
+                    checked={form.risk_accepted}
+                    onCheckedChange={(v) => update("risk_accepted", !!v)}
+                    className="mt-0.5 rounded-none border-red-500/50 data-[state=checked]:bg-red-600"
+                  />
+                  <label htmlFor="risk" className="text-xs leading-relaxed cursor-pointer">
+                    I accept that real lay bets will be placed on my Betfair account and real money is at risk.
+                    I understand the recovery system can lose money and agree to use a max liability cap.
+                  </label>
+                </div>
+              </>
+            )}
 
-            {/* Auto-place toggle */}
             <div className="flex items-start justify-between gap-3 p-3 bg-[#141414] border border-[#2A2A2A]" data-testid="auto-place-row">
               <div>
                 <div className="font-display font-bold text-sm uppercase tracking-wider text-white">
-                  Auto-place bets
+                  {form.mode === "paper_live" ? "Paper-live auto-run" : "Auto-place bets"}
                 </div>
                 <div className="text-[11px] text-zinc-500 leading-relaxed mt-1 max-w-md">
-                  Automatically fire the lay bets <span className="text-pink-400 font-bold">60 seconds before</span> each
-                  upcoming UK greyhound race. Leave OFF to place each race manually.
+                  {form.mode === "paper_live" ? (
+                    <>
+                      Automatically record intended paper lays <span className="text-pink-400 font-bold">60 seconds before</span> each
+                      upcoming UK greyhound race, then settle them from Betfair results when available.
+                    </>
+                  ) : (
+                    <>
+                      Automatically fire the lay bets <span className="text-pink-400 font-bold">60 seconds before</span> each
+                      upcoming UK greyhound race. Leave OFF to place each race manually.
+                    </>
+                  )}
                 </div>
               </div>
               <Switch
@@ -418,6 +533,14 @@ export const NewSessionDialog = ({ onCreated }) => {
               />
             </div>
 
+            {form.mode === "paper_live" && (
+              <div className="p-3 bg-pink-500/5 border border-pink-500/30 text-[11px] text-zinc-400 leading-relaxed">
+                No Betfair orders are placed. Races may remain pending until Betfair publishes the closed-market winner.
+              </div>
+            )}
+
+            {form.mode === "live" && (
+            <>
             <div className="p-3 bg-[#141414] border border-[#2A2A2A] space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -479,6 +602,8 @@ export const NewSessionDialog = ({ onCreated }) => {
                 targeting. <span className="text-amber-300">Works transparently for every L0–L5 bet — no parked orders, no residue.</span>
               </div>
             </div>
+            </>
+            )}
           </div>
         )}
 

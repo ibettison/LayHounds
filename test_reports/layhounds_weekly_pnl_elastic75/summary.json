@@ -1,0 +1,21 @@
+{
+  "source_cache": "test_reports/layhounds_cache/races_2025_2026.jsonl",
+  "output_dir": "test_reports\\layhounds_weekly_pnl_elastic75",
+  "rules": {
+    "favourite_gap_max": 0.1,
+    "second_favourite_gap_min": 0.05,
+    "second_favourite_gap_max": 0.3,
+    "sprint_trap_1_2_exclusion": true,
+    "recovery_mode": "elastic",
+    "liability_cap": 75.0,
+    "base_stake": 0.05,
+    "commission": 0.05
+  },
+  "weeks": 76,
+  "elastic_totals": {
+    "opportunities": 34311,
+    "net_pl": 284.0275,
+    "busts": 28,
+    "max_liability": 75.0002
+  }
+}

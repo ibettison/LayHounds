@@ -1,0 +1,14 @@
+dimension,test,aug_n,oct_n,chi_square,df,p_value,cramers_v,significant_0_05,effect,aug_mean,oct_mean,mean_diff_oct_minus_aug,aug_median,oct_median,ks_d
+venue,chi-square,4191,4267,431.7079,19,1.088746827516865e-79,0.22592,True,medium,,,,,,
+grade,chi-square,4191,4267,38.8121,25,0.03846853984360773,0.06774,True,small,,,,,,
+distance_band,chi-square,4191,4267,1.9529,3,0.582249285166877,0.0152,False,small,,,,,,
+distance_m,chi-square,4191,4267,106.8467,51,7.82834227912734e-06,0.11239,True,medium,,,,,,
+runner_count,chi-square,4191,4267,0.773,3,0.8559249924818308,0.00956,False,small,,,,,,
+favourite_bsp_bucket,chi-square,4191,4267,8.1708,6,0.22585680293559557,0.03108,False,small,,,,,,
+second_favourite_bsp_bucket,chi-square,4191,4267,8.5129,5,0.1301415520271964,0.03173,False,small,,,,,,
+gap_bucket,chi-square,4191,4267,3.817,6,0.7014249667299368,0.02124,False,small,,,,,,
+favourite_bsp,KS two-sample,4191,4267,,,0.8358129653832309,,False,,2.9315,2.9293,-0.0022,2.93,2.92,0.01346
+second_favourite_bsp,KS two-sample,4191,4267,,,0.2525809150031498,,False,,4.3906,4.3834,-0.0072,4.25,4.2,0.02205
+gap_pct,KS two-sample,4191,4267,,,0.9047004897837232,,False,,65.8937,65.676,-0.2176,33.3333,33.3333,0.0123
+distance_m_numeric,KS two-sample,4191,4267,,,0.9052001083070494,,False,,414.7891,413.633,-1.1561,450,450,0.01229
+runner_count_numeric,KS two-sample,4191,4267,,,1.0,,False,,5.4355,5.4425,0.007,5,5,0.00373

@@ -1,0 +1,11 @@
+{
+  "total_races": 49353,
+  "venues": 23,
+  "august_total_net_pl": -23.489,
+  "october_total_net_pl": 34.9261,
+  "oct_minus_aug_net_pl_swing": 58.4151,
+  "negative_swing_total": 20.865,
+  "majority_negative_swing_venues": [
+    "Newcastle (GB)"
+  ]
+}

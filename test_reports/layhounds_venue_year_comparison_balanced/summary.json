@@ -1,0 +1,29 @@
+{
+  "race_counts": {
+    "2025": 49353,
+    "2026": 20806
+  },
+  "min_opportunities_per_year": 500,
+  "venues_meeting_threshold": 9,
+  "profitable_both_years": [
+    "Sunderland (GB)"
+  ],
+  "unprofitable_both_years": [
+    "Harlow (GB)",
+    "Newcastle (GB)",
+    "Towcester (GB)"
+  ],
+  "positive_combined_roi": [
+    "Romford (GB)",
+    "Sunderland (GB)"
+  ],
+  "negative_combined_roi": [
+    "Central Park (GB)",
+    "Harlow (GB)",
+    "Hove (GB)",
+    "Kinsley (GB)",
+    "Monmore (GB)",
+    "Newcastle (GB)",
+    "Towcester (GB)"
+  ]
+}
