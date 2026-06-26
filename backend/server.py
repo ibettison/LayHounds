@@ -8,6 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 from db import client, db
 from licence_client import (
     LICENCE_SERVER_URL,
+    background_heartbeat_loop,
     background_revalidate_loop,
     build_customer_router,
 )
@@ -38,6 +39,7 @@ app.add_middleware(
 async def startup_tasks():
     if LICENCE_SERVER_URL:
         asyncio.create_task(background_revalidate_loop(db))
+        asyncio.create_task(background_heartbeat_loop(db))
         logger.info("Licence revalidate loop scheduled (LICENCE_SERVER_URL=%s)", LICENCE_SERVER_URL)
 
 

@@ -23,6 +23,10 @@ logger = logging.getLogger("layhounds.licence.client")
 LICENCE_SERVER_URL = os.environ.get("LICENCE_SERVER_URL", "").rstrip("/")
 LICENCE_CACHE_DAYS = int(os.environ.get("LICENCE_CACHE_DAYS", "7"))
 LICENCE_REVALIDATE_HOURS = int(os.environ.get("LICENCE_REVALIDATE_HOURS", "1"))
+# A heartbeat makes the central Admin view useful for operational monitoring
+# without transmitting betting data, credentials, or any browser information.
+LICENCE_HEARTBEAT_SECONDS = max(30, int(os.environ.get("LICENCE_HEARTBEAT_SECONDS", "120")))
+LAYHOUNDS_APP_VERSION = os.environ.get("LAYHOUNDS_APP_VERSION", "unknown").strip() or "unknown"
 
 LicenceStatus = Literal["active", "cancelled", "past_due", "trialing", "incomplete"]
 
@@ -71,6 +75,26 @@ def _mask(key: str) -> str:
     if not key or len(key) < 8:
         return key or ""
     return f"{key[:6]}...{key[-4:]}"
+
+
+async def _central_payload(db: AsyncIOMotorDatabase, key: str, install_id: str) -> dict:
+    """Return the small operational snapshot sent with an authenticated heartbeat."""
+    day_start = _now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    active_session = await db.sessions.find_one(
+        {"status": "active"},
+        {"_id": 0, "config.mode": 1},
+        sort=[("created_at", -1)],
+    )
+    raw_mode = ((active_session or {}).get("config") or {}).get("mode")
+    current_mode = {"simulator": "paper", "paper_live": "paper_live", "live": "live"}.get(raw_mode, "idle")
+    sessions_started_today = await db.sessions.count_documents({"created_at": {"$gte": day_start}})
+    return {
+        "key": key,
+        "install_id": install_id,
+        "app_version": LAYHOUNDS_APP_VERSION,
+        "current_mode": current_mode,
+        "sessions_started_today": sessions_started_today,
+    }
 
 
 async def _get_or_create_install_id(db: AsyncIOMotorDatabase) -> str:
@@ -175,7 +199,7 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
         install_id = await _get_or_create_install_id(db)
         if inp.install_id and inp.install_id != install_id:
             raise HTTPException(400, "install_id mismatch; refresh the page and try again")
-        result = await _call_central("activate", {"key": inp.key, "install_id": install_id})
+        result = await _call_central("activate", await _central_payload(db, inp.key, install_id))
         await _set_local_licence_state(db, {
             "key": inp.key,
             "last_ok": result.get("ok", False),
@@ -207,7 +231,7 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
         key = state.get("key")
         if not key:
             raise HTTPException(400, "Nothing to refresh; activate a licence first")
-        result = await _call_central("validate", {"key": key, "install_id": install_id})
+        result = await _call_central("validate", await _central_payload(db, key, install_id))
         await _set_local_licence_state(db, {
             **state,
             "last_ok": result.get("ok", False),
@@ -228,6 +252,8 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 "LICENCE_SERVER_URL": LICENCE_SERVER_URL or "(not set)",
                 "LICENCE_CACHE_DAYS": LICENCE_CACHE_DAYS,
                 "LICENCE_REVALIDATE_HOURS": LICENCE_REVALIDATE_HOURS,
+                "LICENCE_HEARTBEAT_SECONDS": LICENCE_HEARTBEAT_SECONDS,
+                "LAYHOUNDS_APP_VERSION": LAYHOUNDS_APP_VERSION,
             },
             "connectivity": None,
         }
@@ -260,7 +286,7 @@ async def background_revalidate_loop(db: AsyncIOMotorDatabase) -> None:
             if key:
                 install_id = await _get_or_create_install_id(db)
                 try:
-                    result = await _call_central("validate", {"key": key, "install_id": install_id})
+                    result = await _call_central("validate", await _central_payload(db, key, install_id))
                     await _set_local_licence_state(db, {
                         **state,
                         "last_ok": result.get("ok", False),
@@ -275,3 +301,27 @@ async def background_revalidate_loop(db: AsyncIOMotorDatabase) -> None:
         except Exception:
             logger.exception("Background revalidate loop crashed; restarting")
         await asyncio.sleep(LICENCE_REVALIDATE_HOURS * 3600)
+
+
+async def background_heartbeat_loop(db: AsyncIOMotorDatabase) -> None:
+    """Keep the central install record current while this LayHounds server runs.
+
+    The existing authenticated validation endpoint doubles as the heartbeat.  It
+    accepts only the locally stored licence key and install ID, so arbitrary
+    callers cannot create an active-install record merely by guessing an ID.
+    The hourly revalidation loop remains responsible for updating the local
+    cached licence state; this loop only reports liveness to the Admin service.
+    """
+    while True:
+        try:
+            state = await _get_local_licence_state(db)
+            key = state.get("key")
+            if key:
+                install_id = await _get_or_create_install_id(db)
+                try:
+                    await _call_central("validate", await _central_payload(db, key, install_id))
+                except HTTPException as e:
+                    logger.warning("Licence heartbeat failed: %s (will retry shortly)", e.detail)
+        except Exception:
+            logger.exception("Licence heartbeat loop crashed; restarting")
+        await asyncio.sleep(LICENCE_HEARTBEAT_SECONDS)
