@@ -53,5 +53,4 @@ export const api = {
   refreshBank: (id) => axios.post(`${API}/sessions/${id}/refresh-bank`).then((r) => r.data),
   refreshLiveSettlement: (id) => axios.post(`${API}/sessions/${id}/refresh-live-settlement`).then((r) => r.data),
   refreshPaperLiveSettlement: (id) => axios.post(`${API}/sessions/${id}/refresh-paper-live-settlement`).then((r) => r.data),
-  adminOperations: () => axios.get(`${API}/licences/admin/operations`).then((r) => r.data),
 };
