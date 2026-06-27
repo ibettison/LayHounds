@@ -25,6 +25,10 @@ app.include_router(betfair.router)
 # Customer licence router: safe for public/customer installs.
 if LICENCE_SERVER_URL:
     app.include_router(build_customer_router(db), prefix="/api")
+if os.environ.get("LICENCE_SERVER_MODE", "false").lower() == "true":
+    from licence_server import build_central_router
+
+    app.include_router(build_central_router(db), prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

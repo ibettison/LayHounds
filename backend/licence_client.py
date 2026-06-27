@@ -11,12 +11,16 @@ import logging
 import os
 import uuid
 from datetime import datetime, timezone, timedelta
+from types import SimpleNamespace
 from typing import Literal, Optional
 
 import httpx
 from fastapi import APIRouter, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel
+
+from betfair_client import betfair
+from services.recovery import recovery_total
 
 logger = logging.getLogger("layhounds.licence.client")
 
@@ -27,6 +31,8 @@ LICENCE_REVALIDATE_HOURS = int(os.environ.get("LICENCE_REVALIDATE_HOURS", "1"))
 # without transmitting betting data, credentials, or any browser information.
 LICENCE_HEARTBEAT_SECONDS = max(30, int(os.environ.get("LICENCE_HEARTBEAT_SECONDS", "120")))
 LAYHOUNDS_APP_VERSION = os.environ.get("LAYHOUNDS_APP_VERSION", "unknown").strip() or "unknown"
+LAYHOUNDS_BACKEND_VERSION = os.environ.get("LAYHOUNDS_BACKEND_VERSION", "").strip()
+LAYHOUNDS_GIT_COMMIT = os.environ.get("GIT_COMMIT", os.environ.get("LAYHOUNDS_GIT_COMMIT", "")).strip()
 
 LicenceStatus = Literal["active", "cancelled", "past_due", "trialing", "incomplete"]
 
@@ -77,23 +83,104 @@ def _mask(key: str) -> str:
     return f"{key[:6]}...{key[-4:]}"
 
 
+def _safe_error_message(message: Optional[str]) -> Optional[str]:
+    if not message:
+        return None
+    text = str(message)
+    lowered = text.lower()
+    if any(secret in lowered for secret in ("password=", "token=", "x-authentication", "app_key", "licence_key")):
+        return "Redacted operational error"
+    return text[:240]
+
+
+def _session_result(status: Optional[str]) -> Optional[str]:
+    return {
+        "active": "running",
+        "stopped_win": "stop_win",
+        "stopped_loss": "stop_loss",
+        "stopped_manual": "manually_stopped",
+        "stopped_max": "manually_stopped",
+    }.get(status or "")
+
+
+def _environment_for_mode(mode: Optional[str]) -> str:
+    return {
+        "simulator": "simulator",
+        "paper_live": "paper-live",
+        "live": "live",
+    }.get(mode or "", "paper")
+
+
+def _chain_debt(chain: dict) -> float:
+    return recovery_total(SimpleNamespace(**(chain or {})))
+
+
 async def _central_payload(db: AsyncIOMotorDatabase, key: str, install_id: str) -> dict:
     """Return the small operational snapshot sent with an authenticated heartbeat."""
     day_start = _now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     active_session = await db.sessions.find_one(
         {"status": "active"},
-        {"_id": 0, "config.mode": 1},
+        {"_id": 0},
         sort=[("created_at", -1)],
     )
-    raw_mode = ((active_session or {}).get("config") or {}).get("mode")
-    current_mode = {"simulator": "paper", "paper_live": "paper_live", "live": "live"}.get(raw_mode, "idle")
-    sessions_started_today = await db.sessions.count_documents({"created_at": {"$gte": day_start}})
+    latest_session = await db.sessions.find_one({}, {"_id": 0}, sort=[("created_at", -1)])
+    session_for_config = active_session or latest_session or {}
+    config = session_for_config.get("config") or {}
+    raw_mode = config.get("mode")
+    today_sessions = await db.sessions.find({"created_at": {"$gte": day_start}}, {"_id": 0}).to_list(500)
+
+    current_recovery_debt = round(sum(_chain_debt(c) for c in ((active_session or {}).get("recovery_chains") or {}).values()), 4)
+    max_recovery_debt_today = current_recovery_debt
+    max_liability_used_today = 0.0
+    for session in today_sessions:
+        for chain in (session.get("recovery_chains") or {}).values():
+            max_recovery_debt_today = max(max_recovery_debt_today, _chain_debt(chain))
+        for race in session.get("races") or []:
+            for bet in race.get("bets") or []:
+                max_liability_used_today = max(
+                    max_liability_used_today,
+                    float(bet.get("liability_used") or bet.get("liability") or 0),
+                )
+
+    betfair_status = await betfair.status()
+    licence_state = await _get_local_licence_state(db)
+    last_error_code = None
+    last_error_message = None
+    if not licence_state.get("last_ok", False) and licence_state.get("message"):
+        last_error_code = "LICENCE_VALIDATION_FAILED"
+        last_error_message = licence_state.get("message")
+    if betfair_status.get("configured") and not betfair_status.get("logged_in"):
+        last_error_code = "BETFAIR_CONNECTION_FAILED"
+        last_error_message = betfair_status.get("reason")
+
+    sessions_started_today = len(today_sessions)
     return {
         "key": key,
         "install_id": install_id,
         "app_version": LAYHOUNDS_APP_VERSION,
-        "current_mode": current_mode,
+        "backend_version": LAYHOUNDS_BACKEND_VERSION or None,
+        "git_commit": LAYHOUNDS_GIT_COMMIT[:12] or None,
+        "recovery_mode": config.get("recovery_mode"),
+        "strategy_profile": config.get("favourite_risk_guard"),
+        "environment": _environment_for_mode(raw_mode),
+        "backend_status": "ok",
+        "betfair_connected": bool(betfair_status.get("logged_in")),
+        "licence_validation_status": "valid" if licence_state.get("last_ok", False) else "failing",
+        "last_error_code": last_error_code,
+        "last_error_message": _safe_error_message(last_error_message),
+        "last_error_at": _now().isoformat() if last_error_code else None,
+        "current_mode": raw_mode or "idle",
+        "session_running": bool(active_session),
+        "sessions_today": sessions_started_today,
         "sessions_started_today": sessions_started_today,
+        "last_session_started_at": latest_session.get("created_at") if latest_session else None,
+        "last_session_result": _session_result(latest_session.get("status") if latest_session else None),
+        "current_recovery_debt": current_recovery_debt,
+        "max_recovery_debt_today": round(max_recovery_debt_today, 4),
+        "current_liability_cap": config.get("max_liability_cap"),
+        "max_liability_used_today": round(max_liability_used_today, 4),
+        "stop_win": config.get("stop_win"),
+        "stop_loss": config.get("stop_loss"),
     }
 
 
