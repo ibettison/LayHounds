@@ -30,20 +30,24 @@ export const LicencePanel = () => {
     accepted_privacy: false,
   });
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     try {
       const r = await axios.get(`${API}/licence/status`);
       setData(r.data);
     } catch (e) {
       // 404 means the licence module is not wired on this install — silently hide the panel.
-      if (e.response?.status !== 404) {
+      if (!silent && e.response?.status !== 404) {
         toast.error(e.response?.data?.detail || "Could not read licence status");
       }
       setData(null);
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const id = window.setInterval(() => load(true), 10000);
+    return () => window.clearInterval(id);
+  }, [load]);
 
   const activate = async () => {
     if (!key.trim()) return toast.error("Paste your licence key first");

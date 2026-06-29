@@ -33,6 +33,9 @@ LICENCE_HEARTBEAT_SECONDS = max(30, int(os.environ.get("LICENCE_HEARTBEAT_SECOND
 LAYHOUNDS_APP_VERSION = os.environ.get("LAYHOUNDS_APP_VERSION", "unknown").strip() or "unknown"
 LAYHOUNDS_BACKEND_VERSION = os.environ.get("LAYHOUNDS_BACKEND_VERSION", "").strip()
 LAYHOUNDS_GIT_COMMIT = os.environ.get("GIT_COMMIT", os.environ.get("LAYHOUNDS_GIT_COMMIT", "")).strip()
+TRIAL_SESSION_THRESHOLD = 10
+TRIAL_RACE_THRESHOLD = 500
+TRIAL_ACTIVE_DAY_THRESHOLD = 3
 
 LicenceStatus = Literal["active", "cancelled", "past_due", "trialing", "incomplete", "expired"]
 LicenceTier = Literal["simulator_free", "live_trial", "live_paid"]
@@ -251,6 +254,36 @@ async def _set_local_licence_state(db: AsyncIOMotorDatabase, value: dict) -> Non
     )
 
 
+def _readiness_progress_from_counts(*, sessions: int, races: int, active_days: int) -> dict:
+    return {
+        "sessions": {"current": sessions, "target": TRIAL_SESSION_THRESHOLD},
+        "races_analysed": {"current": races, "target": TRIAL_RACE_THRESHOLD},
+        "active_days": {"current": active_days, "target": TRIAL_ACTIVE_DAY_THRESHOLD},
+        "eligible": (
+            sessions >= TRIAL_SESSION_THRESHOLD
+            and races >= TRIAL_RACE_THRESHOLD
+            and active_days >= TRIAL_ACTIVE_DAY_THRESHOLD
+        ),
+    }
+
+
+async def _local_trial_readiness_progress(db: AsyncIOMotorDatabase) -> dict:
+    sessions = await db.sessions.find(
+        {"config.mode": "simulator"},
+        {"_id": 0, "created_at": 1, "races": 1},
+    ).to_list(100_000)
+    active_days = {
+        str(session.get("created_at", ""))[:10]
+        for session in sessions
+        if session.get("created_at")
+    }
+    return _readiness_progress_from_counts(
+        sessions=len(sessions),
+        races=sum(len(session.get("races") or []) for session in sessions),
+        active_days=len(active_days),
+    )
+
+
 async def is_licence_active(db: AsyncIOMotorDatabase) -> tuple[bool, str]:
     state = await _get_local_licence_state(db)
     if not state.get("key"):
@@ -301,6 +334,15 @@ async def _call_central(endpoint: str, payload: dict) -> dict:
     return resp.json()
 
 
+async def _send_usage_heartbeat(db: AsyncIOMotorDatabase, key: str, install_id: str) -> None:
+    try:
+        await _call_central("validate", await _central_payload(db, key, install_id))
+    except HTTPException as e:
+        logger.warning("Licence usage heartbeat failed: %s", e.detail)
+    except Exception:
+        logger.exception("Licence usage heartbeat crashed")
+
+
 def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
     router = APIRouter(prefix="/licence")
 
@@ -309,6 +351,12 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
         install_id = await _get_or_create_install_id(db)
         state = await _get_local_licence_state(db)
         key = state.get("key")
+        local_progress = await _local_trial_readiness_progress(db)
+        progress = state.get("trial_readiness_progress") or {}
+        if state.get("simulator_enabled") and not state.get("live_enabled"):
+            progress = local_progress
+        if key and LICENCE_SERVER_URL:
+            asyncio.create_task(_send_usage_heartbeat(db, key, install_id))
         last_at = state.get("last_validation_at")
         cache_until = None
         if last_at:
@@ -330,8 +378,8 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
             trial_active=bool(state.get("trial_active")),
             trial_ends_at=state.get("trial_ends_at"),
             trial_days_remaining=int(state.get("trial_days_remaining") or 0),
-            trial_eligible=bool(state.get("trial_eligible")),
-            trial_readiness_progress=state.get("trial_readiness_progress") or {},
+            trial_eligible=bool(state.get("trial_eligible") or local_progress.get("eligible")),
+            trial_readiness_progress=progress,
             marketing_opt_in=bool(state.get("marketing_opt_in")),
             last_validation_at=last_at,
             cache_valid_until=cache_until.isoformat() if cache_until else None,
