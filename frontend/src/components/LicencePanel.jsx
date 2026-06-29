@@ -116,6 +116,7 @@ export const LicencePanel = () => {
 
   const isActive = data.ok && data.bound;
   const liveUnlocked = data.live_enabled && data.bound;
+  const canUpgrade = data.has_key && data.simulator_enabled && !data.live_enabled;
   const progress = data.trial_readiness_progress || {};
   const Icon = isActive ? ShieldCheck : data.has_key ? ShieldAlert : ShieldX;
   const headTone = isActive ? "text-emerald-400" : data.has_key ? "text-amber-400" : "text-zinc-500";
@@ -182,6 +183,39 @@ export const LicencePanel = () => {
                 {data.trial_eligible && (
                   <div className="text-[11px] text-emerald-400 font-mono">Ready for live trial</div>
                 )}
+              </div>
+            )}
+
+            {canUpgrade && (
+              <div className="border border-pink-500/30 bg-pink-500/5 p-3 space-y-2">
+                <div className="text-[9px] uppercase tracking-widest text-pink-300">Upgrade To Paid Live</div>
+                <div className="flex gap-2">
+                  <Input
+                    data-testid="licence-upgrade-key-input"
+                    placeholder="LH-XXXX-XXXX-XXXX-XXXX"
+                    value={key}
+                    onChange={(e) => setKey(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && activate()}
+                    className="rounded-none bg-[#0A0A0A] border-[#2A2A2A] text-white placeholder:text-zinc-600 font-mono"
+                  />
+                  <Button
+                    data-testid="licence-upgrade-activate"
+                    onClick={activate}
+                    disabled={loading}
+                    className="rounded-none bg-pink-500 hover:bg-pink-600 text-white font-bold uppercase tracking-wider text-xs"
+                  >
+                    <Key className="w-3 h-3 mr-1" /> Activate
+                  </Button>
+                </div>
+                <Button
+                  data-testid="licence-upgrade-refresh"
+                  onClick={refresh}
+                  disabled={loading}
+                  variant="outline"
+                  className="w-full rounded-none border-pink-500/30 text-pink-200 hover:text-white hover:border-pink-400 hover:bg-pink-500/10 font-bold uppercase tracking-wider text-xs"
+                >
+                  Refresh paid status
+                </Button>
               </div>
             )}
 
