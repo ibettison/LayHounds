@@ -380,7 +380,7 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
         key = licence.get("licence_key")
         if not key:
             raise HTTPException(502, "Licence server did not return a simulator licence key")
-        validation = await _call_central("validate", await _central_payload(db, key, install_id))
+        validation = await _call_central("activate", await _central_payload(db, key, install_id))
         await _set_local_licence_state(db, {
             "key": key,
             "last_ok": validation.get("ok", False),
