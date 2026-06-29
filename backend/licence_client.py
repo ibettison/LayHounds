@@ -17,7 +17,7 @@ from typing import Literal, Optional
 import httpx
 from fastapi import APIRouter, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from betfair_client import betfair
 from services.recovery import recovery_total
@@ -34,7 +34,8 @@ LAYHOUNDS_APP_VERSION = os.environ.get("LAYHOUNDS_APP_VERSION", "unknown").strip
 LAYHOUNDS_BACKEND_VERSION = os.environ.get("LAYHOUNDS_BACKEND_VERSION", "").strip()
 LAYHOUNDS_GIT_COMMIT = os.environ.get("GIT_COMMIT", os.environ.get("LAYHOUNDS_GIT_COMMIT", "")).strip()
 
-LicenceStatus = Literal["active", "cancelled", "past_due", "trialing", "incomplete"]
+LicenceStatus = Literal["active", "cancelled", "past_due", "trialing", "incomplete", "expired"]
+LicenceTier = Literal["simulator_free", "live_trial", "live_paid"]
 
 
 class ActivateRequest(BaseModel):
@@ -52,11 +53,29 @@ class ValidateRequest(BaseModel):
     install_id: str
 
 
+class FreeSimulatorLicenceRequest(BaseModel):
+    first_name: str
+    email: str
+    marketing_opt_in: bool = False
+    accepted_terms: bool
+    accepted_privacy: bool
+
+
 class ValidateResponse(BaseModel):
     ok: bool
     status: LicenceStatus
+    licence_tier: LicenceTier = "live_paid"
     bound_install_id: Optional[str] = None
     current_period_end: datetime
+    simulator_enabled: bool = False
+    paper_live_enabled: bool = False
+    live_enabled: bool = False
+    trial_active: bool = False
+    trial_ends_at: Optional[datetime] = None
+    trial_days_remaining: int = 0
+    trial_eligible: bool = False
+    trial_readiness_progress: dict = Field(default_factory=dict)
+    marketing_opt_in: bool = False
     message: Optional[str] = None
 
 
@@ -67,7 +86,17 @@ class LicenceStatusOut(BaseModel):
     bound: bool
     ok: bool
     status: Optional[LicenceStatus] = None
+    licence_tier: Optional[LicenceTier] = None
     current_period_end: Optional[datetime] = None
+    simulator_enabled: bool = False
+    paper_live_enabled: bool = False
+    live_enabled: bool = False
+    trial_active: bool = False
+    trial_ends_at: Optional[datetime] = None
+    trial_days_remaining: int = 0
+    trial_eligible: bool = False
+    trial_readiness_progress: dict = Field(default_factory=dict)
+    marketing_opt_in: bool = False
     last_validation_at: Optional[datetime] = None
     cache_valid_until: Optional[datetime] = None
     message: Optional[str] = None
@@ -128,6 +157,18 @@ async def _central_payload(db: AsyncIOMotorDatabase, key: str, install_id: str) 
     config = session_for_config.get("config") or {}
     raw_mode = config.get("mode")
     today_sessions = await db.sessions.find({"created_at": {"$gte": day_start}}, {"_id": 0}).to_list(500)
+    all_sessions = await db.sessions.find({}, {"_id": 0, "created_at": 1, "config": 1, "races": 1, "status": 1}).to_list(100_000)
+    simulator_sessions = [
+        session for session in all_sessions
+        if (session.get("config") or {}).get("mode") == "simulator"
+    ]
+    active_days = {
+        str(session.get("created_at", ""))[:10]
+        for session in simulator_sessions
+        if session.get("created_at")
+    }
+    total_races_analysed = sum(len(session.get("races") or []) for session in simulator_sessions)
+    stop_win_sessions = sum(1 for session in simulator_sessions if session.get("status") == "stopped_win")
 
     current_recovery_debt = round(sum(_chain_debt(c) for c in ((active_session or {}).get("recovery_chains") or {}).values()), 4)
     max_recovery_debt_today = current_recovery_debt
@@ -173,6 +214,10 @@ async def _central_payload(db: AsyncIOMotorDatabase, key: str, install_id: str) 
         "session_running": bool(active_session),
         "sessions_today": sessions_started_today,
         "sessions_started_today": sessions_started_today,
+        "total_simulator_sessions": len(simulator_sessions),
+        "total_races_analysed": total_races_analysed,
+        "active_days_count": len(active_days),
+        "stop_win_sessions": stop_win_sessions,
         "last_session_started_at": latest_session.get("created_at") if latest_session else None,
         "last_session_result": _session_result(latest_session.get("status") if latest_session else None),
         "current_recovery_debt": current_recovery_debt,
@@ -212,6 +257,8 @@ async def is_licence_active(db: AsyncIOMotorDatabase) -> tuple[bool, str]:
         return False, "No licence key activated on this install"
     if not state.get("last_ok"):
         return False, state.get("message") or "Last validation failed"
+    if state.get("live_enabled") is False:
+        return False, "Live access is not enabled for this licence tier"
 
     last_validation_at = state.get("last_validation_at")
     if last_validation_at:
@@ -275,7 +322,17 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
             bound=bool(state.get("bound_install_id") == install_id),
             ok=state.get("last_ok", False),
             status=state.get("status"),
+            licence_tier=state.get("licence_tier"),
             current_period_end=state.get("current_period_end"),
+            simulator_enabled=bool(state.get("simulator_enabled")),
+            paper_live_enabled=bool(state.get("paper_live_enabled")),
+            live_enabled=bool(state.get("live_enabled")),
+            trial_active=bool(state.get("trial_active")),
+            trial_ends_at=state.get("trial_ends_at"),
+            trial_days_remaining=int(state.get("trial_days_remaining") or 0),
+            trial_eligible=bool(state.get("trial_eligible")),
+            trial_readiness_progress=state.get("trial_readiness_progress") or {},
+            marketing_opt_in=bool(state.get("marketing_opt_in")),
             last_validation_at=last_at,
             cache_valid_until=cache_until.isoformat() if cache_until else None,
             message=state.get("message"),
@@ -291,10 +348,57 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
             "key": inp.key,
             "last_ok": result.get("ok", False),
             "status": result.get("status"),
+            "licence_tier": result.get("licence_tier"),
             "bound_install_id": result.get("bound_install_id"),
             "current_period_end": result.get("current_period_end"),
+            "simulator_enabled": result.get("simulator_enabled", False),
+            "paper_live_enabled": result.get("paper_live_enabled", False),
+            "live_enabled": result.get("live_enabled", False),
+            "trial_active": result.get("trial_active", False),
+            "trial_ends_at": result.get("trial_ends_at"),
+            "trial_days_remaining": result.get("trial_days_remaining", 0),
+            "trial_eligible": result.get("trial_eligible", False),
+            "trial_readiness_progress": result.get("trial_readiness_progress") or {},
+            "marketing_opt_in": result.get("marketing_opt_in", False),
             "last_validation_at": _now().isoformat(),
             "message": result.get("message"),
+        })
+        return await status()
+
+    @router.post("/free-simulator", response_model=LicenceStatusOut)
+    async def free_simulator(inp: FreeSimulatorLicenceRequest):
+        install_id = await _get_or_create_install_id(db)
+        result = await _call_central("free-simulator", {
+            "first_name": inp.first_name,
+            "email": inp.email,
+            "marketing_opt_in": inp.marketing_opt_in,
+            "accepted_terms": inp.accepted_terms,
+            "accepted_privacy": inp.accepted_privacy,
+            "install_id": install_id,
+        })
+        licence = result.get("licence") or {}
+        key = licence.get("licence_key")
+        if not key:
+            raise HTTPException(502, "Licence server did not return a simulator licence key")
+        validation = await _call_central("validate", await _central_payload(db, key, install_id))
+        await _set_local_licence_state(db, {
+            "key": key,
+            "last_ok": validation.get("ok", False),
+            "status": validation.get("status"),
+            "licence_tier": validation.get("licence_tier"),
+            "bound_install_id": validation.get("bound_install_id"),
+            "current_period_end": validation.get("current_period_end"),
+            "simulator_enabled": validation.get("simulator_enabled", False),
+            "paper_live_enabled": validation.get("paper_live_enabled", False),
+            "live_enabled": validation.get("live_enabled", False),
+            "trial_active": validation.get("trial_active", False),
+            "trial_ends_at": validation.get("trial_ends_at"),
+            "trial_days_remaining": validation.get("trial_days_remaining", 0),
+            "trial_eligible": validation.get("trial_eligible", False),
+            "trial_readiness_progress": validation.get("trial_readiness_progress") or {},
+            "marketing_opt_in": validation.get("marketing_opt_in", False),
+            "last_validation_at": _now().isoformat(),
+            "message": validation.get("message"),
         })
         return await status()
 
@@ -323,8 +427,18 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
             **state,
             "last_ok": result.get("ok", False),
             "status": result.get("status"),
+            "licence_tier": result.get("licence_tier"),
             "bound_install_id": result.get("bound_install_id"),
             "current_period_end": result.get("current_period_end"),
+            "simulator_enabled": result.get("simulator_enabled", False),
+            "paper_live_enabled": result.get("paper_live_enabled", False),
+            "live_enabled": result.get("live_enabled", False),
+            "trial_active": result.get("trial_active", False),
+            "trial_ends_at": result.get("trial_ends_at"),
+            "trial_days_remaining": result.get("trial_days_remaining", 0),
+            "trial_eligible": result.get("trial_eligible", False),
+            "trial_readiness_progress": result.get("trial_readiness_progress") or {},
+            "marketing_opt_in": result.get("marketing_opt_in", False),
             "last_validation_at": _now().isoformat(),
             "message": result.get("message"),
         })
@@ -378,8 +492,18 @@ async def background_revalidate_loop(db: AsyncIOMotorDatabase) -> None:
                         **state,
                         "last_ok": result.get("ok", False),
                         "status": result.get("status"),
+                        "licence_tier": result.get("licence_tier"),
                         "bound_install_id": result.get("bound_install_id"),
                         "current_period_end": result.get("current_period_end"),
+                        "simulator_enabled": result.get("simulator_enabled", False),
+                        "paper_live_enabled": result.get("paper_live_enabled", False),
+                        "live_enabled": result.get("live_enabled", False),
+                        "trial_active": result.get("trial_active", False),
+                        "trial_ends_at": result.get("trial_ends_at"),
+                        "trial_days_remaining": result.get("trial_days_remaining", 0),
+                        "trial_eligible": result.get("trial_eligible", False),
+                        "trial_readiness_progress": result.get("trial_readiness_progress") or {},
+                        "marketing_opt_in": result.get("marketing_opt_in", False),
                         "last_validation_at": _now().isoformat(),
                         "message": result.get("message"),
                     })
