@@ -7,10 +7,12 @@ separate central licensing service configured by LICENCE_SERVER_URL.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import uuid
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Literal, Optional
 
@@ -30,8 +32,19 @@ LICENCE_REVALIDATE_HOURS = int(os.environ.get("LICENCE_REVALIDATE_HOURS", "1"))
 # A heartbeat makes the central Admin view useful for operational monitoring
 # without transmitting betting data, credentials, or any browser information.
 LICENCE_HEARTBEAT_SECONDS = max(30, int(os.environ.get("LICENCE_HEARTBEAT_SECONDS", "120")))
-LAYHOUNDS_APP_VERSION = os.environ.get("LAYHOUNDS_APP_VERSION", "unknown").strip() or "unknown"
-LAYHOUNDS_BACKEND_VERSION = os.environ.get("LAYHOUNDS_BACKEND_VERSION", "").strip()
+
+def _package_version() -> str:
+    try:
+        package_json = Path(__file__).resolve().parents[1] / "frontend" / "package.json"
+        with package_json.open(encoding="utf-8") as handle:
+            version = json.load(handle).get("version")
+        return str(version).strip() if version else "0.0.0-dev"
+    except Exception:
+        return "0.0.0-dev"
+
+
+LAYHOUNDS_APP_VERSION = os.environ.get("LAYHOUNDS_APP_VERSION", "").strip() or _package_version()
+LAYHOUNDS_BACKEND_VERSION = os.environ.get("LAYHOUNDS_BACKEND_VERSION", "").strip() or LAYHOUNDS_APP_VERSION
 LAYHOUNDS_GIT_COMMIT = os.environ.get("GIT_COMMIT", os.environ.get("LAYHOUNDS_GIT_COMMIT", "")).strip()
 TRIAL_SESSION_THRESHOLD = 10
 TRIAL_RACE_THRESHOLD = 500
@@ -140,7 +153,7 @@ def _environment_for_mode(mode: Optional[str]) -> str:
         "simulator": "simulator",
         "paper_live": "paper-live",
         "live": "live",
-    }.get(mode or "", "paper")
+    }.get(mode or "", "idle")
 
 
 def _chain_debt(chain: dict) -> float:
