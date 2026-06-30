@@ -17,7 +17,7 @@ from types import SimpleNamespace
 from typing import Literal, Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
 
@@ -115,6 +115,8 @@ class LicenceStatusOut(BaseModel):
     marketing_opt_in: bool = False
     last_validation_at: Optional[datetime] = None
     cache_valid_until: Optional[datetime] = None
+    pending_email_verification: bool = False
+    pending_email: Optional[str] = None
     message: Optional[str] = None
 
 
@@ -356,6 +358,44 @@ async def _send_usage_heartbeat(db: AsyncIOMotorDatabase, key: str, install_id: 
         logger.exception("Licence usage heartbeat crashed")
 
 
+async def _store_validation_state(db: AsyncIOMotorDatabase, key: str, result: dict) -> None:
+    await _set_local_licence_state(db, {
+        "key": key,
+        "last_ok": result.get("ok", False),
+        "status": result.get("status"),
+        "licence_tier": result.get("licence_tier"),
+        "bound_install_id": result.get("bound_install_id"),
+        "current_period_end": result.get("current_period_end"),
+        "simulator_enabled": result.get("simulator_enabled", False),
+        "paper_live_enabled": result.get("paper_live_enabled", False),
+        "live_enabled": result.get("live_enabled", False),
+        "trial_active": result.get("trial_active", False),
+        "trial_ends_at": result.get("trial_ends_at"),
+        "trial_days_remaining": result.get("trial_days_remaining", 0),
+        "trial_eligible": result.get("trial_eligible", False),
+        "trial_readiness_progress": result.get("trial_readiness_progress") or {},
+        "marketing_opt_in": result.get("marketing_opt_in", False),
+        "last_validation_at": _now().isoformat(),
+        "message": result.get("message"),
+    })
+
+
+async def _claim_verified_free_simulator(db: AsyncIOMotorDatabase, state: dict, install_id: str) -> dict:
+    email = state.get("pending_email")
+    if not email:
+        return state
+    result = await _call_central("free-simulator/claim", {"email": email, "install_id": install_id})
+    if not result.get("verified"):
+        return state
+    licence = result.get("licence") or {}
+    key = licence.get("licence_key")
+    if not key:
+        return state
+    validation = await _call_central("activate", await _central_payload(db, key, install_id))
+    await _store_validation_state(db, key, validation)
+    return await _get_local_licence_state(db)
+
+
 def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
     router = APIRouter(prefix="/licence")
 
@@ -363,6 +403,11 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
     async def status():
         install_id = await _get_or_create_install_id(db)
         state = await _get_local_licence_state(db)
+        if state.get("pending_email_verification") and not state.get("key"):
+            try:
+                state = await _claim_verified_free_simulator(db, state, install_id)
+            except HTTPException as e:
+                logger.warning("Free simulator verification claim failed: %s", e.detail)
         key = state.get("key")
         local_progress = await _local_trial_readiness_progress(db)
         progress = state.get("trial_readiness_progress") or {}
@@ -396,6 +441,8 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
             marketing_opt_in=bool(state.get("marketing_opt_in")),
             last_validation_at=last_at,
             cache_valid_until=cache_until.isoformat() if cache_until else None,
+            pending_email_verification=bool(state.get("pending_email_verification")),
+            pending_email=state.get("pending_email"),
             message=state.get("message"),
         )
 
@@ -405,30 +452,13 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if inp.install_id and inp.install_id != install_id:
             raise HTTPException(400, "install_id mismatch; refresh the page and try again")
         result = await _call_central("activate", await _central_payload(db, inp.key, install_id))
-        await _set_local_licence_state(db, {
-            "key": inp.key,
-            "last_ok": result.get("ok", False),
-            "status": result.get("status"),
-            "licence_tier": result.get("licence_tier"),
-            "bound_install_id": result.get("bound_install_id"),
-            "current_period_end": result.get("current_period_end"),
-            "simulator_enabled": result.get("simulator_enabled", False),
-            "paper_live_enabled": result.get("paper_live_enabled", False),
-            "live_enabled": result.get("live_enabled", False),
-            "trial_active": result.get("trial_active", False),
-            "trial_ends_at": result.get("trial_ends_at"),
-            "trial_days_remaining": result.get("trial_days_remaining", 0),
-            "trial_eligible": result.get("trial_eligible", False),
-            "trial_readiness_progress": result.get("trial_readiness_progress") or {},
-            "marketing_opt_in": result.get("marketing_opt_in", False),
-            "last_validation_at": _now().isoformat(),
-            "message": result.get("message"),
-        })
+        await _store_validation_state(db, inp.key, result)
         return await status()
 
     @router.post("/free-simulator", response_model=LicenceStatusOut)
-    async def free_simulator(inp: FreeSimulatorLicenceRequest):
+    async def free_simulator(inp: FreeSimulatorLicenceRequest, request: Request):
         install_id = await _get_or_create_install_id(db)
+        return_url = str(request.base_url).rstrip("/") + "/licence"
         result = await _call_central("free-simulator", {
             "first_name": inp.first_name,
             "email": inp.email,
@@ -436,31 +466,21 @@ def build_customer_router(db: AsyncIOMotorDatabase) -> APIRouter:
             "accepted_terms": inp.accepted_terms,
             "accepted_privacy": inp.accepted_privacy,
             "install_id": install_id,
+            "return_url": return_url,
         })
+        if result.get("pending_verification"):
+            await _set_local_licence_state(db, {
+                "pending_email_verification": True,
+                "pending_email": result.get("email") or inp.email,
+                "message": result.get("message") or "Check your email to verify this address.",
+            })
+            return await status()
         licence = result.get("licence") or {}
         key = licence.get("licence_key")
         if not key:
             raise HTTPException(502, "Licence server did not return a simulator licence key")
         validation = await _call_central("activate", await _central_payload(db, key, install_id))
-        await _set_local_licence_state(db, {
-            "key": key,
-            "last_ok": validation.get("ok", False),
-            "status": validation.get("status"),
-            "licence_tier": validation.get("licence_tier"),
-            "bound_install_id": validation.get("bound_install_id"),
-            "current_period_end": validation.get("current_period_end"),
-            "simulator_enabled": validation.get("simulator_enabled", False),
-            "paper_live_enabled": validation.get("paper_live_enabled", False),
-            "live_enabled": validation.get("live_enabled", False),
-            "trial_active": validation.get("trial_active", False),
-            "trial_ends_at": validation.get("trial_ends_at"),
-            "trial_days_remaining": validation.get("trial_days_remaining", 0),
-            "trial_eligible": validation.get("trial_eligible", False),
-            "trial_readiness_progress": validation.get("trial_readiness_progress") or {},
-            "marketing_opt_in": validation.get("marketing_opt_in", False),
-            "last_validation_at": _now().isoformat(),
-            "message": validation.get("message"),
-        })
+        await _store_validation_state(db, key, validation)
         return await status()
 
     @router.post("/release", response_model=LicenceStatusOut)

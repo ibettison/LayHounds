@@ -76,7 +76,11 @@ export const LicencePanel = () => {
     try {
       const r = await axios.post(`${API}/licence/free-simulator`, freeForm);
       setData(r.data);
-      toast.success("Free simulator licence activated");
+      if (r.data.pending_email_verification) {
+        toast.success("Check your email to verify your simulator licence");
+      } else {
+        toast.success("Free simulator licence activated");
+      }
     } catch (e) {
       toast.error(e.response?.data?.detail || "Could not create simulator licence");
     } finally {
@@ -254,42 +258,68 @@ export const LicencePanel = () => {
                 <Key className="w-3 h-3 mr-1" /> Activate
               </Button>
             </div>
-            <div className="border-t border-[#2A2A2A] pt-3 space-y-2">
-              <div className="text-[9px] uppercase tracking-widest text-zinc-500">Free Simulator Licence</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Input
-                  placeholder="First name"
-                  value={freeForm.first_name}
-                  onChange={(e) => setFreeForm({ ...freeForm, first_name: e.target.value })}
-                  className="rounded-none bg-[#0A0A0A] border-[#2A2A2A] text-white placeholder:text-zinc-600"
-                />
-                <Input
-                  placeholder="Email"
-                  value={freeForm.email}
-                  onChange={(e) => setFreeForm({ ...freeForm, email: e.target.value })}
-                  className="rounded-none bg-[#0A0A0A] border-[#2A2A2A] text-white placeholder:text-zinc-600"
-                />
+            {data.pending_email_verification ? (
+              <div className="border-t border-[#2A2A2A] pt-3 space-y-2">
+                <div className="text-[9px] uppercase tracking-widest text-zinc-500">Free Simulator Licence</div>
+                <div className="border border-emerald-500/25 bg-emerald-500/5 p-3 space-y-2">
+                  <div className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                    Check your email
+                  </div>
+                  <div className="text-[11px] leading-relaxed text-zinc-300">
+                    Verification is waiting for {data.pending_email || "your email address"}. After you click the link,
+                    this panel will activate the simulator automatically.
+                  </div>
+                  {data.message && (
+                    <div className="text-[10px] font-mono text-zinc-500">{data.message}</div>
+                  )}
+                  <Button
+                    onClick={refresh}
+                    disabled={loading}
+                    variant="outline"
+                    className="w-full rounded-none border-emerald-500/30 text-emerald-200 hover:text-white hover:border-emerald-400 hover:bg-emerald-500/10 font-bold uppercase tracking-wider text-xs"
+                  >
+                    <RefreshCw className={`w-3 h-3 mr-1 ${loading ? "animate-spin" : ""}`} /> Check verification
+                  </Button>
+                </div>
               </div>
-              <label className="flex items-center gap-2 text-[11px] text-zinc-400">
-                <input type="checkbox" checked={freeForm.marketing_opt_in} onChange={(e) => setFreeForm({ ...freeForm, marketing_opt_in: e.target.checked })} />
-                Send me product tips and offers
-              </label>
-              <label className="flex items-center gap-2 text-[11px] text-zinc-400">
-                <input type="checkbox" checked={freeForm.accepted_terms} onChange={(e) => setFreeForm({ ...freeForm, accepted_terms: e.target.checked })} />
-                I accept the terms
-              </label>
-              <label className="flex items-center gap-2 text-[11px] text-zinc-400">
-                <input type="checkbox" checked={freeForm.accepted_privacy} onChange={(e) => setFreeForm({ ...freeForm, accepted_privacy: e.target.checked })} />
-                I accept the privacy policy
-              </label>
-              <Button
-                onClick={createFreeSimulator}
-                disabled={loading}
-                className="w-full rounded-none bg-emerald-500 hover:bg-emerald-600 text-white font-bold uppercase tracking-wider text-xs"
-              >
-                <UserPlus className="w-3 h-3 mr-1" /> Create free simulator licence
-              </Button>
-            </div>
+            ) : (
+              <div className="border-t border-[#2A2A2A] pt-3 space-y-2">
+                <div className="text-[9px] uppercase tracking-widest text-zinc-500">Free Simulator Licence</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Input
+                    placeholder="First name"
+                    value={freeForm.first_name}
+                    onChange={(e) => setFreeForm({ ...freeForm, first_name: e.target.value })}
+                    className="rounded-none bg-[#0A0A0A] border-[#2A2A2A] text-white placeholder:text-zinc-600"
+                  />
+                  <Input
+                    placeholder="Email"
+                    value={freeForm.email}
+                    onChange={(e) => setFreeForm({ ...freeForm, email: e.target.value })}
+                    className="rounded-none bg-[#0A0A0A] border-[#2A2A2A] text-white placeholder:text-zinc-600"
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-[11px] text-zinc-400">
+                  <input type="checkbox" checked={freeForm.marketing_opt_in} onChange={(e) => setFreeForm({ ...freeForm, marketing_opt_in: e.target.checked })} />
+                  Send me product tips and offers
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-zinc-400">
+                  <input type="checkbox" checked={freeForm.accepted_terms} onChange={(e) => setFreeForm({ ...freeForm, accepted_terms: e.target.checked })} />
+                  I accept the terms
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-zinc-400">
+                  <input type="checkbox" checked={freeForm.accepted_privacy} onChange={(e) => setFreeForm({ ...freeForm, accepted_privacy: e.target.checked })} />
+                  I accept the privacy policy
+                </label>
+                <Button
+                  onClick={createFreeSimulator}
+                  disabled={loading}
+                  className="w-full rounded-none bg-emerald-500 hover:bg-emerald-600 text-white font-bold uppercase tracking-wider text-xs"
+                >
+                  <UserPlus className="w-3 h-3 mr-1" /> Create free simulator licence
+                </Button>
+              </div>
+            )}
           </>
         )}
 
